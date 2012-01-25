@@ -1,8 +1,0 @@
-echo "escrita0"
-dd if=/dev/zero of=./escrita0 bs=4K count=524288
-echo "escrita1"
-dd if=/dev/zero of=./escrita1 bs=4K count=524288
-echo "escrita2"
-dd if=/dev/zero of=./escrita2 bs=4K count=524288
-echo "escrita3"
-dd if=/dev/zero of=./escrita3 bs=4K count=524288

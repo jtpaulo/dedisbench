@@ -1,0 +1,99 @@
+/* DEDISbench
+ * (c) 2010 2010 U. Minho. Written by J. Paulo
+ */
+ 
+I/O write benchmark:
+The benchmark is written in C and can simulate several processes writing fixed size 
+blocks concurrently into multiple files. The location for the write operations is 
+given by NURand function from TPC-C benchmark that generates hotspots for I/O 
+operations. A default distribution identical to the one found in our group’s personal 
+files (http://gsd.di.uminho.pt/), presenting a subset of the type of data one could find at a cloud provider, is 
+used to generate the blocks’ content. However, in the future, it will be possible to 
+use other distributions and load them from a custom file. DEDISbench provides two 
+workload modes, one reproduces a fully or peak loaded system, as Bonnie++, that 
+performs as maximum write I/O operations per second as possible. The second reproduces 
+a system under a reasonable nominal load, and can be useful for understanding the 
+behavior of aliasing operations in a stable system with a limited I/O throughput.
+
+I/O read Benchmark:
+
+The benchmark can also evaluate read I/O operations, with the NURand distribution for 
+I/O accesses and a peak or nominal load.
+
+Instalation.
+
+The only lib requires should be libc
+
+Run make in DEDISbench folder.
+
+Running the Benchmark
+
+Required flags
+
+ -p or -n<value>	Peak or Nominal Load with throughput rate of N operations per 
+ second
+ 
+ -w or -r			Write or Read Benchmark
+ 
+ -t<value>			Benchmark duration in Minutes
+
+
+Optional Flags
+ -c<value>		Number of concurrent processes default:4. Each process has an 
+ independent file associated
+ 
+ -f<value>		Size of the file of each process in MB default:2048 MB
+ 
+ -l				I/O latency results are written to a log file to extract additional 
+ statistics. Each process writes these values in a file called result(processid) and
+ each line, corresponds to a single I/O operations and presents: 
+ (latency of I/O operation in microseconds) (current time in seconds) \n
+ 
+ -e or -d		Enable or disable the population of process files before running 
+ DEDISbench. test(processid files in DEDISbench directory are the files used by 
+ each process. For write testes and by default, empty files are created, 
+ for read tests and by default the files are populated with content.
+ It is possible to enable this feature for write tests and acess rewrite 
+ operations or to disable and use a custom file that respects the namings.
+ 
+ //NOT SUPPORTED YET
+ -b<value>		Size of blocks for I/O operations in Bytes default: 4096
+ 
+ //NOT SUPPORTED YET
+ -d<value>		File with duplicate distribution default:internal file called dupsdist
+ 
+ -s<value>		Seed for random generator default:current time. Usefull for repeating
+tests with the same settings.
+
+Examples:
+
+run write benchmark in peak mode for 5 minutes 
+./DEDISbench -p -w -t5
+
+run read benchmark in nominal mode (300 reads/second) for 10 minutes
+./DEDISbench -n300 -r -t10
+
+run write benchmark in peak mode for 5 minutes. Enable the population of process files
+before actually running the benchmark load and enable log output for results.
+Use files with 4GB for each process and 8 processes.
+./DEDISbench -p -w -t5 -e -l -f4096 -c8
+
+run read benchmark in nominal mode (300 reads/second) for 8 minutes.
+Disable the pre-population of files. Carefull because files test(processid) must be 
+present and have content or no content will be available for reading resulting in
+I/O errors. 
+
+./DEDISbench -n300 -r -t8 -d 
+
+For more information please contact:
+jtpaulo at di.uminho.pt
+
+
+
+
+
+
+
+
+
+	
