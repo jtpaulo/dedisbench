@@ -24,7 +24,7 @@ Instalation.
 
 The only lib requires should be libc
 
-Run make in DEDISbench folder.
+Run ./configure, make and make install in DEDISbench folder
 
 Running the Benchmark
 

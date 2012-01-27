@@ -3,7 +3,7 @@
  */
 
 //random generation
-#include "SFMT.c"
+#include "randomgen/SFMT.c"
 #include <unistd.h>
 #include <stdio.h>
 #include <signal.h>

@@ -1,0 +1,21 @@
+------------------------------------------------------------
+revno: 3
+committer: jtpaulo <jtpaulo@di.uminho.pt>
+branch nick: DEDISbench
+timestamp: Wed 2012-01-25 21:17:25 +0000
+message:
+  removed unecessary file
+------------------------------------------------------------
+revno: 2
+committer: jtpaulo <jtpaulo@di.uminho.pt>
+branch nick: DEDISbench
+timestamp: Wed 2012-01-25 18:24:34 +0000
+message:
+  Restructured DEDISbench. All code is documented and the write/read and nominal/peak features were merged into a single process. Added more features for the user to control (benchmark duration, nominal ratio, logging, concurrent processes and file size) and a bash interface. Added documentation for installing and running the benchmark.
+------------------------------------------------------------
+revno: 1
+committer: jtpaulo <jtpaulo@di.uminho.pt>
+branch nick: DEDISbench
+timestamp: Thu 2012-01-19 09:40:19 +0000
+message:
+  Initial import DEDISbench
