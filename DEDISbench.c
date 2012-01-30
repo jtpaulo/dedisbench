@@ -33,6 +33,8 @@
  * TODO: Change the benchmark to run for N operations instead of minutes (EASY: just change while loop condition)
  * TODO: change block size
  * TODO: custom duplicates distribution -> this is easy...
+ * TODO: persistent files must be in a specific location
+ * 		 write files should be in a folder specified by the user like in bonnie++
  */
 
 //type of I/O
@@ -102,7 +104,10 @@ int create_pfile(int procid){
 
 	 //device where the process will write
 	 int fd_test = open(name, O_RDWR | O_LARGEFILE | O_CREAT);
-	 if(fd_test==-1) perror("Error opening file for process I/O");
+	 if(fd_test==-1) {
+		 perror("Error opening file for process I/O");
+		 exit(0);
+	 }
 
 	 return fd_test;
 }
@@ -285,8 +290,6 @@ void process_run(int idproc, int nproc, double ratio, int duration, int iotype, 
 		gettimeofday(&tim, NULL);
 		uint64_t t1=tim.tv_sec*1000000+(tim.tv_usec);
 
-
-
 		uint64_t res = pread(fd_test,buf,block_size,iooffset);
 
 		//latency calculation
@@ -431,10 +434,8 @@ int main(int argc, char *argv[]){
     //duration of benchmark (minutes)
     int time_to_run =-1;
     //Optional parameters
-    //duplicates distribution file (default homer file)
-    char fname[40];
-    strcpy(fname,"dupsdist");
-	//Number of processes (default 4)
+    //duplicates distribution file (default homer file DFILE)
+    //Number of processes (default 4)
 	int nproc =4;
 	//File size for process in MB (default 2048)
 	uint64_t filesize = 2048LLU;
@@ -580,9 +581,9 @@ int main(int argc, char *argv[]){
 
 	//get global information about duplicate and unique blocks
 	printf("loading duplicates distribution...\n");
-	get_distibution_stats(fname);
+	get_distibution_stats(DFILE);
 	//load duplicate array for using in the benchmark
-	load_duplicates(fname);
+	load_duplicates(DFILE);
 
 	//printf("distinct blocks %llu number unique blocks %llu number duplicates %llu\n",(long long unsigned int)total_blocks, (long long unsigned int)unique_blocks,(long long unsigned int)duplicated_blocks);
 

@@ -17,6 +17,11 @@
 
 #include "iodist.c"
 
+//FIle can be in source directory or in /etc/dedisbench if installed with deb package
+#define DFILE "dupsdist"
+//TODO change this in a future implementation
+#define DFILEA "/etc/dedisbench/dupsdist"
+
 //Number of distinct content blocks with duplicates
 uint64_t duplicated_blocks;
 //= 1839041;
@@ -48,6 +53,12 @@ void get_distibution_stats(char* fname){
 	//open file with distribution
 	//number_of_duplicates number_blocks_with_those_duplicates
 	FILE *fp = fopen(fname,"r");
+	//if the file did not opened try in alternative directory
+	//THis is a temporary FIX
+	if(!fp){
+		fp = fopen(DFILEA,"r");
+	}
+
 
 	//TODO: find reasonable size
 	char line[50];
@@ -109,7 +120,7 @@ void get_distibution_stats(char* fname){
 	  }
 	  else{
 
-		  perror("failed to load the suplicate distribution file");
+		  perror("failed to load the duplicate distribution file");
 
 	  }
 
@@ -128,6 +139,11 @@ void load_duplicates(char* fname){
     //open file with distribution
     //number_of_duplicates number_blocks_with_those_duplicates
     FILE *fp = fopen(fname,"r");
+    //if the file did not opened try in alternative directory
+    //THis is a temporary FIX
+    if(!fp){
+    	fp = fopen(DFILEA,"r");
+    }
 
     //TODO: find reasonable size
     char line[50];
