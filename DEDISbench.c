@@ -35,6 +35,7 @@
  * TODO: custom duplicates distribution -> this is easy...
  * TODO: persistent files must be in a specific location
  * 		 write files should be in a folder specified by the user like in bonnie++
+ * TODO: Build failed on i386. error on open flags
  */
 
 //type of I/O
@@ -103,7 +104,7 @@ int create_pfile(int procid){
 	 strcat(name,id);
 
 	 //device where the process will write
-	 int fd_test = open(name, O_RDWR | O_LARGEFILE | O_CREAT);
+	 int fd_test = open(name, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
 	 if(fd_test==-1) {
 		 perror("Error opening file for process I/O");
 		 exit(0);
