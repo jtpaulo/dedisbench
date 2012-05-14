@@ -15,6 +15,8 @@
 #include <time.h>
 #include <sys/wait.h>
 
+#include "berk.c"
+
 #include "iodist.c"
 
 //FIle can be in source directory or in /etc/dedisbench if installed with deb package
@@ -22,12 +24,27 @@
 //TODO change this in a future implementation
 #define DFILEA "/etc/dedisbench/dupsdist"
 
+
+//print dist file DB
+DB **dbpdist; // DB structure handle
+DB_ENV **envpdist;
+#define DISTDB "benchdbs/distdb/"
+
+/*
+//Merge statistic lists DB
+DB **dbpstat; // DB structure handle
+DB_ENV **envpstat;
+#define STATDB "statdb/"
+*/
+
 //Number of distinct content blocks with duplicates
 uint64_t duplicated_blocks;
 //= 1839041;
 
-//Number unique blocks withouth duplicates
-uint64_t unique_blocks;
+//Number blocks withouth duplicates
+//it refers to blocks
+//without any duplicate and not to unique blocks found at the storage
+uint64_t zero_copy_blocks;
 //= 22610369;
 
 //TOtal Number of blocks at the data set
@@ -42,10 +59,25 @@ uint64_t *stats;
 uint64_t *sum;
 //[1839041];
 
+uint64_t *statistics;
+
+uint64_t above=0;
+uint64_t below=0;
+
+
 //blocks without any duplicate
-uint64_t unique=0;
+uint64_t uni=0;
+//uni referes to unique blocks meaning that
+// also counts 1 copy of each duplicated block
 //blocks with duplicates written
 uint64_t dupl=0;
+
+//zerodups only refers to blocks with only one copy (no duplicates)
+//local mem
+uint64_t zerod=0;
+//shared mem
+uint64_t *zerodups;
+
 
 
 void get_distibution_stats(char* fname){
@@ -54,8 +86,9 @@ void get_distibution_stats(char* fname){
 	//number_of_duplicates number_blocks_with_those_duplicates
 	FILE *fp = fopen(fname,"r");
 	//if the file did not opened try in alternative directory
-	//THis is a temporary FIX
+	//TODO THis is a temporary FIX
 	if(!fp){
+		printf("could not open distribution file %s\n",fname);
 		fp = fopen(DFILEA,"r");
 	}
 
@@ -101,7 +134,7 @@ void get_distibution_stats(char* fname){
           nb = atoll(nblocks); //number of blocks with N ocurrences where N is dn
 
           if(dn==1){
-        	  unique_blocks=nb;
+        	  zero_copy_blocks=nb;
           }else{
         	  //total of blocks with duplicates (only 1 of the blocks is considered)
         	  //in other words, number of blocks with different content that are dup
@@ -116,6 +149,7 @@ void get_distibution_stats(char* fname){
 
 	     }
 
+
 	  fclose(fp);
 	  }
 	  else{
@@ -123,7 +157,6 @@ void get_distibution_stats(char* fname){
 		  perror("failed to load the duplicate distribution file");
 
 	  }
-
 
 }
 
@@ -133,7 +166,7 @@ void get_distibution_stats(char* fname){
 void load_duplicates(char* fname){
 
 
-	stats=malloc(sizeof(uint64_t)*duplicated_blocks);
+	//stats=malloc(sizeof(uint64_t)*duplicated_blocks);
     int statscont =0;
 
     //open file with distribution
@@ -142,6 +175,7 @@ void load_duplicates(char* fname){
     //if the file did not opened try in alternative directory
     //THis is a temporary FIX
     if(!fp){
+    	printf("could not open distribution file %s\n",fname);
     	fp = fopen(DFILEA,"r");
     }
 
@@ -189,7 +223,7 @@ void load_duplicates(char* fname){
           // example if 5 different blocks have 7 duplicates then [...,7,7,7,7,7,...]
           //exclude the cblocks withouth duplicates(1 occurence)
           if(dn>1){
-            while(nb>0){
+        	while(nb>0){
               stats[statscont] = dn;
 
               statscont++;
@@ -206,6 +240,10 @@ void load_duplicates(char* fname){
      }
 
   fclose(fp);
+
+
+  printf("loaded duplicate distribution with the following statistics:\nTotal Blocks: %llu\nBlocks Without Duplicates %llu\nDistinct Blocks with Duplicates %llu\nDuplicated Blocks %llu\n\n\n",total_blocks,zero_copy_blocks,duplicated_blocks,total_blocks-zero_copy_blocks-duplicated_blocks);
+
   }
   else{
 
@@ -220,7 +258,8 @@ void load_cumulativedist(){
 
   int i;
   //size is equal to the number of duplicated blocks (1 for each unique content)
-  sum=malloc(sizeof(uint64_t)*duplicated_blocks);
+  //sum=malloc(sizeof(uint64_t)*duplicated_blocks);
+  //statistics=malloc(sizeof(uint64_t)*duplicated_blocks);
 
   sum[0]=stats[0];
 
@@ -235,7 +274,9 @@ void load_cumulativedist(){
   //generating an unique block for each value at sum
   for(i=1;i<duplicated_blocks;i++){
     sum[i]=sum[i-1]+stats[i];
+    statistics[i]=0;
   }
+
 
 }
 
@@ -289,8 +330,7 @@ uint64_t get_writecontent(uint64_t *contnu){
   //if r is higher than the last value of sum then
   //an unique block withouth duplicates is written
   //the last value at sum is unique because the array starts at 0
-  if (r>=sum[duplicated_blocks-1]) {
-      unique++;
+  if (duplicated_blocks<=0 || r>=sum[duplicated_blocks-1]) {
       //r is equal to the unique counter for generating
       // a block with unique content from the others generated previously
       r = *contnu;
@@ -300,18 +340,208 @@ uint64_t get_writecontent(uint64_t *contnu){
   }
   //the block to be generated has duplicated content
   else {
+
      //index of sum returned for generating the correct content for the block
 	 uint64_t ac =0;
      //binary search for the index at sum where that
      //r is the random value, 0 and duplicated_bloc are the range of positions at the sum array
 	 uint64_t res = search(r,0,duplicated_blocks-1,&ac);
      //increase the number of duplicates
-     dupl++;
 
      return res;
   }
 }
 
+int gen_outputdist(DB **dbpor,DB_ENV **envpor){
 
 
+	uint64_t i=0;
+	for(i=0;i<duplicated_blocks;i++){
+		//The array has the number of occurrences of a specific block
+		//the blocks
+		if(statistics[i]==1){
+			*zerodups=*zerodups+1;
+		}
+		if(statistics[i]>1){
+
+			struct hash_value hvalue;
+			uint64_t ndups = statistics[i]-1;
+
+			 //see if entry already exists and
+			 //Insert new value in hash for print number_of_duplicates->numberof blocks
+			 int retprint = get_db_print(&ndups,&hvalue,dbpor,envpor);
+
+			 //if hash entry does not exist
+			 if(retprint == DB_NOTFOUND){
+
+				  hvalue.cont=1;
+				  //insert into into the hashtable
+				  put_db_print(&ndups,&hvalue,dbpor,envpor);
+			 }
+			 else{
+
+				  //increase counter
+				  hvalue.cont++;
+				  //insert counter in the right entry
+				  put_db_print(&ndups,&hvalue,dbpor,envpor);
+			 }
+
+		}
+
+	}
+	//insert zeroduplicates now
+	struct hash_value hvalue;
+	uint64_t ndups = 0;
+
+	//see if entry already exists and
+	//Insert new value in hash for print number_of_duplicates->numberof blocks
+	int retprint = get_db_print(&ndups,&hvalue,dbpor,envpor);
+
+	//if hash entry does not exist
+	if(retprint == DB_NOTFOUND){
+
+		hvalue.cont=*zerodups;
+		//insert into into the hashtable
+		put_db_print(&ndups,&hvalue,dbpor,envpor);
+	}
+	else{
+	  //increase counter
+	  hvalue.cont+=*zerodups;
+	  //insert counter in the right entry
+	  put_db_print(&ndups,&hvalue,dbpor,envpor);
+    }
+
+
+	return 0;
+}
+
+/*
+int gen_totalstatistics(DB **dbpor,DB_ENV **envpor){
+
+	//Iterate through statistics array to check duplicates
+
+	uint64_t i=0;
+	for(i=0;i<duplicated_blocks;i++){
+		//The array has the number of occurrences of a specific block
+		//the blocks
+
+		if(statistics[i]>=1){
+
+			struct hash_value hvalue;
+			uint64_t ndups = i;
+
+			 //see if entry already exists and
+			 //Insert new value in hash for print number_of_duplicates->numberof blocks
+			 int retprint = get_db_print(&ndups,&hvalue,dbpor,envpor);
+
+			 //if hash entry does not exist
+			 if(retprint == DB_NOTFOUND){
+
+				  hvalue.cont=statistics[i];
+				  //insert into into the hashtable
+				  put_db_print(&ndups,&hvalue,dbpor,envpor);
+			 }
+			 else{
+
+				  //increase counter
+				  hvalue.cont+=statistics[i];
+				  //insert counter in the right entry
+				  put_db_print(&ndups,&hvalue,dbpor,envpor);
+			 }
+
+		}
+
+	}
+
+
+	return 0;
+}
+
+
+int gen_zerodupsdist(DB **dbpor,DB_ENV **envpor){
+
+	    //now insert zerodup
+		struct hash_value hvalue;
+		uint64_t ndups = 0;
+
+		//see if entry already exists and
+		//Insert new value in hash for print number_of_duplicates->numberof blocks
+		int retprint = get_db_print(&ndups,&hvalue,dbpor,envpor);
+
+		printf("current value %llu\n inserting more %llu\n",hvalue.cont,zerodups);
+		//if hash entry does not exist
+		if(retprint == DB_NOTFOUND){
+
+			hvalue.cont=zerodups;
+			//insert into into the hashtable
+			put_db_print(&ndups,&hvalue,dbpor,envpor);
+		 }
+		 else{
+
+		    //increase counter
+			hvalue.cont+=zerodups;
+			//insert counter in the right entry
+			put_db_print(&ndups,&hvalue,dbpor,envpor);
+		}
+
+	return 0;
+}
+
+
+int gen_statisticsdist(DB **dbpor,DB_ENV **envpor,DB **dbprint,DB_ENV **envprint){
+
+	//Iterate through original DB and insert in print DB
+	int ret;
+
+	DBT key, data;
+
+	DBC *cursorp;
+
+	(*dbpor)->cursor(*dbpor, NULL, &cursorp, 0);
+
+	// Initialize our DBTs.
+	memset(&key, 0, sizeof(DBT));
+	memset(&data, 0, sizeof(DBT));
+	// Iterate over the database, retrieving each record in turn.
+	while ((ret = cursorp->get(cursorp, &key, &data, DB_NEXT)) == 0) {
+
+	   //get hash from berkley db
+	   struct hash_value hvalue;
+	   uint64_t ndups = (unsigned long long int)((struct hash_value *)data.data)->cont;
+	   ndups=ndups-1;
+	   //char ndups[25];
+
+	   //key
+	   //sprintf(ndups,"%llu",(unsigned long long int)((struct hash_value *)data.data)->cont);
+
+	   //see if entry already exists and
+	   //Insert new value in hash for print number_of_duplicates->numberof blocks
+	   int retprint = get_db_print(&ndups,&hvalue,dbprint,envprint);
+
+	   //if hash entry does not exist
+	   if(retprint == DB_NOTFOUND){
+
+		  hvalue.cont=1;
+		  //insert into into the hashtable
+		  put_db_print(&ndups,&hvalue,dbprint,envprint);
+       }
+	   else{
+
+		  //increase counter
+		  hvalue.cont++;
+		  //insert counter in the right entry
+		  put_db_print(&ndups,&hvalue,dbprint,envprint);
+       }
+
+	}
+	if (ret != DB_NOTFOUND) {
+	    perror("failed while iterating");
+	}
+
+
+	if (cursorp != NULL)
+	    cursorp->close(cursorp);
+
+	return 0;
+}*/
 

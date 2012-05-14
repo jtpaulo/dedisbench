@@ -6,11 +6,8 @@ AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])
 AC_CONFIG_SRCDIR([iodist.c])
 AC_CONFIG_HEADERS([config.h])
 
-AM_INIT_AUTOMAKE
-AM_PROG_CC_C_O
-
 # Checks for programs.
-#AC_PROG_CC
+AC_PROG_CC
 AC_PROG_MAKE_SET
 
 # Checks for libraries.
