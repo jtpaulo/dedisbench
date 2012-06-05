@@ -41,6 +41,9 @@ uint64_t numberblk=0;
 //number files scaneed
 uint64_t nfiles=0;
 
+
+uint64_t processed_blocks=0;
+
 //duplicates DB
 DB **dbporiginal; // DB structure handle
 DB_ENV **envporiginal;
@@ -118,6 +121,12 @@ int check_duplicates(unsigned char* block,uint64_t bsize){
     }
 
     free(start);
+
+    processed_blocks++;
+    if(processed_blocks%100000==0){
+    	printf("processed %llu blocks\n",(long long unsigned int) processed_blocks);
+
+    }
 
   return 0;
 }
@@ -295,6 +304,7 @@ void help(void){
 	printf(" -f or -d\t(Find duplicates in folder -f or in a Disk Device -d)\n");
 	printf(" -p<value>\t\t(Path for the folder or disk device)\n");
 	printf("\n Optional Parameters\n\n");
+	printf(" -o<value>\t\t(Path for the output distribution file)\n");
 	printf(" -b<value>\t(Size of blocks for I/O operations in Bytes default: 4096)\n");
 	exit (8);
 
@@ -307,6 +317,11 @@ int main (int argc, char *argv[]){
 	int devicetype=-1;
     //path to the device
 	char devicepath[100];
+
+	//path output log
+	int outputfile=0;
+	char outputpath[100];
+
 
 	//TODO BLOCK SIZE SHOULD BE VARIABLE like in bench
     uint64_t bsize=4096LL;
@@ -336,6 +351,10 @@ int main (int argc, char *argv[]){
 			case 'p':
 				strcpy(devicepath,&argv[1][2]);
 			break;
+			case 'o':
+				outputfile=1;
+				strcpy(outputpath,&argv[1][2]);
+				break;
 			case 'b':
 				bsize=atoll(&argv[1][2]);
 				break;
@@ -422,8 +441,14 @@ int main (int argc, char *argv[]){
 	gen_output(dbporiginal,envporiginal,dbprinter,envprinter);
 
 	printf("before printing output dist\n");
+	FILE* fpp;
 
-	FILE* fpp=fopen("outputdist","w");
+	if(outputfile==1){
+		fpp=fopen(outputpath,"w");
+	}else{
+		fpp=fopen("outputdist","w");
+
+	}
 	print_elements_print(dbprinter, envprinter,fpp);
 	fclose(fpp);
 

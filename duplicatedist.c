@@ -242,7 +242,7 @@ void load_duplicates(char* fname){
   fclose(fp);
 
 
-  printf("loaded duplicate distribution with the following statistics:\nTotal Blocks: %llu\nBlocks Without Duplicates %llu\nDistinct Blocks with Duplicates %llu\nDuplicated Blocks %llu\n\n\n",total_blocks,zero_copy_blocks,duplicated_blocks,total_blocks-zero_copy_blocks-duplicated_blocks);
+  printf("loaded duplicate distribution with the following statistics:\nTotal Blocks: %llu\nBlocks Without Duplicates %llu\nDistinct Blocks with Duplicates %llu\nDuplicated Blocks %llu\n\n\n",(unsigned long long int) total_blocks,(unsigned long long int) zero_copy_blocks,(unsigned long long int) duplicated_blocks, (unsigned long long int) total_blocks-zero_copy_blocks-duplicated_blocks);
 
   }
   else{

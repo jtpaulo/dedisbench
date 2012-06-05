@@ -16,6 +16,8 @@ AC_PROG_MAKE_SET
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-ldb':
 AC_CHECK_LIB([db], [main])
+AC_CHECK_LIB([ssl], [main])
+AC_CHECK_LIB([crypto], [main])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h inttypes.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h unistd.h])

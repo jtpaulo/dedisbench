@@ -74,8 +74,12 @@ uint64_t beginio;
 //exact time after the last I/O operations
 uint64_t endio;
 
+//path of directory for temporary files
+char tempfilespath[100];
 
+char printfile[100];
 int destroypfile=1;
+int printtofile=0;
 
 //global timeval structure for nominal tests
 static struct timeval base;
@@ -108,18 +112,16 @@ void idle(long quantum) {
 //create the file where the process will perform I/O operations
 int create_pfile(int procid){
 
-
-
-
 	 //create the file with unique name for process with id procid
-	 char name[10];
 	 char id[2];
 	 sprintf(id,"%d",procid);
-	 strcpy(name,"test");
-	 strcat(name,id);
+	 strcat(tempfilespath,"test");
+	 strcat(tempfilespath,id);
 
+
+	 printf("opening %s\n",tempfilespath);
 	 //device where the process will write
-	 int fd_test = open(name, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
+	 int fd_test = open(tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
 	 if(fd_test==-1) {
 		 perror("Error opening file for process I/O");
 		 exit(0);
@@ -132,13 +134,22 @@ int create_pfile(int procid){
 int destroy_pfile(int procid){
 
 	//create the file with unique name for process with id procid
-	char name[20];
+	char name[120];
 	char id[2];
 	sprintf(id,"%d",procid);
-	strcpy(name,"rm test");
+	strcpy(name,"rm ");
+	strcat(name,tempfilespath);
+	strcat(name,"test");
 	strcat(name,id);
 
-	system(name);
+	printf("performing %s\n",name);
+
+	int ret = system(name);
+	if(ret<0){
+			perror("System rm failed");
+	}
+
+	return 0;
 }
 
 //populate files with content
@@ -150,13 +161,15 @@ void populate_pfiles(uint64_t filesize,int nprocs){
 	//we use DD for filling a non sparse image
 	for(i=0;i<nprocs;i++){
 		//create the file with unique name for process with id procid
-    	char name[50];
+    	char name[150];
 		char id[2];
 		sprintf(id,"%d",i);
 		char count[10];
 		//printf("%llu %llu\n",filesize,filesize/1024/1024);
 		sprintf(count,"%llu",(long long unsigned int)filesize/1024/1024);
-		strcpy(name,"dd if=/dev/zero of=test");
+		strcpy(name,"dd if=/dev/zero of=");
+		strcat(name,tempfilespath);
+		strcat(name,"test");
 		strcat(name,id);
 		strcat(name," bs=1M count=");
 		strcat(name,count);
@@ -164,8 +177,11 @@ void populate_pfiles(uint64_t filesize,int nprocs){
 
 		//printf("ola mundo\n");
 		//printf("%s\n",name);
-		printf("populating file for process %d\n",i);
-		system(name);
+		printf("populating file for process %d\n%s\n",i,name);
+		int ret = system(name);
+		if(ret<0){
+			perror("System dd failed");
+		}
 
 	}
 
@@ -195,10 +211,12 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
   //create the file with results for process with id procid
   FILE* fres=NULL;
+
+  char name[10];
+  char id[2];
+  sprintf(id,"%d",idproc);
   if(logfeature==1){
-	  char name[10];
-	  char id[2];
-	  sprintf(id,"%d",idproc);
+
 	  strcpy(name,"result");
 	  strcat(name,id);
 	  fres = fopen(name,"w");
@@ -246,7 +264,9 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 	  termination_type=SIZE;
   }
 
-
+  if (accesstype==TPCC){
+	  initialize_nurand(totblocks);
+  }
 
   //variables for nominal tests
   //getcurrent time and put in global variable base
@@ -481,7 +501,17 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 */
   printf("Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
 
+  if(printtofile==1){
+
+	  FILE* pf=fopen(printfile,"a");
+	  fprintf(pf,"Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
+	  fclose(pf);
+
+  }
+
   if(accesslog==1){
+
+	  	 strcat(accessfilelog,id);
 
 	  	 //print distribution file
 	     FILE* fpp=fopen(accessfilelog,"w");
@@ -504,8 +534,10 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 
 	int i;
 	//launch processes for each file bench
+	int nprocinit=nproc;
 
 	pid_t *pids=malloc(sizeof(pid_t)*nproc);
+
 
 	for (i = 0; i < nproc; ++i) {
 	  if ((pids[i] = fork()) < 0) {
@@ -538,14 +570,18 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 	}
 	free(pids);
 
-	if(destroypfile==1){
-		for (i = 0; i < nproc; ++i) {
 
-			destroy_pfile;
+
+	if(destroypfile==1){
+	printf("Destroying temporary files\n");
+		for (i = 0; i < nprocinit; i++) {
+
+			destroy_pfile(i);
 
 		}
 	}
 
+	printf("Exiting benchmark\n");
 
 }
 
@@ -647,14 +683,14 @@ void help(void){
 	printf(" -c<value>\t\t(Number of concurrent processes default:4)\n");
 	printf(" -f<value>\t\t(Size of process file in MB default:2048 MB)\n");
 	printf(" -l\t\t\t(Enable file log feature for results)\n");
-	printf(" -e or -d\t\t(Enable or disable the population of process files before running DEDISbench. Only Enabled by default for read tests)\n");
+	printf(" -d<value>\t\t(choose the directory where DEDISbench writes data\n)");
+	printf(" -e or -y\t\t(Enable or disable the population of process files before running DEDISbench. Only Enabled by default for read tests)\n");
 	printf(" -b<value>\t(Size of blocks for I/O operations in Bytes default: 4096)\n");
 	printf(" -g<value>\t\t(Input File with duplicate distribution. For creating a custom file please check the README file. default:internal )\n");
 	printf(" -v<value>\t\t(Seed for random generator default:current time)\n");
 	printf(" -o<value>\t\t(generate an output log with the distribution actually generated by the benchmark)\n");
 	printf(" -k<value>\t\t(generate an output log with the access pattern generated by the benchmark)\n");
 	printf(" -z\t\t\t(Disable the destruction of process temporary files generated by the benchmark)\n");
-
 	exit (8);
 
 }
@@ -802,7 +838,13 @@ int main(int argc, char *argv[]){
 			case 'k':
 				accesslog=1;
 				strcpy(accessfilelog,&argv[1][2]);
-				distout=1;
+				break;
+			case 'd':
+				strcpy(tempfilespath,&argv[1][2]);
+				break;
+			case 'j':
+				printtofile=1;
+				strcpy(printfile,&argv[1][2]);
 				break;
 			case 'l':
 				logfeature=1;
@@ -819,12 +861,12 @@ int main(int argc, char *argv[]){
 					usage();
 				}
 				break;
-			case 'd':
+			case 'y':
 				if(populate!=1){
 					populate=0;
 				}
 				else{
-					printf("Cannot use both -e and -d\n\n");
+					printf("Cannot use both -e and -y\n\n");
 					usage();
 				}
 				break;
@@ -962,7 +1004,6 @@ int main(int argc, char *argv[]){
 
     remove_db(STATDB,dbpstat,envpstat);
 */
-
 
     launch_benchmark(nproc,totblocks,time_to_run,number_ops,ratio,seed,iotype,testtype);
 

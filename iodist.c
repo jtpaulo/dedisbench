@@ -17,11 +17,26 @@
 uint64_t block_size;
 
 
+uint64_t c_nurand=0;
+uint64_t a_nurand=0;
+
 //MEMORY structure for keeping io acesses
 int accesslog;
 int accesstype;
 char accessfilelog[100];
 
+
+int initialize_nurand(uint64_t totb){
+
+	//TODO: this should vary accordingly to the range size
+	a_nurand = totb/10;
+
+	//C
+	c_nurand = genrand(a_nurand+1);
+
+    return 0;
+
+}
 
 //The position on the file (block address) to be written is given by TPCC NURrand funcion
 //NURand(A, x, y) = (((random(0, A) | random(x, y)) + C) % (y - x + 1)) + x
@@ -33,19 +48,13 @@ char accessfilelog[100];
 uint64_t get_ioposition_tpcc(uint64_t totb){
 
   //A=9000
-  //TODO: this should vary accordingly to the range size
-  uint64_t a = 9000;
   //x is zero TODO: this could also be a parameter...
   uint64_t x = 0;
-
   //y is the max number of blocks
   uint64_t y = totb-1;
 
-  //C
-  uint64_t c = genrand(a+1);
-
   //Calculate NURand function
-  uint64_t res = ((( genrand(a) | genrand(y)) + c) % (y - x + 1)) + x ;
+  uint64_t res = ((( genrand(a_nurand) | genrand(y)) + c_nurand) % (y - x + 1)) + x ;
 
   //OUt of range... this should not happen
   if(res>totb-1)
