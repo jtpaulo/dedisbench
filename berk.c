@@ -51,8 +51,8 @@ int init_db(char *nome, DB **dbp, DB_ENV **envp){
               DB_INIT_TXN | /* Initialize transactions */
               DB_INIT_LOCK | /* Initialize locking. */
               //DB_INIT_LOG | /* Initialize logging */
-              DB_INIT_MPOOL| /* Initialize the in-memory cache. */
-              DB_AUTO_COMMIT; //every operation is a single transaction
+              DB_INIT_MPOOL;//| /* Initialize the in-memory cache. */
+              //DB_AUTO_COMMIT; //every operation is a single transaction
 
   ret = (*envp)->open((*envp), db_home_dir, env_flags, 0);
   if (ret != 0) {
@@ -66,7 +66,7 @@ int init_db(char *nome, DB **dbp, DB_ENV **envp){
      (*envp)->err((*envp), ret, "Database creation failed");
      goto err;
   }
-  db_flags = DB_CREATE | DB_AUTO_COMMIT;
+  db_flags = DB_CREATE;// | DB_AUTO_COMMIT;
   /*
    * Open the database. Note that we are using auto commit for the open,
    * so the database is able to support transactions.
@@ -257,6 +257,7 @@ int print_elements(DB **dbp, DB_ENV **envp,FILE *fp){
 
   return 0;
 }
+
 
 
 /* --------------- Functions for print output log the key is an uint64_t*/

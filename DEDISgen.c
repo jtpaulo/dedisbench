@@ -33,6 +33,8 @@ uint64_t eq=0;
 uint64_t dif=0;
 //distinct blocks with duplicates
 uint64_t distinctdup=0;
+//blocks that were appended with zeros due to their size
+uint64_t zeroed_blocks=0;
 
 //duplicated disk space
 uint64_t space=0;
@@ -125,6 +127,8 @@ int check_duplicates(unsigned char* block,uint64_t bsize){
     processed_blocks++;
     if(processed_blocks%100000==0){
     	printf("processed %llu blocks\n",(long long unsigned int) processed_blocks);
+    	//TODO added this here for my testes
+    	sleep(5);
 
     }
 
@@ -149,7 +153,7 @@ int extract_blocks(char* filename, uint64_t bsize){
       off+=bsize;
       //check if the file still has more blocks and if size <bzise discard
       //the last incomplete block
-      while(aux==bsize){
+      while(aux>0){
 
     	 //number of blocks processed
          numberblk++;
@@ -303,8 +307,10 @@ void help(void){
 	printf(" Help:\n\n");
 	printf(" -f or -d\t(Find duplicates in folder -f or in a Disk Device -d)\n");
 	printf(" -p<value>\t\t(Path for the folder or disk device)\n");
+	printf(" -o<value>\t\t(Path for the output distribution file. This is only necessary if distribution file is going to be generated)\n");
 	printf("\n Optional Parameters\n\n");
-	printf(" -o<value>\t\t(Path for the output distribution file)\n");
+	printf(" -o<value>\t\t(Path for the output distribution file. If not specified this is not generated.)\n");
+	printf(" -z<value>\t(Path for the folder where duplicates databases are created default: ./gendbs/duplicatedb/)\n");
 	printf(" -b<value>\t(Size of blocks for I/O operations in Bytes default: 4096)\n");
 	exit (8);
 
@@ -322,6 +328,9 @@ int main (int argc, char *argv[]){
 	int outputfile=0;
 	char outputpath[100];
 
+	//path of databases folder
+	int dbfolder=0;
+	char dbfolderpath[100];
 
 	//TODO BLOCK SIZE SHOULD BE VARIABLE like in bench
     uint64_t bsize=4096LL;
@@ -354,6 +363,10 @@ int main (int argc, char *argv[]){
 			case 'o':
 				outputfile=1;
 				strcpy(outputpath,&argv[1][2]);
+				break;
+			case 'z':
+				dbfolder=1;
+				strcpy(dbfolderpath,&argv[1][2]);
 				break;
 			case 'b':
 				bsize=atoll(&argv[1][2]);
@@ -397,14 +410,29 @@ int main (int argc, char *argv[]){
 	dbprinter=malloc(sizeof(DB *));
 	envprinter=malloc(sizeof(DB_ENV *));
 
+	char printdbpath[100];
+	char duplicatedbpath[100];
+
+	//if a folder were specified for databases
+	if(dbfolder==1){
+		strcpy(printdbpath,PRINTDB);
+
+		strcpy(duplicatedbpath,dbfolderpath);
+	}
+	else{
+		strcpy(printdbpath,PRINTDB);
+		strcpy(duplicatedbpath,DUPLICATEDB);
+	}
+
+
 	printf("Removing old databases\n");
 	//remove databases if exist
-	remove_db(DUPLICATEDB,dbporiginal,envporiginal);
-	remove_db(PRINTDB,dbprinter,envprinter);
+	remove_db(duplicatedbpath,dbporiginal,envporiginal);
+	remove_db(printdbpath,dbprinter,envprinter);
 
 
 	printf("Initing new database\n");
-	init_db(DUPLICATEDB,dbporiginal,envporiginal);
+	init_db(duplicatedbpath,dbporiginal,envporiginal);
 
 
 	//check if it is a folder or device and start processing
@@ -420,6 +448,7 @@ int main (int argc, char *argv[]){
 
 	fprintf(stderr,"files scanned %llu\n",(unsigned long long int)nfiles);
 	fprintf(stderr,"total blocks scanned %llu\n",(unsigned long long int)total_blocks);
+	fprintf(stderr,"total blocks with zeros appended %llu\n",(unsigned long long int)zeroed_blocks);
 	//blocks without any duplicate are the distinct block minus the distinct blocks with duplicates
 	uint64_t zerodups=dif-distinctdup;
 	fprintf(stderr,"blocks without duplicates %llu\n",(unsigned long long int)zerodups);
@@ -434,36 +463,29 @@ int main (int argc, char *argv[]){
 	fclose(fpo);
 
 
-	printf("before generating output dist\n");
-
-
-	init_db(PRINTDB,dbprinter,envprinter);
-	gen_output(dbporiginal,envporiginal,dbprinter,envprinter);
-
-	printf("before printing output dist\n");
-	FILE* fpp;
-
+	//if outputdist was chosen and specified generate it
 	if(outputfile==1){
-		fpp=fopen(outputpath,"w");
-	}else{
-		fpp=fopen("outputdist","w");
+
+		printf("before generating output dist\n");
+
+		init_db(printdbpath,dbprinter,envprinter);
+		gen_output(dbporiginal,envporiginal,dbprinter,envprinter);
+
+		printf("before printing output dist\n");
+		FILE* fpp=fopen(outputpath,"w");
+
+		print_elements_print(dbprinter, envprinter,fpp);
+		fclose(fpp);
+
+		close_db(dbprinter,envprinter);
+		//TODO removed this remove_db(printdbpath,dbprinter,envprinter);
 
 	}
-	print_elements_print(dbprinter, envprinter,fpp);
-	fclose(fpp);
 
 	close_db(dbporiginal,envporiginal);
-
-	remove_db(DUPLICATEDB,dbporiginal,envporiginal);
-
-	close_db(dbprinter,envprinter);
-
-	remove_db(PRINTDB,dbprinter,envprinter);
-
+	//TODO removed this remove_db(duplicatedbpath,dbporiginal,envporiginal);
 
  return 0;
-
-
 
 }
 

@@ -1,5 +1,0 @@
-#!/bin/bash
-sort -n dedisbenchdist > dedisbenchdist2
-mv dedisbenchdist2 dedisbenchdist
-python histogram.py
-

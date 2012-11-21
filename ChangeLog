@@ -1,4 +1,39 @@
 ------------------------------------------------------------
+revno: 8
+committer: jtpaulo <jtpaulo@di.uminho.pt>
+branch nick: DEDISbench
+timestamp: Tue 2012-06-05 15:24:52 +0100
+message:
+  new output and log features for DEDISbench and DEDISgen
+------------------------------------------------------------
+revno: 7
+committer: jtpaulo <jtpaulo@di.uminho.pt>
+branch nick: DEDISbench
+timestamp: Mon 2012-05-14 17:05:22 +0100
+message:
+  Introduced DEDISgen a generator of duplicate distributions for data in a specific device or folder. Dedisbench now has sequential and random uniform I/O acess distributions
+------------------------------------------------------------
+revno: 6
+committer: jtpaulo <jtpaulo@di.uminho.pt>
+branch nick: DEDISbench
+timestamp: Tue 2012-01-31 22:44:58 +0000
+message:
+  fixed bug in open function preventing the build of DEDISbench package in launchpad
+------------------------------------------------------------
+revno: 5
+committer: jtpaulo <jtpaulo@di.uminho.pt>
+branch nick: DEDISbench
+timestamp: Mon 2012-01-30 14:28:55 +0000
+message:
+  Minor changes for supporting deb packages
+------------------------------------------------------------
+revno: 4
+committer: jtpaulo <jtpaulo@di.uminho.pt>
+branch nick: DEDISbench
+timestamp: Fri 2012-01-27 14:08:07 +0000
+message:
+  Automake and Autoconf support
+------------------------------------------------------------
 revno: 3
 committer: jtpaulo <jtpaulo@di.uminho.pt>
 branch nick: DEDISbench

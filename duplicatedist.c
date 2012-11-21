@@ -20,9 +20,9 @@
 #include "iodist.c"
 
 //FIle can be in source directory or in /etc/dedisbench if installed with deb package
-#define DFILE "dupsdist"
+#define DFILE "dist_personalfiles"
 //TODO change this in a future implementation
-#define DFILEA "/etc/dedisbench/dupsdist"
+#define DFILEA "/etc/dedisbench/"
 
 
 //print dist file DB
@@ -88,8 +88,12 @@ void get_distibution_stats(char* fname){
 	//if the file did not opened try in alternative directory
 	//TODO THis is a temporary FIX
 	if(!fp){
-		printf("could not open distribution file %s\n",fname);
-		fp = fopen(DFILEA,"r");
+		char newname[200];
+		bzero(newname,sizeof(newname));
+		strcpy(newname,DFILEA);
+		strcat(newname,fname);
+		printf("could not open distribution file %s trying %s\n",fname,newname);
+		fp = fopen(newname,"r");
 	}
 
 
@@ -175,8 +179,12 @@ void load_duplicates(char* fname){
     //if the file did not opened try in alternative directory
     //THis is a temporary FIX
     if(!fp){
-    	printf("could not open distribution file %s\n",fname);
-    	fp = fopen(DFILEA,"r");
+    	char newname[200];
+    	bzero(newname,sizeof(newname));
+    	strcpy(newname,DFILEA);
+    	strcat(newname,fname);
+    	printf("could not open distribution file %s trying %s\n",fname,newname);
+    	fp = fopen(newname,"r");
     }
 
     //TODO: find reasonable size
@@ -247,7 +255,7 @@ void load_duplicates(char* fname){
   }
   else{
 
-	  perror("failed to load the suplicate distribution file");
+	  perror("failed to load the duplicate distribution file");
 
   }
 
