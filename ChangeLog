@@ -1,3 +1,9 @@
+revno: 9
+committer: jtpaulo <jtpaulo@di.uminho.pt>
+branch nick: deduplication-benchmark
+timestamp: Wed 2012-11-21 20:13:21 +0000
+message:
+  Added 3 realistic storage distributions from an Archival, Personal Files and High Performance Storage. These distributions can now be simulated by DEDISbench. Added DEDISgen utils that extend DEDISgen with new functionalities. Finally added also new documentation.
 ------------------------------------------------------------
 revno: 8
 committer: jtpaulo <jtpaulo@di.uminho.pt>

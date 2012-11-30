@@ -51,7 +51,7 @@ DEDISbench it is possible to use these tools as explained below.
 
 Instalation.
 
-The only lib requires should be libc
+The only lib requires should be libc6-dev and libdb-dev libssl-dev
 
 Run ./configure, make and make install in DEDISbench folder
 

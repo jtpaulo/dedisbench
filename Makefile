@@ -32,7 +32,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = DEDISbench$(EXEEXT) DEDISgen$(EXEEXT)
+bin_PROGRAMS = DEDISbench$(EXEEXT) DEDISgen$(EXEEXT) \
+	DEDISgenutils$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -61,6 +62,11 @@ DEDISgen_OBJECTS = $(am_DEDISgen_OBJECTS)
 DEDISgen_LDADD = $(LDADD)
 DEDISgen_LINK = $(CCLD) $(DEDISgen_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
+am_DEDISgenutils_OBJECTS = DEDISgenutils-DEDISgen-utils.$(OBJEXT)
+DEDISgenutils_OBJECTS = $(am_DEDISgenutils_OBJECTS)
+DEDISgenutils_LDADD = $(LDADD)
+DEDISgenutils_LINK = $(CCLD) $(DEDISgenutils_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -69,8 +75,10 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(DEDISbench_SOURCES) $(DEDISgen_SOURCES)
-DIST_SOURCES = $(DEDISbench_SOURCES) $(DEDISgen_SOURCES)
+SOURCES = $(DEDISbench_SOURCES) $(DEDISgen_SOURCES) \
+	$(DEDISgenutils_SOURCES)
+DIST_SOURCES = $(DEDISbench_SOURCES) $(DEDISgen_SOURCES) \
+	$(DEDISgenutils_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -93,7 +101,7 @@ AMTAR = $${TAR-tar}
 AUTOCONF = ${SHELL} /home/jtpaulo/DEDISbench/missing --run autoconf
 AUTOHEADER = ${SHELL} /home/jtpaulo/DEDISbench/missing --run autoheader
 AUTOMAKE = ${SHELL} /home/jtpaulo/DEDISbench/missing --run automake-1.11
-AWK = gawk
+AWK = mawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
@@ -115,7 +123,7 @@ INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LDFLAGS = 
 LIBOBJS = 
-LIBS = -ldb 
+LIBS = -lcrypto -lssl -ldb 
 LTLIBOBJS = 
 MAKEINFO = ${SHELL} /home/jtpaulo/DEDISbench/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
@@ -176,9 +184,11 @@ top_builddir = .
 top_srcdir = .
 CXXFLAGS = -Wall -Irandomgen
 DEDISbench_SOURCES = DEDISbench.c
-DEDISbench_CFLAGS = -Wall -Irandomgen -ldb
+DEDISbench_CFLAGS = -Wall -Irandomgen
 DEDISgen_SOURCES = DEDISgen.c
-DEDISgen_CFLAGS = -Wall -ldb `pkg-config openssl --libs`
+DEDISgen_CFLAGS = -Wall
+DEDISgenutils_SOURCES = DEDISgen-utils.c
+DEDISgenutils_CFLAGS = -Wall
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -278,6 +288,9 @@ DEDISbench$(EXEEXT): $(DEDISbench_OBJECTS) $(DEDISbench_DEPENDENCIES) $(EXTRA_DE
 DEDISgen$(EXEEXT): $(DEDISgen_OBJECTS) $(DEDISgen_DEPENDENCIES) $(EXTRA_DEDISgen_DEPENDENCIES) 
 	@rm -f DEDISgen$(EXEEXT)
 	$(DEDISgen_LINK) $(DEDISgen_OBJECTS) $(DEDISgen_LDADD) $(LIBS)
+DEDISgenutils$(EXEEXT): $(DEDISgenutils_OBJECTS) $(DEDISgenutils_DEPENDENCIES) $(EXTRA_DEDISgenutils_DEPENDENCIES) 
+	@rm -f DEDISgenutils$(EXEEXT)
+	$(DEDISgenutils_LINK) $(DEDISgenutils_OBJECTS) $(DEDISgenutils_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -287,6 +300,7 @@ distclean-compile:
 
 include ./$(DEPDIR)/DEDISbench-DEDISbench.Po
 include ./$(DEPDIR)/DEDISgen-DEDISgen.Po
+include ./$(DEPDIR)/DEDISgenutils-DEDISgen-utils.Po
 
 .c.o:
 	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -329,6 +343,20 @@ DEDISgen-DEDISgen.obj: DEDISgen.c
 #	source='DEDISgen.c' object='DEDISgen-DEDISgen.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISgen_CFLAGS) $(CFLAGS) -c -o DEDISgen-DEDISgen.obj `if test -f 'DEDISgen.c'; then $(CYGPATH_W) 'DEDISgen.c'; else $(CYGPATH_W) '$(srcdir)/DEDISgen.c'; fi`
+
+DEDISgenutils-DEDISgen-utils.o: DEDISgen-utils.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISgenutils_CFLAGS) $(CFLAGS) -MT DEDISgenutils-DEDISgen-utils.o -MD -MP -MF $(DEPDIR)/DEDISgenutils-DEDISgen-utils.Tpo -c -o DEDISgenutils-DEDISgen-utils.o `test -f 'DEDISgen-utils.c' || echo '$(srcdir)/'`DEDISgen-utils.c
+	$(am__mv) $(DEPDIR)/DEDISgenutils-DEDISgen-utils.Tpo $(DEPDIR)/DEDISgenutils-DEDISgen-utils.Po
+#	source='DEDISgen-utils.c' object='DEDISgenutils-DEDISgen-utils.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISgenutils_CFLAGS) $(CFLAGS) -c -o DEDISgenutils-DEDISgen-utils.o `test -f 'DEDISgen-utils.c' || echo '$(srcdir)/'`DEDISgen-utils.c
+
+DEDISgenutils-DEDISgen-utils.obj: DEDISgen-utils.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISgenutils_CFLAGS) $(CFLAGS) -MT DEDISgenutils-DEDISgen-utils.obj -MD -MP -MF $(DEPDIR)/DEDISgenutils-DEDISgen-utils.Tpo -c -o DEDISgenutils-DEDISgen-utils.obj `if test -f 'DEDISgen-utils.c'; then $(CYGPATH_W) 'DEDISgen-utils.c'; else $(CYGPATH_W) '$(srcdir)/DEDISgen-utils.c'; fi`
+	$(am__mv) $(DEPDIR)/DEDISgenutils-DEDISgen-utils.Tpo $(DEPDIR)/DEDISgenutils-DEDISgen-utils.Po
+#	source='DEDISgen-utils.c' object='DEDISgenutils-DEDISgen-utils.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISgenutils_CFLAGS) $(CFLAGS) -c -o DEDISgenutils-DEDISgen-utils.obj `if test -f 'DEDISgen-utils.c'; then $(CYGPATH_W) 'DEDISgen-utils.c'; else $(CYGPATH_W) '$(srcdir)/DEDISgen-utils.c'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
