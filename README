@@ -51,7 +51,7 @@ DEDISbench it is possible to use these tools as explained below.
 
 Instalation.
 
-The only lib requires should be libc6-dev and libdb-dev libssl-dev
+The libraries used by DEDISbench that should be installed are: libc6, libdb, libssl and libcrypto.
 
 Run ./configure, make and make install in DEDISbench folder
 
