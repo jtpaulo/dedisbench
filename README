@@ -2,23 +2,18 @@
  * (c) 2010 2010 U. Minho. Written by J. Paulo
  */
  
-I/O write benchmark:
-The benchmark is written in C and can simulate several processes writing fixed size 
+I/O benchmark:
+The benchmark is written in C and can simulate several processes writing/reading fixed size 
 blocks concurrently into multiple files. The location for the write operations is 
 given by NURand function from TPC-C benchmark that generates hotspots for I/O 
-operations. A default distribution identical to the one found in our group’s personal 
-files (http://gsd.di.uminho.pt/), presenting a subset of the type of data one could find at a cloud provider, is 
-used to generate the blocks’ content. However, it is possible to 
+operations. A realistic distribution extracted from real storage systems is 
+used to generate the blocks’ content. Moreover, it is possible to 
 use other distributions and load them from a custom file using DEDISgen. DEDISbench provides two 
 workload modes, one reproduces a fully or peak loaded system, as Bonnie++, that 
 performs as maximum write I/O operations per second as possible. The second reproduces 
 a system under a reasonable nominal load, and can be useful for understanding the 
 behavior of aliasing operations in a stable system with a limited I/O throughput.
 
-I/O read Benchmark:
-
-The benchmark can also evaluate read I/O operations, with the NURand distribution for 
-I/O accesses and a peak or nominal load.
 
 DEDISbench distributions:
 
@@ -43,7 +38,7 @@ The binary DEDISgen generates an output file that describes the distribution of 
 at a specific folder and subfolders or disk device. This program can generate (if specified in the arguments) 
 an output distribution file (with option -o) that can be consumed by DEDISbench and used for simulating that duplicate distribution.
 
-With DEDISgen we also pack DEDISgen-utils that may be needed for performing more complex analysis of duplicated data.
+With DEDISgen we also pack DEDISgenutils that may be needed for performing more complex analysis of duplicated data.
 For instance, if several datasets must be analysed separately and the merged toguether for generating the output distribution file for
 DEDISbench it is possible to use these tools as explained below.
 
@@ -51,7 +46,7 @@ DEDISbench it is possible to use these tools as explained below.
 
 Instalation.
 
-The libraries used by DEDISbench that should be installed are: libc6, libdb, libssl and libcrypto.
+The only lib requires should be libc6-dev and libdb-dev libssl-dev
 
 Run ./configure, make and make install in DEDISbench folder
 
