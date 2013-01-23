@@ -456,11 +456,11 @@ int main (int argc, char *argv[]){
 	fprintf(stderr,"duplicated blocks %llu\n",(unsigned long long int)eq);
 	fprintf(stderr,"space saved %llu\n",(unsigned long long int)space);
 
-	printf("before printing duplicates\n");
+	//printf("before printing duplicates\n");
 
-	FILE* fpo=fopen("duplicates","w");
-	print_elements(dbporiginal, envporiginal,fpo);
-	fclose(fpo);
+	//FILE* fpo=fopen("duplicates","w");
+	//print_elements(dbporiginal, envporiginal,fpo);
+	//fclose(fpo);
 
 
 	//if outputdist was chosen and specified generate it

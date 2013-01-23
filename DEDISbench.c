@@ -38,6 +38,7 @@
  * 		 write files should be in a folder specified by the user like in bonnie++
  * TODO: Build failed on i386. error on open flags
  * TODO: when dist_files do not exist -> give error and exit without more screen info
+ * TODO: munmap is not working properly and sharedmemtest file is not being erased
  */
 
 //type of I/O
@@ -638,27 +639,33 @@ int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared){
 	    exit(EXIT_FAILURE);
 	  }
 
+	  uint64_t* mem_aux=*mem;
 	  // Now assign the memory region to each variable
-	  statistics = *mem;
-	  *mem=*mem+duplicated_blocks;
-	  sum =*mem;
-	  *mem=*mem+duplicated_blocks;
-	  stats=*mem;
-	  *mem=*mem+duplicated_blocks;
-	  zerodups = *mem;
+	  statistics = mem_aux;
+	  mem_aux=mem_aux+duplicated_blocks;
+	  sum=mem_aux;
+	  mem_aux=mem_aux+duplicated_blocks;
+	  stats=mem_aux;
+	  mem_aux=mem_aux+duplicated_blocks;
+	  zerodups = mem_aux;
 
 	  return 0;
 }
 
 int closemmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared){
 
-	/*
-	if (munmap(*mem, *sharedmem_size) == -1) {
+
+	if (munmap(*mem,  *sharedmem_size) == -1) {
 		perror("Error un-mmapping the file");
 		// Decide here whether to close(fd_shared) and exit() or not. Depends...
-	}*/
+	}
 
 	close(*fd_shared);
+
+	int ret = system("rm sharedmemstats");
+	if(ret<0){
+    	perror("System rm failed");
+	}
 
 	return 0;
 }
