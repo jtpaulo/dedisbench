@@ -13,7 +13,6 @@
 #include <math.h>
 #include "random.c"
 
-//TODO: this should be a parameter in future
 uint64_t block_size;
 
 

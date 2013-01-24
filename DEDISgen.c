@@ -127,9 +127,6 @@ int check_duplicates(unsigned char* block,uint64_t bsize){
     processed_blocks++;
     if(processed_blocks%100000==0){
     	printf("processed %llu blocks\n",(long long unsigned int) processed_blocks);
-    	//TODO added this here for my testes
-    	sleep(5);
-
     }
 
   return 0;
@@ -167,11 +164,6 @@ int extract_blocks(char* filename, uint64_t bsize){
          aux = pread(fd,block,bsize,off);
          off+=bsize;
       }
-      /*TODO INCOMPLETE BLOCKS ARE NOT PROCESSED FOR NOW
-      if(aux>0){
-         check_duplicates(block,aux);
-         free(block);
-      }*/
 
       free(block);
 
@@ -332,7 +324,7 @@ int main (int argc, char *argv[]){
 	int dbfolder=0;
 	char dbfolderpath[100];
 
-	//TODO BLOCK SIZE SHOULD BE VARIABLE like in bench
+	//Block size is variable
     uint64_t bsize=4096LL;
 
   	while ((argc > 1) && (argv[1][0] == '-'))
@@ -456,13 +448,6 @@ int main (int argc, char *argv[]){
 	fprintf(stderr,"duplicated blocks %llu\n",(unsigned long long int)eq);
 	fprintf(stderr,"space saved %llu\n",(unsigned long long int)space);
 
-	//printf("before printing duplicates\n");
-
-	//FILE* fpo=fopen("duplicates","w");
-	//print_elements(dbporiginal, envporiginal,fpo);
-	//fclose(fpo);
-
-
 	//if outputdist was chosen and specified generate it
 	if(outputfile==1){
 
@@ -478,12 +463,13 @@ int main (int argc, char *argv[]){
 		fclose(fpp);
 
 		close_db(dbprinter,envprinter);
-		//TODO removed this remove_db(printdbpath,dbprinter,envprinter);
+		remove_db(printdbpath,dbprinter,envprinter);
 
 	}
 
 	close_db(dbporiginal,envporiginal);
-	//TODO removed this remove_db(duplicatedbpath,dbporiginal,envporiginal);
+	//TODO this is not removed to keep the database for dedisgen-utils
+	//remove_db(duplicatedbpath,dbporiginal,envporiginal);
 
  return 0;
 

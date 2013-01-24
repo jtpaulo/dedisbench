@@ -159,6 +159,7 @@ void get_distibution_stats(char* fname){
 	  else{
 
 		  perror("failed to load the duplicate distribution file");
+		  exit(0);
 
 	  }
 
@@ -256,6 +257,7 @@ void load_duplicates(char* fname){
   else{
 
 	  perror("failed to load the duplicate distribution file");
+	  exit(0);
 
   }
 

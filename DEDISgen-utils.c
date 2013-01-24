@@ -257,7 +257,6 @@ int main (int argc, char *argv[]){
 
   		merge_dbs(dbpmerge,envpmerge,dbpbase,envpbase);
 
-  		printf("before closing\n");
   		close_db(dbpbase,envpbase);
   		close_db(dbpmerge,envpmerge);
 

@@ -27,18 +27,10 @@
 
 /*
  * Future Work
- * TODO: Make more flexible the condition of ppopulating files for read requests
- * maybe a condition if test* does not exist and populate with -d then error...
- * TODO: should we exclude the the first minutes and last form the statistics?
- * TODO: other statistics, graph generation, fexibility of results log.
- * TODO: Change the benchmark to run for N operations instead of minutes (EASY: just change while loop condition)
- * TODO: change block size
- * TODO: custom duplicates distribution -> this is easy...
- * TODO: persistent files must be in a specific location
- * 		 write files should be in a folder specified by the user like in bonnie++
+ * TODO: Should we exclude the first minutes and last form the statistics?
+ * TODO: Other statistics, graph generation, flexibility of results log.
  * TODO: Build failed on i386. error on open flags
- * TODO: when dist_files do not exist -> give error and exit without more screen info
- * TODO: munmap is not working properly and sharedmemtest file is not being erased
+ * TODO: Maybe shared memory could be removed and use parent fork memory instead?
  */
 
 //type of I/O
@@ -117,7 +109,7 @@ int create_pfile(int procid){
 	 //create the file with unique name for process with id procid
 	 char id[2];
 	 sprintf(id,"%d",procid);
-	 strcat(tempfilespath,"test");
+	 strcat(tempfilespath,"dedisbench_0010test");
 	 strcat(tempfilespath,id);
 
 
@@ -141,7 +133,7 @@ int destroy_pfile(int procid){
 	sprintf(id,"%d",procid);
 	strcpy(name,"rm ");
 	strcat(name,tempfilespath);
-	strcat(name,"test");
+	strcat(name,"dedisbench_0010test");
 	strcat(name,id);
 
 	printf("performing %s\n",name);
@@ -171,7 +163,7 @@ void populate_pfiles(uint64_t filesize,int nprocs){
 		sprintf(count,"%llu",(long long unsigned int)filesize/1024/1024);
 		strcpy(name,"dd if=/dev/zero of=");
 		strcat(name,tempfilespath);
-		strcat(name,"test");
+		strcat(name,"dedisbench_0010test");
 		strcat(name,id);
 		strcat(name," bs=1M count=");
 		strcat(name,count);
@@ -279,10 +271,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
   //overall throughput will not be affected.
   double time_elapsed=1;
 
-  //while bench time has not ended
-  //TODO: if we change this condition to while(Nrops<X) we could
-  //change the test stop condition to pperform Xkb of I/o instead of time
-
+  //while bench time has not ended or amount of data is not written
   while(begin<end){
 
    //for nominal testes only
@@ -568,7 +557,6 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 	  pid = wait(&status);
 	  printf("Terminating process with PID %ld exited with status 0x%x.\n", (long)pid, status);
 	  --nproc;
-	  // TODO(pts): Remove pid from the pids array.
 	}
 	free(pids);
 
@@ -598,7 +586,7 @@ int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared){
 	  *sharedmem_size = sizeof(uint64_t)*(duplicated_blocks*3+1);
 
 
-	  *fd_shared = open("sharedmemstats", O_RDWR | O_CREAT, (mode_t)0600);
+	  *fd_shared = open("dedisbench_0010sharedmemstats", O_RDWR | O_CREAT, (mode_t)0600);
 	  if (*fd_shared == -1) {
 	    perror("Error opening file for writing");
 	    exit(EXIT_FAILURE);
@@ -662,7 +650,7 @@ int closemmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared){
 
 	close(*fd_shared);
 
-	int ret = system("rm sharedmemstats");
+	int ret = system("rm dedisbench_0010sharedmemstats");
 	if(ret<0){
     	perror("System rm failed");
 	}
@@ -1008,13 +996,6 @@ int main(int argc, char *argv[]){
     envpdist=malloc(sizeof(DB_ENV *));
 
     remove_db(DISTDB,dbpdist,envpdist);
-/*
-    //init database for merging statistics lists
-    dbpstat=malloc(sizeof(DB *));
-    envpstat=malloc(sizeof(DB_ENV *));
-
-    remove_db(STATDB,dbpstat,envpstat);
-*/
 
     launch_benchmark(nproc,totblocks,time_to_run,number_ops,ratio,seed,iotype,testtype);
 
@@ -1033,31 +1014,6 @@ int main(int argc, char *argv[]){
     }
     closemmap(mem,&sharedmem_size,&fd_shared);
 
-
-
-
-
-
-    /*
-    printf("running after wait\n");
-
-    printf("merging statistics for each process\n");
-    init_db(STATDB,dbpstat,envpstat);
-    init_db(DISTDB,dbpdist,envpdist);
-
-    gen_statisticsdist(dbpstat,envpstat, dbpdist,envpdist);
-
-    //print distribution file
-    FILE* fpp=fopen("dedisbenchdist","w");
-    print_elements_print(dbpdist, envpdist,fpp);
-    fclose(fpp);
-
-    printf("closing and removing databases\n");
-    close_db(dbpstat,envpstat);
-    remove_db(DISTDB,dbpstat,envpstat);
-    close_db(dbpdist,envpdist);
-    remove_db(DISTDB,dbpdist,envpdist);
-*/
 
 
   return 0;
