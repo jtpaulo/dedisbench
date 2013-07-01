@@ -78,6 +78,9 @@ uint64_t zerod=0;
 //shared mem
 uint64_t *zerodups;
 
+//
+int distout=0;
+
 
 
 void get_distibution_stats(char* fname){
@@ -284,7 +287,9 @@ void load_cumulativedist(){
   //generating an unique block for each value at sum
   for(i=1;i<duplicated_blocks;i++){
     sum[i]=sum[i-1]+stats[i];
-    statistics[i]=0;
+    if(distout==1){
+    	statistics[i]=0;
+    }
   }
 
 

@@ -5,7 +5,7 @@
 
 # DEDISbench and DEDISgen
 
-DEDISbench is implemented in C and allows performing read and write block disk I/O tests. DEDISbench main contribution is the ability to process, as input, a file that specifies a distribution of duplicated content and using this information for generating a synthetic workload that follows such distribution. This file can be populated by the users or can be generated automatically with DEDISgen, an analysis tool that can be used for processing a specific real dataset and extracting from it the duplicates information.
+DEDISbench is implemented in C and allows performing read and write block disk I/O tests or in a raw device. DEDISbench main contribution is the ability to process, as input, a file that specifies a distribution of duplicated content and using this information for generating a synthetic workload that follows such distribution. This file can be populated by the users or can be generated automatically with DEDISgen, an analysis tool that can be used for processing a specific real dataset and extracting from it the duplicates information.
 
 I/O operations can be executed concurrently by several processes with independent files. Moreover, the benchmark can be configured to stop the evaluation when a certain amount of data has been written or when a pre-defined period of time has elapsed. Another novel feature is the possibility of performing I/O operations with different load intensities. In addition to a stress load where the benchmark issues I/O operations as fast as possible to stress the system, DEDISbench supports performing operations at a nominal load specified by the user.
 
@@ -43,37 +43,59 @@ Run ./configure, make and make install in DEDISbench folder
 Required flags
 
  -p or -n<value>		Peak or Nominal Load with throughput rate of N operations per 
- second
+ 						second. If mixed benchmark of read and writes is defined then use -nr<value> and -nw<value>
+ 						for nominal rate of reads and writes respectively.
  
- -w or -r			Write or Read Benchmark
+ -w or -r or -m			Write or Read Benchmark or a mix of write and read operations.
  
- -t<value> or -s<value> 	Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB
+ -t<value> or -s<value> Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB
 
 Optional Flags
- -a<value>			Access pattern for I/O operations: 0-Sequential, 1-Random Uniform, 2-TPCC random (default:2)
+ -a<value>			Access pattern for I/O operations: 0-Sequential, 1-Random Uniform, 2-TPCC random 
+ 					default:2
 	
- -c<value>			Number of concurrent processes default:4. Each process has an independent file associated
+ -c<value>			Number of concurrent processes default:4. Each process has an 
+ 					independent file associated or a common device if -i flag is used
  
- -f<value>			Size of the file of each process in MB default:2048 MB
-
+ -f<value>			Size of the file of each process in MB. If -i flag is used, this parameter defines
+ 					the size of the raw device. default:2048 MB
  -d<value>			choose the directory where DEDISbench writes data
-	
- -l				I/O latency results are written to a log file to extract additional statistics. Each process writes these values in a file called result(processid) and each line, corresponds to a single I/O operations and presents: (latency of I/O operation in microseconds) (current time in seconds) \n
  
- -e or -y			Enable or disable the population of process files before running DEDISbench. test(processid files in DEDISbench directory are the files used by each process. For write testes and by default, empty files are created, for read tests and by default the files are populated with content. It is possible to enable this feature for write tests and acess rewrite operations or to disable and use a custom file that respects the namings.
+ -i<value>			Processes write/read from a raw device instead of having an independent file.
+ 					If more than one process is defined, each process is assingned with an independet of the raw device,
+ 					dependent on the raw device size. By default, if this flag is not set each process writes to an individual file. 
+	
+ -l					I/O latency results are written to a log file to extract additional 
+ statistics. Each process writes these values in a file called result(processid) and
+ each line, corresponds to a single I/O operations and presents: 
+ (latency of I/O operation in microseconds) (current time in seconds) \n
+ 
+ -e or -y			Enable or disable the population of process files before running 
+ DEDISbench. test(processid files in DEDISbench directory are the files used by 
+ each process. For write testes and by default, empty files are created, 
+ for read tests and by default the files are populated with content.
+ It is possible to enable this feature for write tests and acess rewrite 
+ operations or to disable and use a custom file that respects the namings.
  
  -b<value>			Size of blocks for I/O operations in Bytes default: 4096
  
- -g<value>			Input File with duplicate distribution default:internal file called dist_personalfiles. DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage. For choosing these distributions the <value> must be dist_archival, dist_personalfiles or dist_highperf respectively. The input file details the amount of blocks with a certain number of duplicates and the format is: <number_duplicates> <number_blocks>. See below for more info for customizing distribution files and above for info on the default distributions.
+ -g<value>			Input File with duplicate distribution default:internal file called dist_personalfiles
+ 					DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage\n");
+					For choosing these distributions the <value> must be dist_archival, dist_personalfiles or dist_highperf respectively.
+					The input file details the amount of blocks with a certain number of duplicates
+ 						and the format is: <number_duplicates> <number_blocks>
+ 					See below for more info for customizing distribution files and above for info on the default distributions.
  
  -v<value>			Seed for random generator default:current time. Usefull for repeating
-
  -o<value>			generate an output log with the distribution actually generated by the benchmark
-
  -k<value>			generate an output log with the access pattern generated by the benchmark
  
- -z				Disable the destruction of process temporary files generated by the benchmark
- 
+ -z					Disable the destruction of process temporary files generated by the benchmark
+ -j<value>			Write to file path the output of DEDISbench. This feature also writes two additional files with the same name
+ 					as given in <value> and a snaplat and snapthr suffix that shows the throughput and lattency average values 
+ 					for 30 seconds intervals
+ -o					The output of DEDIS gives the exact number of unique and duplicate blocks written.
+ 					(This option requires using additional shared memory)
  
 # Examples:
 
@@ -88,6 +110,10 @@ run write benchmark in peak mode for 5 minutes. Enable the population of process
 
 run read benchmark in nominal mode (300 reads/second) for 8 minutes. Disable the pre-population of files. Carefull because files test(processid) must be present and have content or no content will be available for reading resulting in I/O errors.
 ./DEDISbench -n300 -r -t8 -d 
+
+run 8 minutes mixed benchmark with a nominal load (100reads/s and 50 writes/s) in a raw device with 4GB.
+
+./DEDISbench -m -nr100 -nw50 -t8 -ipath/to/rawdevice
 
 
 # Running the generator DEDISgen:

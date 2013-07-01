@@ -27,6 +27,7 @@
 
 /*
  * Future Work
+ * TODO: fsync must be an option that can be switched on/off
  * TODO: Should we exclude the first minutes and last form the statistics?
  * TODO: Other statistics, graph generation, flexibility of results log.
  * TODO: Build failed on i386. error on open flags
@@ -58,6 +59,16 @@ int logfeature;
 double throughput;
 //average latency
 double latency;
+
+//TODO this sould be an option of the menu...
+//TODO these variables should use realloc if necessary...
+//array of periodic Snapshots of average throughput and latency.
+double *snap_throughput;
+double *snap_latency;
+double *snap_ops;
+uint64_t *snap_time;
+uint64_t snap_totops=0;
+
 //total operations performe
 uint64_t tot_ops=0;
 //Since the begin and end time of the tests are not exact about when the
@@ -77,6 +88,8 @@ int printtofile=0;
 
 //global timeval structure for nominal tests
 static struct timeval base;
+
+
 
 //time elapsed since last I/O
 long lap_time() {
@@ -124,6 +137,17 @@ int create_pfile(int procid){
 	 return fd_test;
 }
 
+
+int open_rawfile(char* rawpath){
+	 int fd_test = open(rawpath, O_RDWR | O_LARGEFILE, 0644);
+		 if(fd_test==-1) {
+			 perror("Error opening file for process I/O");
+			 exit(0);
+		 }
+
+		 return fd_test;
+
+}
 
 int destroy_pfile(int procid){
 
@@ -198,10 +222,16 @@ FILE* create_plog(int procid){
 }
 
 //run a a peak test
-void process_run(int idproc, int nproc, double ratio, int duration, uint64_t number_ops, int iotype, int testtype, uint64_t totblocks){
-  
-  //create file where process will perform I/O
-  int fd_test = create_pfile(idproc);
+void process_run(int idproc, int nproc, double ratio, int duration, uint64_t number_ops, int iotype, int testtype, uint64_t totblocks, int rawdevice, char* rawpath){
+
+  int fd_test;
+
+  if(rawdevice==0){
+	  //create file where process will perform I/O
+	   fd_test = create_pfile(idproc);
+  }else{
+	   fd_test = open_rawfile(rawpath);
+  }
 
   //create the file with results for process with id procid
   FILE* fres=NULL;
@@ -228,6 +258,19 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
      	}
   }
+
+
+  //TODO here we must have a variable that only initiates snapshots if the user specified
+  //Also this must call realloc if the number of observations is higher thanthe size
+  //the snapshot time is 30 sec but could also be a parameter
+  snap_throughput=malloc(sizeof(double)*1000);
+  snap_latency=malloc(sizeof(double)*1000);
+  snap_ops=malloc(sizeof(double)*1000);
+  snap_time=malloc(sizeof(unsigned long long int)*1000);
+  int iter_snap=0;
+  uint64_t last_snap_time=0;
+  uint64_t t1snap=0;
+  double snap_lat=0;
 
   //unique counter for each process
   //starts with value==max index at array sum
@@ -306,28 +349,38 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 	   //contwrite is the index of sum where the block belongs
 	   //put in statistics this value ==1 to know when a duplicate is found
-	   if(contwrite<duplicated_blocks){
-		   statistics[contwrite]++;
-		   if(statistics[contwrite]>1){
-			   dupl++;
-		   }
-		   else{
-			   uni++;
+	   if(distout==1){
+		   if(contwrite<duplicated_blocks){
+			   statistics[contwrite]++;
+			   if(statistics[contwrite]>1){
+				   dupl++;
+			   }
+			   else{
+				   uni++;
+			   }
 		   }
 	   }
-
+	   else{
+		   dupl++;
+	   }
 	   //if the content to write is unique write to the buffer
 	   //the unique counter of the process + "string"  + process id
 	   //to be unique among processes the string invalidates to have
 	   //an identical number from other oprocess
+	   //timestamp is used for multiple DEDIS benchs to be different
 	   if(contwrite>duplicated_blocks){
-	       	  sprintf(buf,"%llu pid %d", (long long unsigned int)contwrite,idproc);
+		   	  //get current time for making this value unique for concurrent benchmarks
+		      gettimeofday(&tim, NULL);
+		      uint64_t tunique=tim.tv_sec*1000000+(tim.tv_usec);
+	       	  sprintf(buf,"%llu pid %d time %llu", (long long unsigned int)contwrite,idproc,(long long unsigned int)tunique);
 	       	  uni++;
 	       	  //uni referes to unique blocks meaning that
 	       	  // also counts 1 copy of each duplicated block
 	       	  //zerodups only refers to blocks with only one copy (no duplicates)
 	       	  zerod++;
-	       	  *zerodups=*zerodups+1;
+	       	  if(distout==1){
+	       		  *zerodups=*zerodups+1;
+	       	  }
 	   }
 	   //if it is duplicated write the result (index of sum) returned
 	   //into the buffer
@@ -351,6 +404,10 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 		   }
 	   }
+	  if(rawdevice==1){
+		  iooffset = ((totblocks*block_size)*idproc)+iooffset;
+	  }
+
 	  if(accesslog==1){
 		  acessesarray[iooffset/block_size]++;
 	   }
@@ -359,8 +416,11 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
        //get current time for calculating I/O op latency
        gettimeofday(&tim, NULL);
        uint64_t t1=tim.tv_sec*1000000+(tim.tv_usec);
+       t1snap=t1;
+
 
        int res = pwrite(fd_test,buf,block_size,iooffset);
+       fsync(fd_test);
 
        //latency calculation
        gettimeofday(&tim, NULL);
@@ -372,9 +432,12 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
        if(beginio==-1){
     	   beginio=t1;
+    	   last_snap_time=t1snap;
+
        }
 
        latency+=(t2-t1);
+       snap_lat+=(t2-t1);
        endio=t2;
 
        if(logfeature==1){
@@ -402,6 +465,10 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 				   }
 			   }
+
+		if(rawdevice==1){
+				  iooffset = ((totblocks*block_size)*idproc)+iooffset;
+			  }
 		if(accesslog==1){
 			acessesarray[iooffset/block_size]++;
 		}
@@ -409,6 +476,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 		//get current time for calculating I/O op latency
 		gettimeofday(&tim, NULL);
 		uint64_t t1=tim.tv_sec*1000000+(tim.tv_usec);
+		t1snap=t1;
 
 		uint64_t res = pread(fd_test,buf,block_size,iooffset);
 
@@ -422,10 +490,14 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 		if(beginio==-1){
 		   	   beginio=t1;
+		   	   last_snap_time=t1snap;
 		}
 
 		latency+=(t2-t1);
+		snap_lat+=(t2-t1);
 		endio=t2;
+
+
 
 		if(logfeature==1){
 		  //write in the log the operation latency
@@ -435,6 +507,21 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 	 //One more operation was performed
 	 tot_ops++;
+     snap_totops++;
+
+	 if(t1snap>=last_snap_time+30*1000000){
+
+	    	   snap_throughput[iter_snap]=(snap_totops/((t1snap-last_snap_time)/1.0e6));
+	    	   snap_latency[iter_snap]=(snap_lat/snap_totops)/1000;
+	    	   snap_ops[iter_snap]=(snap_totops);
+	    	   snap_time[iter_snap]=t1snap;
+	    	   iter_snap++;
+	    	   last_snap_time=t1snap;
+	    	   snap_lat=0;
+	    	   snap_totops=0;
+
+	 }
+
 	 if(termination_type==SIZE){
 		   begin++;
 	 }
@@ -490,14 +577,79 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
   close_db(dbpdist,envpdist);
   printf("Process %d:\nUnique Blocks Written %llu\nZero Copies Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)zerod,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
 */
-  printf("Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
+
+  if(distout==1){
+	  printf("Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
+
+	  if(printtofile==1){
+
+		  FILE* pf=fopen(printfile,"a");
+		  fprintf(pf,"Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
+		  fclose(pf);
+
+	  }
+  }else{
+	  printf("Process %d:\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)tot_ops,throughput,latency);
+
+	  	  if(printtofile==1){
+
+	  		  FILE* pf=fopen(printfile,"a");
+	  		  fprintf(pf,"Process %d:\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)tot_ops,throughput,latency);
+	  		  fclose(pf);
+
+	  	  }
+
+
+
+  }
 
   if(printtofile==1){
+  //SNAP printing
+  char snapthrname[100];
+  strcpy(snapthrname,printfile);
+  strcat(snapthrname,"snapthr");
+  if(iotype==WRITE){
+	  strcat(snapthrname,"write");
+  }
+  else{
+	  strcat(snapthrname,"read");
+  }
+  strcat(snapthrname,id);
 
-	  FILE* pf=fopen(printfile,"a");
-	  fprintf(pf,"Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
-	  fclose(pf);
+  char snaplatname[100];
+  strcpy(snaplatname,printfile);
+  strcat(snaplatname,"snaplat");
+  if(iotype==WRITE){
+  	  strcat(snaplatname,"write");
+  }
+  else{
+  	  strcat(snaplatname,"read");
+  }
+  strcat(snaplatname,id);
 
+
+  FILE* pf=fopen(snaplatname,"a");
+  fprintf(pf,"%llu 0 0\n",(unsigned long long int)beginio);
+
+  int aux=0;
+  for (aux=0;aux<iter_snap;aux++){
+
+	  //SNAP printing
+	  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)snap_time[aux],snap_latency[aux],snap_ops[aux]);
+
+  }
+  fclose(pf);
+
+  //SNAP printing
+  pf=fopen(snapthrname,"a");
+  fprintf(pf,"%llu 0 0\n",(unsigned long long int)beginio);
+
+  for (aux=0;aux<iter_snap;aux++){
+
+	  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)snap_time[aux],snap_throughput[aux],snap_ops[aux]);
+
+  }
+  fclose(pf);
   }
 
   if(accesslog==1){
@@ -520,7 +672,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 }
 
 
-void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t number_ops, double ratio,uint64_t seed,int iotype,int testtype){
+void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t number_ops, double ratio,uint64_t seed,int iotype,int testtype,int mixedIO, double ratior,double ratiow, int rawdevice, char* rawpath){
 
 
 	int i;
@@ -543,8 +695,22 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 		  //generate the same load
 		  init_rand(seed+i);
 
-		  //work performed by each process
-		  process_run(i, nproc, ratio, time_to_run, number_ops, iotype, testtype, totblocks);
+		  if(mixedIO==1){
+			 //choose to launch read or write process
+			 if(i<nproc/2){
+				 //work performed by each process
+				 process_run(i, nproc/2, ratiow, time_to_run, number_ops, WRITE, testtype, totblocks,rawdevice,rawpath);
+			 }
+			 else{
+				 //work performed by each process
+				  process_run(i-(nproc/2), nproc/2, ratior, time_to_run, number_ops, READ, testtype, totblocks,rawdevice,rawpath);
+			 }
+		  }
+		  else{
+
+			  //work performed by each process
+			  process_run(i, nproc, ratio, time_to_run, number_ops, iotype, testtype, totblocks,rawdevice,rawpath);
+		  }
 		  //sleep(10);
 	     exit(0);
 	  }
@@ -562,7 +728,7 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 
 
 
-	if(destroypfile==1){
+	if(destroypfile==1 && rawdevice==0){
 	printf("Destroying temporary files\n");
 		for (i = 0; i < nprocinit; i++) {
 
@@ -575,6 +741,15 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 
 }
 
+
+int loadmem(){
+
+		  sum=malloc(sizeof(uint64_t)*duplicated_blocks);
+		  stats=malloc(sizeof(uint64_t)*duplicated_blocks);
+
+		  return 1;
+
+}
 
 int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared){
 
@@ -672,12 +847,16 @@ void help(void){
 
 	printf(" Help:\n\n");
 	printf(" -p or -n<value>\t(Peak or Nominal Bench with throughput rate of N operations per second)\n");
-	printf(" -w or -r\t\t(Write or Read Bench)\n");
+	printf(" -w or -r or -m\t\t(Write or Read Benchmark or a mix of write and read operations.If mixed benchmark of read\n");
+	printf("\t\t\tand writes is defined then use -nr<value> and -nw<value> for nominal rate of reads and writes respectively.)\n");
 	printf(" -t<value> or -s<value>\t(Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB)\n");
 	printf("\n Optional Parameters\n\n");
 	printf(" -a<value>\t\t(Access pattern for I/O operations: 0-Sequential, 1-Random Uniform, 2-TPCC random default:2)\n");
 	printf(" -c<value>\t\t(Number of concurrent processes default:4)\n");
-	printf(" -f<value>\t\t(Size of process file in MB default:2048 MB)\n");
+	printf(" -f<value>\t\t(Size of the file of each process in MB. If -i flag is used, this parameter defines the size of the raw device. default:2048 MB)\n");
+	printf(" -i<value>\t\t(Processes write/read from a raw device instead of having an independent file.\n");
+ 	printf("\t\t\tIf more than one process is defined, each process is assigned with an independent of the raw device,\n");
+ 	printf("\t\t\tdependent on the raw device size. By default, if this flag is not set each process writes to an individual file.\n");
 	printf(" -l\t\t\t(Enable file log feature for results)\n");
 	printf(" -d<value>\t\t(choose the directory where DEDISbench writes data)\n");
 	printf(" -e or -y\t\t(Enable or disable the population of process files before running DEDISbench. Only Enabled by default for read tests)\n");
@@ -687,9 +866,12 @@ void help(void){
 	printf("\t\t\t For choosing these distributions the <value> must be dist_archival, dist_personalfiles or dist_highperf respectively\n");
 	printf("\t\t\t For creating a custom file or finding additional info on the available distributions please check the README file.)\n");
 	printf(" -v<value>\t\t(Seed for random generator default:current time)\n");
-	printf(" -o<value>\t\t(generate an output log with the distribution actually generated by the benchmark)\n");
+	printf(" -o<value>\t\t(generate an output log with the distribution actually generated by the benchmark. This requires additional RAM)\n");
 	printf(" -k<value>\t\t(generate an output log with the access pattern generated by the benchmark)\n");
 	printf(" -z\t\t\t(Disable the destruction of process temporary files generated by the benchmark)\n");
+	printf(" -j<value>\t\t(Write to file path the output of DEDISbench. This feature also writes two additional files with the same name\n");
+	printf("\t\t\t as given in <value> and a snaplat and snapthr suffix that shows the throughput and latency average values \n");
+	printf("\t\t\t for 30 seconds intervals. Each process has an independet log file.)\n");
 	exit (8);
 
 }
@@ -700,10 +882,20 @@ int main(int argc, char *argv[]){
 	//necessary parameters
 	//I/O type READ or WRITE
     int iotype=-1;
+
+    //run 50% writes and 50%reads
+    int mixedIO=0;
+
+    int rawdevice=0;
+    char rawpath[100];
+
     //TEST type PEAK or NOMINAL
     int testtype=-1;
     //ratio for I/O throughput ops/s
     double ratio = -1;
+    double ratiow =-1;
+    double ratior = -1;
+
     //duration of benchmark (minutes)
     int time_to_run = 0;
     //size of benchmark
@@ -736,7 +928,7 @@ int main(int argc, char *argv[]){
 
 	//output dirstibution file
 	char outputfile[100];
-	int distout=0;
+	//int distout=0;
 	accesstype=TPCC;
 	int auxtype;
 
@@ -762,22 +954,40 @@ int main(int argc, char *argv[]){
 				  printf("Cannot use both -p and -n\n\n");
 				  usage();
 				}
-				//test if the value from -n is higher than 0
-				ratio=atoi(&argv[1][2]);
+				if(argv[1][2]=='r'){
+					ratio=atoi(&argv[1][3]);
+					ratior=ratio;
+				}
+				else{
+					if(argv[1][2]=='w'){
+						//test if the value from -n is higher than 0
+						ratio=atoi(&argv[1][3]);
+						ratiow=ratio;
+					}
+					else{
+						//test if the value from -n is higher than 0
+						ratio=atoi(&argv[1][2]);
+					}
+
+				}
 				break;
 			case 'w':
-				if(iotype!=READ)
+				if(iotype!=READ && mixedIO==0)
 					iotype=WRITE;
 				else{
 				    printf("Cannot use both -r and -w\n\n");
 					usage();}
 				break;
 			case 'r':
-				if(iotype!=WRITE)
+				if(iotype!=WRITE && mixedIO==0)
 					iotype=READ;
 				else{
 				  printf("Cannot use both -p and -n\n\n");
 				  usage();}
+				break;
+
+			case 'm':
+				mixedIO=1;
 				break;
 			case 't':
 				if(termination_type!=SIZE){
@@ -841,6 +1051,10 @@ int main(int argc, char *argv[]){
 			case 'd':
 				strcpy(tempfilespath,&argv[1][2]);
 				break;
+			case 'i':
+				rawdevice=1;
+				strcpy(rawpath,&argv[1][2]);
+				break;
 			case 'j':
 				printtofile=1;
 				strcpy(printfile,&argv[1][2]);
@@ -882,7 +1096,7 @@ int main(int argc, char *argv[]){
 
 
 	//test if iotype is defined
-	if(iotype!=WRITE && iotype!=READ){
+	if(iotype!=WRITE && iotype!=READ && mixedIO==0){
 		printf("missing -w or -r\n\n");
 		usage();
 		exit(0);
@@ -934,6 +1148,11 @@ int main(int argc, char *argv[]){
 
 	//convert to to ops/microsecond
 	ratio=ratio/1e6;
+	if(mixedIO==1){
+		ratior=ratior/1e6;
+		ratiow=ratiow/1e6;
+	}
+
 	//convert to bytes
 	filesize=filesize*1024*1024;
     //total blocks to be addressed at file
@@ -958,9 +1177,12 @@ int main(int argc, char *argv[]){
     	printf("loading duplicates distribution %s...\n",distfile);
     	get_distibution_stats(distfile);
 
-        loadmmap(mem,&sharedmem_size,&fd_shared);
-    	*zerodups=0;
-
+    	if(distout==1){
+    	   	loadmmap(mem,&sharedmem_size,&fd_shared);
+    	    *zerodups=0;
+    	}else{
+    	    loadmem();
+    	}
     	//load duplicate array for using in the benchmark
     	load_duplicates(distfile);
     }
@@ -969,8 +1191,13 @@ int main(int argc, char *argv[]){
     	printf("loading duplicates distribution %s...\n",DFILE);
     	get_distibution_stats(DFILE);
 
-    	loadmmap(mem,&sharedmem_size,&fd_shared);
-    	*zerodups=0;
+
+    	if(distout==1){
+    		loadmmap(mem,&sharedmem_size,&fd_shared);
+    		*zerodups=0;
+    	}else{
+    		loadmem();
+    	}
 
     	//load duplicate array for using in the benchmark
     	load_duplicates(DFILE);
@@ -984,7 +1211,7 @@ int main(int argc, char *argv[]){
     //writes can be performed over a populated file (populate=1)
     //this functionality can be disabled if the files are already populated (populate=0)
     //Or we can verify if the files already exist and ask?
-    if((iotype==READ && populate!=0) || populate==1){
+    if((iotype==READ && populate!=0 && rawdevice==0) || (populate==1 && rawdevice==0)){
     	populate_pfiles(filesize,nproc);
     }
 
@@ -997,7 +1224,7 @@ int main(int argc, char *argv[]){
 
     remove_db(DISTDB,dbpdist,envpdist);
 
-    launch_benchmark(nproc,totblocks,time_to_run,number_ops,ratio,seed,iotype,testtype);
+    launch_benchmark(nproc,totblocks,time_to_run,number_ops,ratio,seed,iotype,testtype,mixedIO,ratior,ratiow,rawdevice,rawpath);
 
     if(distout==1){
     	init_db(DISTDB,dbpdist,envpdist);
@@ -1010,11 +1237,8 @@ int main(int argc, char *argv[]){
 
     	close_db(dbpdist,envpdist);
     	remove_db(DISTDB,dbpdist,envpdist);
-
+    	closemmap(mem,&sharedmem_size,&fd_shared);
     }
-    closemmap(mem,&sharedmem_size,&fd_shared);
-
-
 
   return 0;
   
