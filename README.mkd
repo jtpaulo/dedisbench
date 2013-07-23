@@ -9,6 +9,12 @@ DEDISbench is implemented in C and allows performing read and write block disk I
 
 I/O operations can be executed concurrently by several processes with independent files. Moreover, the benchmark can be configured to stop the evaluation when a certain amount of data has been written or when a pre-defined period of time has elapsed. Another novel feature is the possibility of performing I/O operations with different load intensities. In addition to a stress load where the benchmark issues I/O operations as fast as possible to stress the system, DEDISbench supports performing operations at a nominal load specified by the user.
 
+
+For more information regarding DEDISbench algorithm you may read these two published papers:
+- "DEDISbench: A Benchmark for Deduplicated Storage Systems"
+- "Towards an Accurate Evaluation of Deduplicated Storage Systems"
+
+
 # I/O benchmark:
 
 The benchmark is written in C and can simulate several processes writing/reading fixed size blocks concurrently into multiple files. The location for the write operations is given by NURand function from TPC-C benchmark that generates hotspots for I/O operations. A realistic distribution extracted from real storage systems is used to generate the blocks' content. Moreover, it is possible to use other distributions and load them from a custom file using DEDISgen. DEDISbench provides two workload modes, one reproduces a fully or peak loaded system, as Bonnie++, that performs as maximum write I/O operations per second as possible. The second reproduces a system under a reasonable nominal load, and can be useful for understanding the behavior of aliasing operations in a stable system with a limited I/O throughput.
@@ -180,7 +186,7 @@ generate output with distribution for db1+db2
 
 
 For more information please contact:
-Joao Paulo <jtpaulo at di.uminho.pt>
+Joao Paulo jtpaulo at di.uminho.pt
 
 
 
