@@ -23,6 +23,7 @@
 #include <strings.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <malloc.h>
 
 
 /*
@@ -117,18 +118,24 @@ void idle(long quantum) {
 
 //we must check this
 //create the file where the process will perform I/O operations
-int create_pfile(int procid){
+int create_pfile(int procid, int odirectf){
 
 	 //create the file with unique name for process with id procid
 	 char id[2];
 	 sprintf(id,"%d",procid);
 	 strcat(tempfilespath,"dedisbench_0010test");
 	 strcat(tempfilespath,id);
-
-
-	 printf("opening %s\n",tempfilespath);
-	 //device where the process will write
-	 int fd_test = open(tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
+	 int fd_test;
+	 if(odirectf==1){
+		 printf("opening %s with O_DIRECT\n",tempfilespath);
+		 //device where the process will write
+		 fd_test = open(tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT | O_DIRECT, 0644);
+	 }
+	 else{
+		 printf("opening %s\n",tempfilespath);
+		 //device where the process will write
+		 fd_test = open(tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
+	 }
 	 if(fd_test==-1) {
 		 perror("Error opening file for process I/O");
 		 exit(0);
@@ -222,13 +229,14 @@ FILE* create_plog(int procid){
 }
 
 //run a a peak test
-void process_run(int idproc, int nproc, double ratio, int duration, uint64_t number_ops, int iotype, int testtype, uint64_t totblocks, int rawdevice, char* rawpath){
+void process_run(int idproc, int nproc, double ratio, int duration, uint64_t number_ops, int iotype,
+		int testtype, uint64_t totblocks, int rawdevice, char* rawpath,int fsyncf,int odirectf){
 
   int fd_test;
 
   if(rawdevice==0){
 	  //create file where process will perform I/O
-	   fd_test = create_pfile(idproc);
+	   fd_test = create_pfile(idproc,odirectf);
   }else{
 	   fd_test = open_rawfile(rawpath);
   }
@@ -330,8 +338,13 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
    //IF the the test is peak or if it is NOMINAL and we are below the expected rate
    if(testtype==PEAK || ops_proc/time_elapsed<ratio){
 
+	 char* buf;
      //memory block
-	 char buf[block_size];
+	 if(odirectf==1){
+		 buf = memalign(block_size,block_size);
+	 }else{
+		 buf = malloc(block_size);
+	 }
 
 	 //If it is a write test then get the content to write and
 	 //populate buffer with the content to be written
@@ -420,8 +433,9 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 
        int res = pwrite(fd_test,buf,block_size,iooffset);
-       fsync(fd_test);
-
+       if(fsyncf==1){
+    	   fsync(fd_test);
+       }
        //latency calculation
        gettimeofday(&tim, NULL);
        uint64_t t2=tim.tv_sec*1000000+(tim.tv_usec);
@@ -504,6 +518,8 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 		  fprintf(fres,"%llu %llu\n", (long long unsigned int) t2-t1, (long long unsigned int) t2s);
 		}
      }
+
+	 free(buf);
 
 	 //One more operation was performed
 	 tot_ops++;
@@ -672,7 +688,8 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 }
 
 
-void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t number_ops, double ratio,uint64_t seed,int iotype,int testtype,int mixedIO, double ratior,double ratiow, int rawdevice, char* rawpath){
+void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t number_ops, double ratio,uint64_t seed,
+		int iotype,int testtype,int mixedIO, double ratior,double ratiow, int rawdevice, char* rawpath,int fsyncf,int odirectf){
 
 
 	int i;
@@ -699,17 +716,17 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 			 //choose to launch read or write process
 			 if(i<nproc/2){
 				 //work performed by each process
-				 process_run(i, nproc/2, ratiow, time_to_run, number_ops, WRITE, testtype, totblocks,rawdevice,rawpath);
+				 process_run(i, nproc/2, ratiow, time_to_run, number_ops, WRITE, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf);
 			 }
 			 else{
 				 //work performed by each process
-				  process_run(i-(nproc/2), nproc/2, ratior, time_to_run, number_ops, READ, testtype, totblocks,rawdevice,rawpath);
+				  process_run(i-(nproc/2), nproc/2, ratior, time_to_run, number_ops, READ, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf);
 			 }
 		  }
 		  else{
 
 			  //work performed by each process
-			  process_run(i, nproc, ratio, time_to_run, number_ops, iotype, testtype, totblocks,rawdevice,rawpath);
+			  process_run(i, nproc, ratio, time_to_run, number_ops, iotype, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf);
 		  }
 		  //sleep(10);
 	     exit(0);
@@ -872,6 +889,7 @@ void help(void){
 	printf(" -j<value>\t\t(Write to file path the output of DEDISbench. This feature also writes two additional files with the same name\n");
 	printf("\t\t\t as given in <value> and a snaplat and snapthr suffix that shows the throughput and latency average values \n");
 	printf("\t\t\t for 30 seconds intervals. Each process has an independet log file.)\n");
+	printf(" -x<value>\t\t(I/O Operations synchronization: 0-without fsync and O_DIRECT, 1-O_DIRECT, 2-fsync, 3-both. default:0)\n");
 	exit (8);
 
 }
@@ -931,6 +949,9 @@ int main(int argc, char *argv[]){
 	//int distout=0;
 	accesstype=TPCC;
 	int auxtype;
+
+	int fsyncf=0;
+	int odirectf=0;
 
 
    	while ((argc > 1) && (argv[1][0] == '-'))
@@ -1021,6 +1042,30 @@ int main(int argc, char *argv[]){
 				if(auxtype!=0 && auxtype!=1 && auxtype!=2)
 					perror("Unknown type of pattern acess for I/O operations");
 				break;
+			case 'x':
+				auxtype=atoll(&argv[1][2]);
+				if(auxtype==0){
+					fsyncf=0;
+					odirectf=0;
+				}
+				if(auxtype==1){
+					fsyncf=0;
+					odirectf=1;
+				}
+				if(auxtype==2){
+					fsyncf=1;
+					odirectf=0;
+				}
+				if(auxtype==3){
+					fsyncf=1;
+					odirectf=1;
+				}
+
+				if(auxtype!=0 && auxtype!=1 && auxtype!=2 && auxtype!=3)
+					perror("Unknown type of synchronization for I/O operations");
+				break;
+
+
 			case 'f':
 				filesize=atoll(&argv[1][2]);
 				break;
@@ -1224,7 +1269,7 @@ int main(int argc, char *argv[]){
 
     remove_db(DISTDB,dbpdist,envpdist);
 
-    launch_benchmark(nproc,totblocks,time_to_run,number_ops,ratio,seed,iotype,testtype,mixedIO,ratior,ratiow,rawdevice,rawpath);
+    launch_benchmark(nproc,totblocks,time_to_run,number_ops,ratio,seed,iotype,testtype,mixedIO,ratior,ratiow,rawdevice,rawpath,fsyncf,odirectf);
 
     if(distout==1){
     	init_db(DISTDB,dbpdist,envpdist);
