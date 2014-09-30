@@ -28,11 +28,9 @@
 
 /*
  * Future Work
- * TODO: fsync must be an option that can be switched on/off
  * TODO: Should we exclude the first minutes and last form the statistics?
  * TODO: Other statistics, graph generation, flexibility of results log.
  * TODO: Build failed on i386. error on open flags
- * TODO: Maybe shared memory could be removed and use parent fork memory instead?
  */
 
 //type of I/O
@@ -90,7 +88,7 @@ int printtofile=0;
 //global timeval structure for nominal tests
 static struct timeval base;
 
-
+uint64_t misses_read=0;
 
 //time elapsed since last I/O
 long lap_time() {
@@ -230,9 +228,14 @@ FILE* create_plog(int procid){
 
 //run a a peak test
 void process_run(int idproc, int nproc, double ratio, int duration, uint64_t number_ops, int iotype,
-		int testtype, uint64_t totblocks, int rawdevice, char* rawpath,int fsyncf,int odirectf){
+		int testtype, uint64_t totblocks, int rawdevice, char* rawpath,int fsyncf,int odirectf,int mixedIO,int nprocs){
 
   int fd_test;
+  int procid_r=idproc;
+
+  if(mixedIO==1&&iotype==READ){
+	  procid_r=procid_r+(nprocs/2);
+  }
 
   if(rawdevice==0){
 	  //create file where process will perform I/O
@@ -246,7 +249,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
   char name[10];
   char id[2];
-  sprintf(id,"%d",idproc);
+  sprintf(id,"%d",procid_r);
   if(logfeature==1){
 
 	  strcpy(name,"result");
@@ -429,17 +432,22 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
        //get current time for calculating I/O op latency
        gettimeofday(&tim, NULL);
        uint64_t t1=tim.tv_sec*1000000+(tim.tv_usec);
-       t1snap=t1;
+
 
 
        int res = pwrite(fd_test,buf,block_size,iooffset);
        if(fsyncf==1){
     	   fsync(fd_test);
+
+
        }
+
        //latency calculation
        gettimeofday(&tim, NULL);
        uint64_t t2=tim.tv_sec*1000000+(tim.tv_usec);
        uint64_t t2s = tim.tv_sec;
+       //t1snap must take value of t2 because we want to get the time when requets are processed
+       t1snap=t2;
 
        if(res ==0 || res ==-1)
            perror("Error writing block ");
@@ -490,7 +498,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 		//get current time for calculating I/O op latency
 		gettimeofday(&tim, NULL);
 		uint64_t t1=tim.tv_sec*1000000+(tim.tv_usec);
-		t1snap=t1;
+
 
 		uint64_t res = pread(fd_test,buf,block_size,iooffset);
 
@@ -499,8 +507,13 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 		uint64_t t2=tim.tv_sec*1000000+(tim.tv_usec);
 		uint64_t t2s = tim.tv_sec;
 
-		if(res ==0 || res ==-1)
-		     perror("Error reading block ");
+		//t1snap must take value of t2 because we want to get the time when requets are processed
+		t1snap=t2;
+
+		if(res != block_size){
+			misses_read++;
+		    printf("Error reading block %llu\n",res);
+		}
 
 		if(beginio==-1){
 		   	   beginio=t1;
@@ -525,7 +538,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 	 tot_ops++;
      snap_totops++;
 
-	 if(t1snap>=last_snap_time+30*1000000){
+	 if(t1snap>=last_snap_time+30*1e6){
 
 	    	   snap_throughput[iter_snap]=(snap_totops/((t1snap-last_snap_time)/1.0e6));
 	    	   snap_latency[iter_snap]=(snap_lat/snap_totops)/1000;
@@ -555,7 +568,11 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
    //DEBUG;
    if((tot_ops%100000)==0){
-      printf("Process %d has reached %llu operations\n",idproc, (long long unsigned int) tot_ops);
+      //printf("Process %d has reached %llu operations\n",procid_r, (long long unsigned int) tot_ops);
+   }
+
+   if(misses_read%10000==0 && misses_read>0 ){
+	   printf("Process %d has reached %llu misses\n",procid_r, (long long unsigned int) misses_read);
    }
 
    //update current time
@@ -566,11 +583,25 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
   }
 
+
   if(logfeature==1){
 	  fclose(fres);
 
   }
   close(fd_test);
+
+
+  if(t1snap>last_snap_time){
+	  //Write last snap because ther may be some operations missing
+	  snap_throughput[iter_snap]=(snap_totops/((t1snap-last_snap_time)/1.0e6));
+	  snap_latency[iter_snap]=(snap_lat/snap_totops)/1000;
+	  snap_ops[iter_snap]=(snap_totops);
+	  snap_time[iter_snap]=t1snap;
+	  iter_snap++;
+	  last_snap_time=t1snap;
+	  snap_lat=0;
+	  snap_totops=0;
+  }
 
   //calculate average latency milisseconds
   latency=(latency/tot_ops)/1000.0;
@@ -595,22 +626,22 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 */
 
   if(distout==1){
-	  printf("Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
+	  printf("Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
 
 	  if(printtofile==1){
 
 		  FILE* pf=fopen(printfile,"a");
-		  fprintf(pf,"Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
+		  fprintf(pf,"Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
 		  fclose(pf);
 
 	  }
   }else{
-	  printf("Process %d:\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)tot_ops,throughput,latency);
+	  printf("Process %d: Total I/O operations %llu Throughput: %.3f blocks/second Latency: %.3f miliseconds misses read %llu\n",procid_r,(long long unsigned int)tot_ops,throughput,latency,misses_read);
 
 	  	  if(printtofile==1){
 
 	  		  FILE* pf=fopen(printfile,"a");
-	  		  fprintf(pf,"Process %d:\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)tot_ops,throughput,latency);
+	  		  fprintf(pf,"Process %d:\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)tot_ops,throughput,latency);
 	  		  fclose(pf);
 
 	  	  }
@@ -712,21 +743,25 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 		  //generate the same load
 		  init_rand(seed+i);
 
+
 		  if(mixedIO==1){
+
+
 			 //choose to launch read or write process
 			 if(i<nproc/2){
+
 				 //work performed by each process
-				 process_run(i, nproc/2, ratiow, time_to_run, number_ops, WRITE, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf);
+				 process_run(i, nproc/2, ratiow, time_to_run, number_ops, WRITE, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf,mixedIO,nproc);
 			 }
 			 else{
 				 //work performed by each process
-				  process_run(i-(nproc/2), nproc/2, ratior, time_to_run, number_ops, READ, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf);
+				 process_run(i-(nproc/2), nproc/2, ratior, time_to_run, number_ops, READ, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf,mixedIO,nproc);
 			 }
 		  }
 		  else{
 
 			  //work performed by each process
-			  process_run(i, nproc, ratio, time_to_run, number_ops, iotype, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf);
+			  process_run(i, nproc, ratio, time_to_run, number_ops, iotype, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf,mixedIO,nproc);
 		  }
 		  //sleep(10);
 	     exit(0);
