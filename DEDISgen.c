@@ -416,6 +416,14 @@ int main (int argc, char *argv[]){
 		strcpy(duplicatedbpath,DUPLICATEDB);
 	}
 
+	char mkcmd[200];
+	sprintf(mkcmd, "mkdir -p %s", printdbpath);
+	int ress = system(mkcmd);
+	sprintf(mkcmd, "mkdir -p %s", duplicatedbpath);
+	ress=system(mkcmd);
+	if(ress<0)
+	    perror("Error creating folders for databases\n");
+
 
 	printf("Removing old databases\n");
 	//remove databases if exist

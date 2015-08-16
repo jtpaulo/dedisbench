@@ -148,6 +148,7 @@ Running the generator DEDISgen:
  -p<value>      (Path for the folder or disk device)
  -o<value>		(Path for the output distribution file. 
  				 This is only necessary if distribution file of duplicates is going to be generated)
+ 				 (Please specifiy the full path including the distribution file name to be generated)
 
  Optional Parameters
 
@@ -160,11 +161,11 @@ Running the generator DEDISgen:
 
 Examples
 
-//generate duplicate distribution for files in folder /dir/duplicates/ and its subfolders
-./DEDISgen -f -p/dir/duplicates/
+//generate duplicate distribution file /dir/dist_file for files in folder /dir/duplicates/ and its subfolders
+./DEDISgen -f -p/dir/duplicates/ -o/dir/dist_file
 
-//generate duplicate distribution for device /path/device. Use a block size of 8192 Bytes (8KB)
-./DEDISgen -d -p/path/device -b8192 
+//generate duplicate distribution file /dir/dist_file for device /path/device. Use a block size of 8192 Bytes (8KB)
+./DEDISgen -d -p/path/device -b8192 -o/dir/dist_file
 
 
 Deduplication distribution FILE:

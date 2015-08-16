@@ -139,7 +139,7 @@ run 8 minutes mixed benchmark with a nominal load (100reads/s and 50 writes/s) i
 
  -p<value>      Path for the folder or disk device
 
- -o<value>	Path for the output distribution file. This is only necessary if distribution file of duplicates is going to be generated
+ -o<value>	Path for the output distribution file (Please specifiy the full path including the distribution file name to be generated). This is only necessary if distribution file of duplicates is going to be generated
 
  Optional Parameters
 
@@ -152,13 +152,13 @@ run 8 minutes mixed benchmark with a nominal load (100reads/s and 50 writes/s) i
 
 # Examples
 
-generate duplicate distribution for files in folder /dir/duplicates/ and its subfolders
+generate duplicate distribution file /dir/dist_file for files in folder /dir/duplicates/ and its subfolders
 
-./DEDISgen -f -p/dir/duplicates/
+./DEDISgen -f -p/dir/duplicates/ -o/dir/dist_file
 
-generate duplicate distribution for device /path/device. Use a block size of 8192 Bytes (8KB)
+generate duplicate distribution file /dir/dist_file for device /path/device. Use a block size of 8192 Bytes (8KB)
 
-./DEDISgen -d -p/path/device -b8192 
+./DEDISgen -d -p/path/device -b8192 -o/dir/dist_file
 
 
 # Deduplication distribution FILE:
