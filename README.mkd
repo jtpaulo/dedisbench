@@ -145,8 +145,8 @@ run 8 minutes mixed benchmark with a nominal load (100reads/s and 50 writes/s) i
 
  -z<value>	Path for the folder where duplicates databases are created default: ./gendbs/ . duplicate_db is the database with duplicates information hash->number_dups
 
- -b<value>      Size of blocks for I/O operations in Bytes default: 4096
-
+ -b<value>  Size of blocks to analyse in bytes eg: -b1024,4096,8192 default: -b4096
+	
  -o<value>	Path for the output distribution file. This is only necessary if distribution file of duplicates is going to be generated
 
 
@@ -156,9 +156,9 @@ generate duplicate distribution file /dir/dist_file for files in folder /dir/dup
 
 ./DEDISgen -f -p/dir/duplicates/ -o/dir/dist_file
 
-generate duplicate distribution file /dir/dist_file for device /path/device. Use a block size of 8192 Bytes (8KB)
+generate duplicate distribution file /dir/dist_file for device /path/device. Analyse for a size of 4096 and 8192 Bytes (8KB). A file dist_file4096 and dist_file8192 will be created.
 
-./DEDISgen -d -p/path/device -b8192 -o/dir/dist_file
+./DEDISgen -d -p/path/device -o/dir/dist_file -b4096,8192
 
 
 # Deduplication distribution FILE:
