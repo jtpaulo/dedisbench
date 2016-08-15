@@ -119,7 +119,7 @@ void idle(long quantum) {
 int create_pfile(int procid, int odirectf){
 
 	 //create the file with unique name for process with id procid
-	 char id[2];
+	 char id[4];
 	 sprintf(id,"%d",procid);
 	 strcat(tempfilespath,"dedisbench_0010test");
 	 strcat(tempfilespath,id);
@@ -158,7 +158,7 @@ int destroy_pfile(int procid){
 
 	//create the file with unique name for process with id procid
 	char name[120];
-	char id[2];
+	char id[4];
 	sprintf(id,"%d",procid);
 	strcpy(name,"rm ");
 	strcat(name,tempfilespath);
@@ -185,7 +185,7 @@ void populate_pfiles(uint64_t filesize,int nprocs){
 	for(i=0;i<nprocs;i++){
 		//create the file with unique name for process with id procid
     	char name[150];
-		char id[2];
+		char id[4];
 		sprintf(id,"%d",i);
 		char count[10];
 		//printf("%llu %llu\n",filesize,filesize/1024/1024);
@@ -216,7 +216,7 @@ FILE* create_plog(int procid){
 
 	//create the file with results for process with id procid
     char name[10];
-	char id[2];
+	char id[4];
 	sprintf(id,"%d",procid);
 	strcpy(name,"result");
 	strcat(name,id);
@@ -248,7 +248,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
   FILE* fres=NULL;
 
   char name[10];
-  char id[2];
+  char id[4];
   sprintf(id,"%d",procid_r);
   if(logfeature==1){
 
