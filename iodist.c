@@ -2,27 +2,11 @@
  * (c) 2010 2010 U. Minho. Written by J. Paulo
  */
 
-#include <unistd.h>
-#include <stdio.h>
-#include <signal.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <math.h>
-#include "random.c"
-
-uint64_t block_size;
-
+#include "iodist.h"
+#include "random.h"
 
 uint64_t c_nurand=0;
 uint64_t a_nurand=0;
-
-//MEMORY structure for keeping io acesses
-int accesslog;
-int accesstype;
-char accessfilelog[100];
 
 
 int initialize_nurand(uint64_t totb){
@@ -44,7 +28,7 @@ int initialize_nurand(uint64_t totb){
 //TODO: these values could be adjusted better for the workload in the future
 // x,y range of positions; A varies accordingly to the range size; C is a random
 //between 0 and A
-uint64_t get_ioposition_tpcc(uint64_t totb){
+uint64_t get_ioposition_tpcc(uint64_t totb, uint64_t block_size){
 
   //A=9000
   //x is zero TODO: this could also be a parameter...
@@ -66,7 +50,7 @@ uint64_t get_ioposition_tpcc(uint64_t totb){
 }
 
 
-uint64_t get_ioposition_uniform(uint64_t totb){
+uint64_t get_ioposition_uniform(uint64_t totb, uint64_t block_size){
 
 
   //Uniform distribution
@@ -82,7 +66,7 @@ uint64_t get_ioposition_uniform(uint64_t totb){
   return resf;
 }
 
-uint64_t get_ioposition_seq(uint64_t totb,uint64_t cont){
+uint64_t get_ioposition_seq(uint64_t totb,uint64_t cont, uint64_t block_size){
 
   //res gives a block id and we convert to physical address
   uint64_t resf = (cont%totb)*block_size;

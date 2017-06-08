@@ -14,9 +14,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <math.h>
-
-//duplicate distribution loader
-#include "duplicatedist.c"
+#include <assert.h>
 #include <sys/time.h>
 #include <time.h>
 #include <sys/wait.h>
@@ -24,6 +22,10 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <malloc.h>
+
+#include "random.h"
+#include "duplicatedist.h"
+#include "iodist.h"
 
 
 /*
@@ -78,6 +80,8 @@ uint64_t beginio;
 //exact time after the last I/O operations
 uint64_t endio;
 
+uint64_t block_size;
+
 //path of directory for temporary files
 char tempfilespath[100];
 
@@ -85,10 +89,29 @@ char printfile[100];
 int destroypfile=1;
 int printtofile=0;
 
+//MEMORY structure for keeping io acesses
+int accesslog;
+int accesstype;
+char accessfilelog[100];
+
 //global timeval structure for nominal tests
 static struct timeval base;
 
 uint64_t misses_read=0;
+
+//blocks without any duplicate
+uint64_t uni=0;
+//uni referes to unique blocks meaning that
+// also counts 1 copy of each duplicated block
+//blocks with duplicates written
+uint64_t dupl=0;
+
+//zerodups only refers to blocks with only one copy (no duplicates)
+//local mem
+uint64_t zerod=0;
+
+//
+int distout=0;
 
 //time elapsed since last I/O
 long lap_time() {
@@ -408,15 +431,15 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 	   if(accesstype==SEQUENTIAL){
 		   //Get the position to perform I/O operation
-		   iooffset = get_ioposition_seq(totblocks,tot_ops);
+		   iooffset = get_ioposition_seq(totblocks,tot_ops, block_size);
 	   }else{
 		   if(accesstype==UNIFORM){
 			   //Get the position to perform I/O operation
-			   iooffset = get_ioposition_uniform(totblocks);
+			   iooffset = get_ioposition_uniform(totblocks, block_size);
 		   }
 		   else{
 			   //Get the position to perform I/O operation
-			  iooffset = get_ioposition_tpcc(totblocks);
+			  iooffset = get_ioposition_tpcc(totblocks, block_size);
 
 		   }
 	   }
@@ -475,15 +498,15 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 		if(accesstype==SEQUENTIAL){
 				   //Get the position to perform I/O operation
-				   iooffset = get_ioposition_seq(totblocks,tot_ops);
+				   iooffset = get_ioposition_seq(totblocks,tot_ops, block_size);
 			   }else{
 				   if(accesstype==UNIFORM){
 					   //Get the position to perform I/O operation
-					   iooffset = get_ioposition_uniform(totblocks);
+					   iooffset = get_ioposition_uniform(totblocks, block_size);
 				   }
 				   else{
 					   //Get the position to perform I/O operation
-					  iooffset = get_ioposition_tpcc(totblocks);
+					  iooffset = get_ioposition_tpcc(totblocks, block_size);
 
 				   }
 			   }
@@ -512,7 +535,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 		if(res != block_size){
 			misses_read++;
-		    printf("Error reading block %llu\n",res);
+		    printf("Error reading block %llu\n",(long long unsigned int)res);
 		}
 
 		if(beginio==-1){
@@ -636,7 +659,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 	  }
   }else{
-	  printf("Process %d: Total I/O operations %llu Throughput: %.3f blocks/second Latency: %.3f miliseconds misses read %llu\n",procid_r,(long long unsigned int)tot_ops,throughput,latency,misses_read);
+	  printf("Process %d: Total I/O operations %llu Throughput: %.3f blocks/second Latency: %.3f miliseconds misses read %llu\n",procid_r,(long long unsigned int)tot_ops,throughput,latency,(long long unsigned int) misses_read);
 
 	  	  if(printtofile==1){
 
@@ -1286,7 +1309,7 @@ int main(int argc, char *argv[]){
 
 	//printf("distinct blocks %llu number unique blocks %llu number duplicates %llu\n",(long long unsigned int)total_blocks, (long long unsigned int)unique_blocks,(long long unsigned int)duplicated_blocks);
 
-	load_cumulativedist();
+	load_cumulativedist(distout);
 
     //writes can be performed over a populated file (populate=1)
     //this functionality can be disabled if the files are already populated (populate=0)

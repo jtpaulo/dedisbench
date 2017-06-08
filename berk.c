@@ -6,23 +6,10 @@
 #define _FILE_OFFSET_BITS 64 
 #define _GNU_SOURCE
 
-#include <stdio.h>
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <strings.h>
 #include <string.h>
-#include <pthread.h>
-#include <signal.h>
-#include <db.h>
-
-//correspondent value for each hash entry at the DHT
-struct hash_value {
-    uint64_t cont;
-};
-
+#include <assert.h>
+#include "berk.h"
 
 //************************************************* DB functions ********************************
 

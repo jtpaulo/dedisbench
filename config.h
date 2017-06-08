@@ -23,7 +23,7 @@
 #define HAVE_LIBCRYPTO 1
 
 /* Define to 1 if you have the `db' library (-ldb). */
-#define HAVE_LIBDB 1
+/* #undef HAVE_LIBDB */
 
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #define HAVE_LIBSSL 1

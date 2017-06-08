@@ -3,16 +3,9 @@
  */
 
 //random generation
+#include <assert.h>
+#include "random.h"
 #include "randomgen/SFMT.c"
-#include <unistd.h>
-#include <stdio.h>
-#include <signal.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <math.h>
 
 //TODO: find a more suitable library in the future to prevent the tweaks we are doing below
 
@@ -28,7 +21,7 @@ init_gen_rand(seed);
 //correction done below
 uint64_t genrand(uint64_t max){
 
-	//the library generates between 0 and max uint32_t
+        //the library generates between 0 and max uint32_t
     uint64_t t = gen_rand32();
 
     //this must have equal propability, if t is higher than the last number that

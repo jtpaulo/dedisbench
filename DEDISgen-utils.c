@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <fcntl.h>
-#include "berk.c"
+#include "berk.h"
 
 //max path size of a folder/file
 #define MAXSIZEP 10000
