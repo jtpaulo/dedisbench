@@ -2,7 +2,25 @@
  * (c) 2010 2010 U. Minho. Written by J. Paulo
  */
 
-#include "DEDISbench.h"
+#include <stdio.h>
+#include <signal.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <time.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <malloc.h>
+
+#include "random.h"
+#include "duplicatedist.h"
+#include "iodist.h"
+#include "berk.h"
+#include "sharedmem.h"
+#include "populate.h"
+#include "defines.h"
 
 
 //time elapsed since last I/O
@@ -27,104 +45,6 @@ void idle(long quantum) {
 	usleep(quantum);
 }
 
-
-
-//we must check this
-//create the file where the process will perform I/O operations
-int create_pfile(int procid, int odirectf, struct user_confs *conf){
-
-	 //create the file with unique name for process with id procid
-	 char id[4];
-	 sprintf(id,"%d",procid);
-	 strcat(conf->tempfilespath,"dedisbench_0010test");
-	 strcat(conf->tempfilespath,id);
-	 int fd_test;
-	 if(conf->odirectf==1){
-		 printf("opening %s with O_DIRECT\n",conf->tempfilespath);
-		 //device where the process will write
-		 fd_test = open(conf->tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT | O_DIRECT, 0644);
-	 }
-	 else{
-		 printf("opening %s\n",conf->tempfilespath);
-		 //device where the process will write
-		 fd_test = open(conf->tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
-	 }
-	 if(fd_test==-1) {
-		 perror("Error opening file for process I/O");
-		 exit(0);
-	 }
-
-	 return fd_test;
-}
-
-
-int open_rawfile(char* rawpath){
-	 int fd_test = open(rawpath, O_RDWR | O_LARGEFILE, 0644);
-		 if(fd_test==-1) {
-			 perror("Error opening file for process I/O");
-			 exit(0);
-		 }
-
-		 return fd_test;
-
-}
-
-int destroy_pfile(int procid, struct user_confs *conf){
-
-	//create the file with unique name for process with id procid
-	char name[120];
-	char id[4];
-	sprintf(id,"%d",procid);
-	strcpy(name,"rm ");
-	strcat(name,conf->tempfilespath);
-	strcat(name,"dedisbench_0010test");
-	strcat(name,id);
-
-	printf("performing %s\n",name);
-
-	int ret = system(name);
-	if(ret<0){
-			perror("System rm failed");
-	}
-
-	return 0;
-}
-
-//populate files with content
-void populate_pfiles(struct user_confs* conf){
-
-	int i;
-
-    //for each process populate its file with size filesize
-	//we use DD for filling a non sparse image
-	for(i=0;i<conf->nprocs;i++){
-		//create the file with unique name for process with id procid
-    	char name[150];
-		char id[4];
-		sprintf(id,"%d",i);
-		char count[10];
-		//printf("%llu %llu\n",filesize,filesize/1024/1024);
-		sprintf(count,"%llu",(long long unsigned int)conf->filesize/1024/1024);
-		strcpy(name,"dd if=/dev/zero of=");
-		strcat(name,conf->tempfilespath);
-		strcat(name,"dedisbench_0010test");
-		strcat(name,id);
-		strcat(name," bs=1M count=");
-		strcat(name,count);
-
-
-		//printf("ola mundo\n");
-		//printf("%s\n",name);
-		printf("populating file for process %d\n%s\n",i,name);
-		int ret = system(name);
-		if(ret<0){
-			perror("System dd failed");
-		}
-
-	}
-
-
-}
 
 //create the log file with the results from the test
 FILE* create_plog(int procid){
@@ -158,7 +78,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  //create file where process will perform I/O
 	   fd_test = create_pfile(idproc,conf->odirectf,conf);
   }else{
-	   fd_test = open_rawfile(conf->rawpath);
+	   fd_test = open_rawdev(conf->rawpath,conf);
   }
 
   //create the file with results for process with id procid

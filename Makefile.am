@@ -1,6 +1,6 @@
 CXXFLAGS = -Wall -Irandomgen
 bin_PROGRAMS=DEDISbench DEDISgen DEDISgenutils
-DEDISbench_SOURCES= random.c berk.c iodist.c duplicatedist.c sharedmem.c DEDISbench.c
+DEDISbench_SOURCES= random.c berk.c structs.h iodist.c duplicatedist.c populate.c sharedmem.c DEDISbench.c
 DEDISbench_CFLAGS= -Wall -Irandomgen
 DEDISgen_SOURCES=DEDISgen.c berk.c
 DEDISgen_CFLAGS = -Wall
