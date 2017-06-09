@@ -2,129 +2,21 @@
  * (c) 2010 2010 U. Minho. Written by J. Paulo
  */
 
-#define _GNU_SOURCE
-#define _FILE_OFFSET_BITS 64 
+#include "DEDISbench.h"
 
-#include <unistd.h>
-#include <stdio.h>
-#include <signal.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <math.h>
-#include <assert.h>
-#include <sys/time.h>
-#include <time.h>
-#include <sys/wait.h>
-#include <strings.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <malloc.h>
-
-#include "random.h"
-#include "duplicatedist.h"
-#include "iodist.h"
-
-
-/*
- * Future Work
- * TODO: Should we exclude the first minutes and last form the statistics?
- * TODO: Other statistics, graph generation, flexibility of results log.
- * TODO: Build failed on i386. error on open flags
- */
-
-//type of I/O
-#define READ 0
-#define WRITE 1
-
-//type of test
-#define NOMINAL 2
-#define PEAK 3
-
-//type of termination
-#define TIME 4
-#define SIZE 5
-
-//log feature 0=disabled 1=enabled
-int logfeature;
-
-//acess type for IO
-#define SEQUENTIAL 6
-#define UNIFORM 7
-#define TPCC 8
-
-//statistics variables
-//throughput per second
-double throughput;
-//average latency
-double latency;
-
-//TODO this sould be an option of the menu...
-//TODO these variables should use realloc if necessary...
-//array of periodic Snapshots of average throughput and latency.
-double *snap_throughput;
-double *snap_latency;
-double *snap_ops;
-uint64_t *snap_time;
-uint64_t snap_totops=0;
-
-//total operations performe
-uint64_t tot_ops=0;
-//Since the begin and end time of the tests are not exact about when the
-//firts or last operations started or ended we register this more accuratelly
-//for calculating the throughput
-//exact time before the first I/O operation
-uint64_t beginio;
-//exact time after the last I/O operations
-uint64_t endio;
-
-uint64_t block_size;
-
-//path of directory for temporary files
-char tempfilespath[100];
-
-char printfile[100];
-int destroypfile=1;
-int printtofile=0;
-
-//MEMORY structure for keeping io acesses
-int accesslog;
-int accesstype;
-char accessfilelog[100];
-
-//global timeval structure for nominal tests
-static struct timeval base;
-
-uint64_t misses_read=0;
-
-//blocks without any duplicate
-uint64_t uni=0;
-//uni referes to unique blocks meaning that
-// also counts 1 copy of each duplicated block
-//blocks with duplicates written
-uint64_t dupl=0;
-
-//zerodups only refers to blocks with only one copy (no duplicates)
-//local mem
-uint64_t zerod=0;
-
-//
-int distout=0;
 
 //time elapsed since last I/O
-long lap_time() {
+long lap_time(struct timeval *base) {
 	struct timeval tv;
 	long delta;
 
 	//get current time
 	gettimeofday(&tv, NULL); 
 	//base time - current time (in microseconds)
-	delta = (tv.tv_sec-base.tv_sec)*1e6+(tv.tv_usec-base.tv_usec);
+	delta = (tv.tv_sec-base->tv_sec)*1e6+(tv.tv_usec-base->tv_usec);
 
 	//update base to the current time
-    base = tv;
+    *base = tv;
 
     //return delta
 	return delta;
@@ -139,23 +31,23 @@ void idle(long quantum) {
 
 //we must check this
 //create the file where the process will perform I/O operations
-int create_pfile(int procid, int odirectf){
+int create_pfile(int procid, int odirectf, struct user_confs *conf){
 
 	 //create the file with unique name for process with id procid
 	 char id[4];
 	 sprintf(id,"%d",procid);
-	 strcat(tempfilespath,"dedisbench_0010test");
-	 strcat(tempfilespath,id);
+	 strcat(conf->tempfilespath,"dedisbench_0010test");
+	 strcat(conf->tempfilespath,id);
 	 int fd_test;
-	 if(odirectf==1){
-		 printf("opening %s with O_DIRECT\n",tempfilespath);
+	 if(conf->odirectf==1){
+		 printf("opening %s with O_DIRECT\n",conf->tempfilespath);
 		 //device where the process will write
-		 fd_test = open(tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT | O_DIRECT, 0644);
+		 fd_test = open(conf->tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT | O_DIRECT, 0644);
 	 }
 	 else{
-		 printf("opening %s\n",tempfilespath);
+		 printf("opening %s\n",conf->tempfilespath);
 		 //device where the process will write
-		 fd_test = open(tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
+		 fd_test = open(conf->tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
 	 }
 	 if(fd_test==-1) {
 		 perror("Error opening file for process I/O");
@@ -177,14 +69,14 @@ int open_rawfile(char* rawpath){
 
 }
 
-int destroy_pfile(int procid){
+int destroy_pfile(int procid, struct user_confs *conf){
 
 	//create the file with unique name for process with id procid
 	char name[120];
 	char id[4];
 	sprintf(id,"%d",procid);
 	strcpy(name,"rm ");
-	strcat(name,tempfilespath);
+	strcat(name,conf->tempfilespath);
 	strcat(name,"dedisbench_0010test");
 	strcat(name,id);
 
@@ -199,22 +91,22 @@ int destroy_pfile(int procid){
 }
 
 //populate files with content
-void populate_pfiles(uint64_t filesize,int nprocs){
+void populate_pfiles(struct user_confs* conf){
 
 	int i;
 
     //for each process populate its file with size filesize
 	//we use DD for filling a non sparse image
-	for(i=0;i<nprocs;i++){
+	for(i=0;i<conf->nprocs;i++){
 		//create the file with unique name for process with id procid
     	char name[150];
 		char id[4];
 		sprintf(id,"%d",i);
 		char count[10];
 		//printf("%llu %llu\n",filesize,filesize/1024/1024);
-		sprintf(count,"%llu",(long long unsigned int)filesize/1024/1024);
+		sprintf(count,"%llu",(long long unsigned int)conf->filesize/1024/1024);
 		strcpy(name,"dd if=/dev/zero of=");
-		strcat(name,tempfilespath);
+		strcat(name,conf->tempfilespath);
 		strcat(name,"dedisbench_0010test");
 		strcat(name,id);
 		strcat(name," bs=1M count=");
@@ -250,21 +142,23 @@ FILE* create_plog(int procid){
 }
 
 //run a a peak test
-void process_run(int idproc, int nproc, double ratio, int duration, uint64_t number_ops, int iotype,
-		int testtype, uint64_t totblocks, int rawdevice, char* rawpath,int fsyncf,int odirectf,int mixedIO,int nprocs){
+void process_run(int idproc, int nproc, double ratio, int iotype, struct user_confs* conf, struct duplicates_info *info){
 
+  
   int fd_test;
   int procid_r=idproc;
 
-  if(mixedIO==1&&iotype==READ){
-	  procid_r=procid_r+(nprocs/2);
+  struct stats stat = {.beginio=-1};
+
+  if(conf->mixedIO==1 && conf->iotype==READ){
+	  procid_r=procid_r+(conf->nprocs/2);
   }
 
-  if(rawdevice==0){
+  if(conf->rawdevice==0){
 	  //create file where process will perform I/O
-	   fd_test = create_pfile(idproc,odirectf);
+	   fd_test = create_pfile(idproc,conf->odirectf,conf);
   }else{
-	   fd_test = open_rawfile(rawpath);
+	   fd_test = open_rawfile(conf->rawpath);
   }
 
   //create the file with results for process with id procid
@@ -273,7 +167,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
   char name[10];
   char id[4];
   sprintf(id,"%d",procid_r);
-  if(logfeature==1){
+  if(conf->logfeature==1){
 
 	  strcpy(name,"result");
 	  strcat(name,id);
@@ -281,12 +175,12 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
   }
 
   uint64_t* acessesarray=NULL;
-  if(accesslog==1){
+  if(conf->accesslog==1){
      	//init acesses array
 
-	    acessesarray=malloc(sizeof(uint64_t)*totblocks);
+	    acessesarray=malloc(sizeof(uint64_t)*conf->totblocks);
      	uint64_t aux;
-     	for(aux=0;aux<totblocks;aux++){
+     	for(aux=0;aux<conf->totblocks;aux++){
 
      		acessesarray[aux]=0;
 
@@ -297,26 +191,24 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
   //TODO here we must have a variable that only initiates snapshots if the user specified
   //Also this must call realloc if the number of observations is higher thanthe size
   //the snapshot time is 30 sec but could also be a parameter
-  snap_throughput=malloc(sizeof(double)*1000);
-  snap_latency=malloc(sizeof(double)*1000);
-  snap_ops=malloc(sizeof(double)*1000);
-  snap_time=malloc(sizeof(unsigned long long int)*1000);
-  int iter_snap=0;
-  uint64_t last_snap_time=0;
-  uint64_t t1snap=0;
-  double snap_lat=0;
+  stat.snap_throughput=malloc(sizeof(double)*1000);
+  stat.snap_latency=malloc(sizeof(double)*1000);
+  stat.snap_ops=malloc(sizeof(double)*1000);
+  stat.snap_time=malloc(sizeof(unsigned long long int)*1000);
+  
 
   //unique counter for each process
   //starts with value==max index at array sum
   //since duplicated content is identified by number correspondent to the indexes at sum
   //none will have a identifier bigger than this
-  uint64_t u_count = duplicated_blocks+1;
+  uint64_t u_count = info->duplicated_blocks+1;
 
   //check if terminationis time or not
   int termination_type;
   uint64_t begin;
   uint64_t end;
   struct timeval tim;
+  int duration = conf->time_to_run;
   if(duration > 0 ){
 	  //Get current time to mark the beggining of the benchmark and check
 	  //when it should end
@@ -331,13 +223,16 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
   //SIZE termination
   else{
 	  begin=0;
-	  end=number_ops/nproc;
+	  end=conf->number_ops/nproc;
 	  termination_type=SIZE;
   }
 
-  if (accesstype==TPCC){
-	  initialize_nurand(totblocks);
+  if (conf->accesstype==TPCC){
+	  initialize_nurand(conf->totblocks);
   }
+
+  //global timeval structure for nominal tests
+  struct timeval base;
 
   //variables for nominal tests
   //getcurrent time and put in global variable base
@@ -355,70 +250,68 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
    //number of operations performed for all processes
    //since we are running N processes concurrently at the same I/O rate
    //the number of operations must be multiplied by all
-   double ops_proc=tot_ops*nproc;
+   double ops_proc=stat.tot_ops*nproc;
 
    assert(ops_proc>=0);
    assert(time_elapsed>0);
 
-
    //IF the the test is peak or if it is NOMINAL and we are below the expected rate
-   if(testtype==PEAK || ops_proc/time_elapsed<ratio){
+   if(conf->testtype==PEAK || ops_proc/time_elapsed<ratio){
 
 	 char* buf;
      //memory block
-	 if(odirectf==1){
-		 buf = memalign(block_size,block_size);
+	 if(conf->odirectf==1){
+		 buf = memalign(conf->block_size,conf->block_size);
 	 }else{
-		 buf = malloc(block_size);
+		 buf = malloc(conf->block_size);
 	 }
 
 	 //If it is a write test then get the content to write and
 	 //populate buffer with the content to be written
 	 if(iotype==WRITE){
 
-
 	   //initialize the buffer with duplicate content
 	   int bufp = 0;
-	   for(bufp=0;bufp<block_size;bufp++){
+	   for(bufp=0;bufp<conf->block_size;bufp++){
 		   buf[bufp] = 'a';
 	   }
 
 	   //get the content
-	   uint64_t contwrite =	get_writecontent(&u_count);
+	   uint64_t contwrite =	get_writecontent(info, &u_count);
 
 	   //contwrite is the index of sum where the block belongs
 	   //put in statistics this value ==1 to know when a duplicate is found
-	   if(distout==1){
-		   if(contwrite<duplicated_blocks){
-			   statistics[contwrite]++;
-			   if(statistics[contwrite]>1){
-				   dupl++;
+	   if(conf->distout==1){
+		   if(contwrite<info->duplicated_blocks){
+			   info->statistics[contwrite]++;
+			   if(info->statistics[contwrite]>1){
+				   stat.dupl++;
 			   }
 			   else{
-				   uni++;
+				   stat.uni++;
 			   }
 		   }
 	   }
 	   else{
-		   dupl++;
+		   stat.dupl++;
 	   }
 	   //if the content to write is unique write to the buffer
 	   //the unique counter of the process + "string"  + process id
 	   //to be unique among processes the string invalidates to have
 	   //an identical number from other oprocess
 	   //timestamp is used for multiple DEDIS benchs to be different
-	   if(contwrite>duplicated_blocks){
+	   if(contwrite>info->duplicated_blocks){
 		   	  //get current time for making this value unique for concurrent benchmarks
 		      gettimeofday(&tim, NULL);
 		      uint64_t tunique=tim.tv_sec*1000000+(tim.tv_usec);
 	       	  sprintf(buf,"%llu pid %d time %llu", (long long unsigned int)contwrite,idproc,(long long unsigned int)tunique);
-	       	  uni++;
+	       	  stat.uni++;
 	       	  //uni referes to unique blocks meaning that
 	       	  // also counts 1 copy of each duplicated block
 	       	  //zerodups only refers to blocks with only one copy (no duplicates)
-	       	  zerod++;
-	       	  if(distout==1){
-	       		  *zerodups=*zerodups+1;
+	       	  stat.zerod++;
+	       	  if(conf->distout==1){
+	       		  info->zerodups=info->zerodups+1;
 	       	  }
 	   }
 	   //if it is duplicated write the result (index of sum) returned
@@ -429,26 +322,26 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 	   uint64_t iooffset;
 
-	   if(accesstype==SEQUENTIAL){
+	   if(conf->accesstype==SEQUENTIAL){
 		   //Get the position to perform I/O operation
-		   iooffset = get_ioposition_seq(totblocks,tot_ops, block_size);
+		   iooffset = get_ioposition_seq(conf->totblocks, stat.tot_ops, conf->block_size);
 	   }else{
-		   if(accesstype==UNIFORM){
+		   if(conf->accesstype==UNIFORM){
 			   //Get the position to perform I/O operation
-			   iooffset = get_ioposition_uniform(totblocks, block_size);
+			   iooffset = get_ioposition_uniform(conf->totblocks, conf->block_size);
 		   }
 		   else{
 			   //Get the position to perform I/O operation
-			  iooffset = get_ioposition_tpcc(totblocks, block_size);
+			  iooffset = get_ioposition_tpcc(conf->totblocks, conf->block_size);
 
 		   }
 	   }
-	  if(rawdevice==1){
-		  iooffset = ((totblocks*block_size)*idproc)+iooffset;
+	  if(conf->rawdevice==1){
+		  iooffset = ((conf->totblocks*conf->block_size)*idproc)+iooffset;
 	  }
 
-	  if(accesslog==1){
-		  acessesarray[iooffset/block_size]++;
+	  if(conf->accesslog==1){
+		  acessesarray[iooffset/conf->block_size]++;
 	   }
 
 
@@ -456,10 +349,8 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
        gettimeofday(&tim, NULL);
        uint64_t t1=tim.tv_sec*1000000+(tim.tv_usec);
 
-
-
-       int res = pwrite(fd_test,buf,block_size,iooffset);
-       if(fsyncf==1){
+       int res = pwrite(fd_test,buf,conf->block_size,iooffset);
+       if(conf->fsyncf==1){
     	   fsync(fd_test);
 
 
@@ -470,22 +361,22 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
        uint64_t t2=tim.tv_sec*1000000+(tim.tv_usec);
        uint64_t t2s = tim.tv_sec;
        //t1snap must take value of t2 because we want to get the time when requets are processed
-       t1snap=t2;
+       stat.t1snap=t2;
 
        if(res ==0 || res ==-1)
            perror("Error writing block ");
 
-       if(beginio==-1){
-    	   beginio=t1;
-    	   last_snap_time=t1snap;
+       if(stat.beginio==-1){
+    	   stat.beginio=t1;
+    	   stat.last_snap_time=stat.t1snap;
 
        }
 
-       latency+=(t2-t1);
-       snap_lat+=(t2-t1);
-       endio=t2;
+       stat.latency+=(t2-t1);
+       stat.snap_lat+=(t2-t1);
+       stat.endio=t2;
 
-       if(logfeature==1){
+       if(conf->logfeature==1){
          //write in the log the operation latency
          fprintf(fres,"%llu %llu\n", (long long unsigned int) t2-t1, (long long unsigned int)t2s);
        }
@@ -496,26 +387,26 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 		uint64_t iooffset;
 
-		if(accesstype==SEQUENTIAL){
+		if(conf->accesstype==SEQUENTIAL){
 				   //Get the position to perform I/O operation
-				   iooffset = get_ioposition_seq(totblocks,tot_ops, block_size);
+				   iooffset = get_ioposition_seq(conf->totblocks, stat.tot_ops, conf->block_size);
 			   }else{
-				   if(accesstype==UNIFORM){
+				   if(conf->accesstype==UNIFORM){
 					   //Get the position to perform I/O operation
-					   iooffset = get_ioposition_uniform(totblocks, block_size);
+					   iooffset = get_ioposition_uniform(conf->totblocks, conf->block_size);
 				   }
 				   else{
 					   //Get the position to perform I/O operation
-					  iooffset = get_ioposition_tpcc(totblocks, block_size);
+					  iooffset = get_ioposition_tpcc(conf->totblocks, conf->block_size);
 
 				   }
 			   }
 
-		if(rawdevice==1){
-				  iooffset = ((totblocks*block_size)*idproc)+iooffset;
+		if(conf->rawdevice==1){
+				  iooffset = ((conf->totblocks*conf->block_size)*idproc)+iooffset;
 			  }
-		if(accesslog==1){
-			acessesarray[iooffset/block_size]++;
+		if(conf->accesslog==1){
+			acessesarray[iooffset/conf->block_size]++;
 		}
 
 		//get current time for calculating I/O op latency
@@ -523,7 +414,7 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 		uint64_t t1=tim.tv_sec*1000000+(tim.tv_usec);
 
 
-		uint64_t res = pread(fd_test,buf,block_size,iooffset);
+		uint64_t res = pread(fd_test,buf,conf->block_size,iooffset);
 
 		//latency calculation
 		gettimeofday(&tim, NULL);
@@ -531,25 +422,25 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 		uint64_t t2s = tim.tv_sec;
 
 		//t1snap must take value of t2 because we want to get the time when requets are processed
-		t1snap=t2;
+		stat.t1snap=t2;
 
-		if(res != block_size){
-			misses_read++;
+		if(res != conf->block_size){
+			stat.misses_read++;
 		    printf("Error reading block %llu\n",(long long unsigned int)res);
 		}
 
-		if(beginio==-1){
-		   	   beginio=t1;
-		   	   last_snap_time=t1snap;
+		if(stat.beginio==-1){
+		   	   stat.beginio=t1;
+		   	   stat.last_snap_time=stat.t1snap;
 		}
 
-		latency+=(t2-t1);
-		snap_lat+=(t2-t1);
-		endio=t2;
+		stat.latency+=(t2-t1);
+		stat.snap_lat+=(t2-t1);
+		stat.endio=t2;
 
 
 
-		if(logfeature==1){
+		if(conf->logfeature==1){
 		  //write in the log the operation latency
 		  fprintf(fres,"%llu %llu\n", (long long unsigned int) t2-t1, (long long unsigned int) t2s);
 		}
@@ -558,23 +449,23 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 	 free(buf);
 
 	 //One more operation was performed
-	 tot_ops++;
-     snap_totops++;
+	 stat.tot_ops++;
+     stat.snap_totops++;
 
-	 if(t1snap>=last_snap_time+30*1e6){
+	 if(stat.t1snap>=stat.last_snap_time+30*1e6){
 
-	    	   snap_throughput[iter_snap]=(snap_totops/((t1snap-last_snap_time)/1.0e6));
-	    	   snap_latency[iter_snap]=(snap_lat/snap_totops)/1000;
-	    	   snap_ops[iter_snap]=(snap_totops);
-	    	   snap_time[iter_snap]=t1snap;
-	    	   iter_snap++;
-	    	   last_snap_time=t1snap;
-	    	   snap_lat=0;
-	    	   snap_totops=0;
+	    	   stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
+	    	   stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
+	    	   stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
+	    	   stat.snap_time[stat.iter_snap]=stat.t1snap;
+	    	   stat.iter_snap++;
+	    	   stat.last_snap_time=stat.t1snap;
+	    	   stat.snap_lat=0;
+	    	   stat.snap_totops=0;
 
 	 }
 
-	 if(termination_type==SIZE){
+	 if(conf->termination_type==SIZE){
 		   begin++;
 	 }
 
@@ -587,15 +478,15 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
 
    //add to the total time the time elapsed with this operation
-   time_elapsed+=lap_time();
+   time_elapsed+=lap_time(&base);
 
    //DEBUG;
-   if((tot_ops%100000)==0){
+   if((stat.tot_ops%100000)==0){
       //printf("Process %d has reached %llu operations\n",procid_r, (long long unsigned int) tot_ops);
    }
 
-   if(misses_read%10000==0 && misses_read>0 ){
-	   printf("Process %d has reached %llu misses\n",procid_r, (long long unsigned int) misses_read);
+   if(stat.misses_read%10000==0 && stat.misses_read>0 ){
+	   printf("Process %d has reached %llu misses\n",procid_r, (long long unsigned int) stat.misses_read);
    }
 
    //update current time
@@ -607,29 +498,28 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
   }
 
 
-  if(logfeature==1){
+  if(conf->logfeature==1){
 	  fclose(fres);
 
   }
   close(fd_test);
 
 
-  if(t1snap>last_snap_time){
+  if(stat.t1snap>stat.last_snap_time){
 	  //Write last snap because ther may be some operations missing
-	  snap_throughput[iter_snap]=(snap_totops/((t1snap-last_snap_time)/1.0e6));
-	  snap_latency[iter_snap]=(snap_lat/snap_totops)/1000;
-	  snap_ops[iter_snap]=(snap_totops);
-	  snap_time[iter_snap]=t1snap;
-	  iter_snap++;
-	  last_snap_time=t1snap;
-	  snap_lat=0;
-	  snap_totops=0;
+	  stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
+	  stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
+	  stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
+	  stat.snap_time[stat.iter_snap]=stat.t1snap;
+	  stat.iter_snap++;
+	  stat.last_snap_time=stat.t1snap;
+	  stat.snap_lat=0;
+	  stat.snap_totops=0;
   }
 
   //calculate average latency milisseconds
-  latency=(latency/tot_ops)/1000.0;
-
-  throughput=(tot_ops/((endio-beginio)/1.0e6));
+  stat.latency=(stat.latency/stat.tot_ops)/1000.0;
+  stat.throughput=(stat.tot_ops/((stat.endio-stat.beginio)/1.0e6));
 
   /*
   //inserts statistics list into berkeleyDB in order to sum with all processes and then calculate
@@ -648,23 +538,23 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
   printf("Process %d:\nUnique Blocks Written %llu\nZero Copies Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)zerod,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
 */
 
-  if(distout==1){
-	  printf("Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
+  if(conf->distout==1){
+	  printf("Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)stat.uni,(long long unsigned int)stat.dupl,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency);
 
-	  if(printtofile==1){
+	  if(conf->printtofile==1){
 
-		  FILE* pf=fopen(printfile,"a");
-		  fprintf(pf,"Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)uni,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
+		  FILE* pf=fopen(conf->printfile,"a");
+		  fprintf(pf,"Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)stat.uni,(long long unsigned int)stat.dupl,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency);
 		  fclose(pf);
 
 	  }
   }else{
-	  printf("Process %d: Total I/O operations %llu Throughput: %.3f blocks/second Latency: %.3f miliseconds misses read %llu\n",procid_r,(long long unsigned int)tot_ops,throughput,latency,(long long unsigned int) misses_read);
+	  printf("Process %d: Total I/O operations %llu Throughput: %.3f blocks/second Latency: %.3f miliseconds misses read %llu\n",procid_r,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency,(long long unsigned int) stat.misses_read);
 
-	  	  if(printtofile==1){
+	  	  if(conf->printtofile==1){
 
-	  		  FILE* pf=fopen(printfile,"a");
-	  		  fprintf(pf,"Process %d:\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)tot_ops,throughput,latency);
+	  		  FILE* pf=fopen(conf->printfile,"a");
+	  		  fprintf(pf,"Process %d:\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency);
 	  		  fclose(pf);
 
 	  	  }
@@ -673,63 +563,62 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 
   }
 
-  if(printtofile==1){
-  //SNAP printing
-  char snapthrname[100];
-  strcpy(snapthrname,printfile);
-  strcat(snapthrname,"snapthr");
-  if(iotype==WRITE){
-	  strcat(snapthrname,"write");
-  }
-  else{
-	  strcat(snapthrname,"read");
-  }
-  strcat(snapthrname,id);
+  if(conf->printtofile==1){
+	  //SNAP printing
+	  char snapthrname[PATH_SIZE];
+	  strcpy(snapthrname,conf->printfile);
+	  strcat(snapthrname,"snapthr");
+	  if(conf->iotype==WRITE){
+		  strcat(snapthrname,"write");
+	  }
+	  else{
+		  strcat(snapthrname,"read");
+	  }
+  	  strcat(snapthrname,id);
 
-  char snaplatname[100];
-  strcpy(snaplatname,printfile);
-  strcat(snaplatname,"snaplat");
-  if(iotype==WRITE){
-  	  strcat(snaplatname,"write");
-  }
-  else{
-  	  strcat(snaplatname,"read");
-  }
-  strcat(snaplatname,id);
+	  char snaplatname[PATH_SIZE];
+	  strcpy(snaplatname,conf->printfile);
+	  strcat(snaplatname,"snaplat");
+	  if(conf->iotype==WRITE){
+	  	  strcat(snaplatname,"write");
+	  }
+	  else{
+	  	  strcat(snaplatname,"read");
+	  }
+	  strcat(snaplatname,id);
 
+	  FILE* pf=fopen(snaplatname,"a");
+	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
-  FILE* pf=fopen(snaplatname,"a");
-  fprintf(pf,"%llu 0 0\n",(unsigned long long int)beginio);
+	  int aux=0;
+	  for (aux=0;aux<stat.iter_snap;aux++){
 
-  int aux=0;
-  for (aux=0;aux<iter_snap;aux++){
+		  //SNAP printing
+		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_latency[aux],stat.snap_ops[aux]);
+
+	  }
+	  fclose(pf);
 
 	  //SNAP printing
-	  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)snap_time[aux],snap_latency[aux],snap_ops[aux]);
+	  pf=fopen(snapthrname,"a");
+	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
-  }
-  fclose(pf);
+	  for (aux=0;aux<stat.iter_snap;aux++){
 
-  //SNAP printing
-  pf=fopen(snapthrname,"a");
-  fprintf(pf,"%llu 0 0\n",(unsigned long long int)beginio);
+		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_throughput[aux],stat.snap_ops[aux]);
 
-  for (aux=0;aux<iter_snap;aux++){
-
-	  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)snap_time[aux],snap_throughput[aux],snap_ops[aux]);
-
-  }
-  fclose(pf);
+	  }
+	  fclose(pf);
   }
 
-  if(accesslog==1){
+  if(conf->accesslog==1){
 
-	  	 strcat(accessfilelog,id);
+	  	 strcat(conf->accessfilelog,id);
 
 	  	 //print distribution file
-	     FILE* fpp=fopen(accessfilelog,"w");
+	     FILE* fpp=fopen(conf->accessfilelog,"w");
 	     uint64_t iter;
-	     for(iter=0;iter<totblocks;iter++){
+	     for(iter=0;iter<conf->totblocks;iter++){
 	    	 fprintf(fpp,"%llu %llu\n",(unsigned long long int) iter, (unsigned long long int) acessesarray[iter]);
 	     }
 
@@ -742,18 +631,15 @@ void process_run(int idproc, int nproc, double ratio, int duration, uint64_t num
 }
 
 
-void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t number_ops, double ratio,uint64_t seed,
-		int iotype,int testtype,int mixedIO, double ratior,double ratiow, int rawdevice, char* rawpath,int fsyncf,int odirectf){
-
+void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 
 	int i;
 	//launch processes for each file bench
-	int nprocinit=nproc;
+	int nprocinit=conf->nprocs;
 
-	pid_t *pids=malloc(sizeof(pid_t)*nproc);
+	pid_t *pids=malloc(sizeof(pid_t)*conf->nprocs);
 
-
-	for (i = 0; i < nproc; ++i) {
+	for (i = 0; i < conf->nprocs; ++i) {
 	  if ((pids[i] = fork()) < 0) {
 	    perror("error forking");
 	    abort();
@@ -764,27 +650,27 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 		  //if the seed is always the same the generator generates the same numbers
 		  //for each proces the seed = seed + processid or all the processes would
 		  //generate the same load
-		  init_rand(seed+i);
+		  init_rand(conf->seed+i);
 
 
-		  if(mixedIO==1){
+		  if(conf->mixedIO==1){
 
 
 			 //choose to launch read or write process
-			 if(i<nproc/2){
+			 if(i<conf->nprocs/2){
 
 				 //work performed by each process
-				 process_run(i, nproc/2, ratiow, time_to_run, number_ops, WRITE, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf,mixedIO,nproc);
+				 process_run(i, conf->nprocs/2, conf->ratiow, WRITE, conf, info);
 			 }
 			 else{
 				 //work performed by each process
-				 process_run(i-(nproc/2), nproc/2, ratior, time_to_run, number_ops, READ, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf,mixedIO,nproc);
+				 process_run(i-(conf->nprocs/2), conf->nprocs/2, conf->ratior, READ, conf, info);
 			 }
 		  }
 		  else{
 
 			  //work performed by each process
-			  process_run(i, nproc, ratio, time_to_run, number_ops, iotype, testtype, totblocks,rawdevice,rawpath,fsyncf,odirectf,mixedIO,nproc);
+			  process_run(i, conf->nprocs, conf->ratio, conf->iotype, conf, info);
 		  }
 		  //sleep(10);
 	     exit(0);
@@ -794,118 +680,26 @@ void launch_benchmark(int nproc, uint64_t totblocks, int time_to_run, uint64_t n
 	/* Wait for children to exit. */
 	int status;
 	pid_t pid;
-	while (nproc > 0) {
+	while (conf->nprocs > 0) {
 	  pid = wait(&status);
 	  printf("Terminating process with PID %ld exited with status 0x%x.\n", (long)pid, status);
-	  --nproc;
+	  --conf->nprocs;
 	}
 	free(pids);
 
 
 
-	if(destroypfile==1 && rawdevice==0){
+	if(conf->destroypfile==1 && conf->rawdevice==0){
 	printf("Destroying temporary files\n");
 		for (i = 0; i < nprocinit; i++) {
 
-			destroy_pfile(i);
+			destroy_pfile(i, conf);
 
 		}
 	}
 
 	printf("Exiting benchmark\n");
 
-}
-
-
-int loadmem(){
-
-		  sum=malloc(sizeof(uint64_t)*duplicated_blocks);
-		  stats=malloc(sizeof(uint64_t)*duplicated_blocks);
-
-		  return 1;
-
-}
-
-int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared){
-
-	 //Name of shared memory file
-	 int result;
-
-
-	  //size of shared memory structure
-	  *sharedmem_size = sizeof(uint64_t)*(duplicated_blocks*3+1);
-
-
-	  *fd_shared = open("dedisbench_0010sharedmemstats", O_RDWR | O_CREAT, (mode_t)0600);
-	  if (*fd_shared == -1) {
-	    perror("Error opening file for writing");
-	    exit(EXIT_FAILURE);
-	  }
-
-	  /* Stretch the file size to the size of the (mmapped) array of ints
-	   */
-	  result = lseek(*fd_shared, *sharedmem_size-1, SEEK_SET);
-	  if (result == -1) {
-	      close(*fd_shared);
-	      perror("Error calling lseek() to 'stretch' the file");
-	      exit(EXIT_FAILURE);
-	  }
-
-	  /* Something needs to be written at the end of the file to
-	   * have the file actually have the new size.
-	   * Just writing an empty string at the current file position will do.
-	   *
-	   * Note:
-	   *  - The current position in the file is at the end of the stretched
-	   *    file due to the call to lseek().
-	   *  - An empty string is actually a single '\0' character, so a zero-byte
-	   *    will be written at the last byte of the file.
-	   */
-	   result = write(*fd_shared, "", 1);
-	   if (result != 1) {
-	      close(*fd_shared);
-	      perror("Error writing last byte of the file");
-	      exit(EXIT_FAILURE);
-	   }
-
-
-	  // Now the file is ready to be mapped to memory
-	  *mem = (uint64_t*)mmap(0, *sharedmem_size, PROT_READ | PROT_WRITE, MAP_SHARED, *fd_shared, 0);
-	  if (*mem == MAP_FAILED) {
-	    close(*fd_shared);
-	    perror("Error mmapping the file");
-	    exit(EXIT_FAILURE);
-	  }
-
-	  uint64_t* mem_aux=*mem;
-	  // Now assign the memory region to each variable
-	  statistics = mem_aux;
-	  mem_aux=mem_aux+duplicated_blocks;
-	  sum=mem_aux;
-	  mem_aux=mem_aux+duplicated_blocks;
-	  stats=mem_aux;
-	  mem_aux=mem_aux+duplicated_blocks;
-	  zerodups = mem_aux;
-
-	  return 0;
-}
-
-int closemmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared){
-
-
-	if (munmap(*mem,  *sharedmem_size) == -1) {
-		perror("Error un-mmapping the file");
-		// Decide here whether to close(fd_shared) and exit() or not. Depends...
-	}
-
-	close(*fd_shared);
-
-	int ret = system("rm dedisbench_0010sharedmemstats");
-	if(ret<0){
-    	perror("System rm failed");
-	}
-
-	return 0;
 }
 
 void usage(void)
@@ -954,62 +748,27 @@ void help(void){
 
 int main(int argc, char *argv[]){
 
+	
+	struct duplicates_info info;
 
-	//necessary parameters
-	//I/O type READ or WRITE
-    int iotype=-1;
-
-    //run 50% writes and 50%reads
-    int mixedIO=0;
-
-    int rawdevice=0;
-    char rawpath[100];
-
-    //TEST type PEAK or NOMINAL
-    int testtype=-1;
-    //ratio for I/O throughput ops/s
-    double ratio = -1;
-    double ratiow =-1;
-    double ratior = -1;
-
-    //duration of benchmark (minutes)
-    int time_to_run = 0;
-    //size of benchmark
-    uint64_t number_ops =0;
-
-    int termination_type=-1;
-    //Optional parameters
-    //duplicates distribution file (default homer file DFILE)
-    //Number of processes (default 4)
-	int nproc =4;
-	//File size for process in MB (default 2048)
-	uint64_t filesize = 2048LLU;
-	// block size in KB (default 4)
-	block_size=4096LL;
-
+	uint64_t **mem=malloc(sizeof(uint64_t*));
+    uint64_t sharedmem_size;
+    int fd_shared;
+	
 	//default seed is be given by current time
 	struct timeval tim;
 	gettimeofday(&tim, NULL);
-	uint64_t seed=tim.tv_sec*1000000+(tim.tv_usec);
 
-	//logging of I/O is disabled statistics are calculated in memory
-	logfeature=0;
-
-	//populate feature, by default is off unless it is a read test
-	int populate=-1;
-
-	//distribution file path
-	char distfile[100];
-	int distf=0;
-
-	//output dirstibution file
-	char outputfile[100];
-	//int distout=0;
-	accesstype=TPCC;
-	int auxtype;
-
-	int fsyncf=0;
-	int odirectf=0;
+	struct user_confs conf = {.destroypfile = 1, .accesstype = TPCC, .iotype = -1, .testtype = -1,
+	.ratio = -1, .ratiow = -1, .ratior = -1, .termination_type = -1, .nprocs = 4, .filesize = 2048LLU,
+	.block_size = 4096LL, .populate=-1};
+	conf.seed=tim.tv_sec*1000000+(tim.tv_usec);
+	bzero(conf.tempfilespath,PATH_SIZE);
+	bzero(conf.printfile,PATH_SIZE);
+	bzero(conf.accessfilelog,PATH_SIZE);
+	bzero(conf.rawpath,PATH_SIZE);
+	bzero(conf.distfile,PATH_SIZE);
+	bzero(conf.outputfile,PATH_SIZE);
 
 
    	while ((argc > 1) && (argv[1][0] == '-'))
@@ -1018,8 +777,8 @@ int main(int argc, char *argv[]){
 		{
 			case 'p':
 				//Test if -n is not being used also
-				if(testtype!=NOMINAL)
-					testtype=PEAK;
+				if(conf.testtype!=NOMINAL)
+					conf.testtype=PEAK;
 				else{
 				  printf("Cannot use both -p and -n\n");
 				  usage();
@@ -1027,51 +786,51 @@ int main(int argc, char *argv[]){
 				break;
 			case 'n':
 				//test if -p is not being used also
-				if(testtype!=PEAK)
-					testtype=NOMINAL;
+				if(conf.testtype!=PEAK)
+					conf.testtype=NOMINAL;
 				else{
 				  printf("Cannot use both -p and -n\n\n");
 				  usage();
 				}
 				if(argv[1][2]=='r'){
-					ratio=atoi(&argv[1][3]);
-					ratior=ratio;
+					conf.ratio=atoi(&argv[1][3]);
+					conf.ratior=conf.ratio;
 				}
 				else{
 					if(argv[1][2]=='w'){
 						//test if the value from -n is higher than 0
-						ratio=atoi(&argv[1][3]);
-						ratiow=ratio;
+						conf.ratio=atoi(&argv[1][3]);
+						conf.ratiow=conf.ratio;
 					}
 					else{
 						//test if the value from -n is higher than 0
-						ratio=atoi(&argv[1][2]);
+						conf.ratio=atoi(&argv[1][2]);
 					}
 
 				}
 				break;
 			case 'w':
-				if(iotype!=READ && mixedIO==0)
-					iotype=WRITE;
+				if(conf.iotype!=READ && conf.mixedIO==0)
+					conf.iotype=WRITE;
 				else{
 				    printf("Cannot use both -r and -w\n\n");
 					usage();}
 				break;
 			case 'r':
-				if(iotype!=WRITE && mixedIO==0)
-					iotype=READ;
+				if(conf.iotype!=WRITE && conf.mixedIO==0)
+					conf.iotype=READ;
 				else{
 				  printf("Cannot use both -p and -n\n\n");
 				  usage();}
 				break;
 
 			case 'm':
-				mixedIO=1;
+				conf.mixedIO=1;
 				break;
 			case 't':
-				if(termination_type!=SIZE){
-					termination_type=TIME;
-					time_to_run=atoi(&argv[1][2]);
+				if(conf.termination_type!=SIZE){
+					conf.termination_type=TIME;
+					conf.time_to_run=atoi(&argv[1][2]);
 				}
 				else{
 					printf("Cannot use both -t and -s\n\n");
@@ -1079,9 +838,9 @@ int main(int argc, char *argv[]){
 				}
 				break;
 			case 's':
-				if(termination_type!=TIME){
-					termination_type=SIZE;
-					number_ops=atoll(&argv[1][2]);
+				if(conf.termination_type!=TIME){
+					conf.termination_type=SIZE;
+					conf.number_ops=atoll(&argv[1][2]);
 				}
 				else{
 					printf("Cannot use both -t and -s\n\n");
@@ -1089,88 +848,88 @@ int main(int argc, char *argv[]){
 				}
 				break;
 			case 'a':
-				auxtype=atoll(&argv[1][2]);
-				if(auxtype==0)
-					accesstype=SEQUENTIAL;
-				if(auxtype==1)
-					accesstype=UNIFORM;
-				if(auxtype==2)
-					accesstype=TPCC;
+				conf.auxtype=atoll(&argv[1][2]);
+				if(conf.auxtype==0)
+					conf.accesstype=SEQUENTIAL;
+				if(conf.auxtype==1)
+					conf.accesstype=UNIFORM;
+				if(conf.auxtype==2)
+					conf.accesstype=TPCC;
 
-				if(auxtype!=0 && auxtype!=1 && auxtype!=2)
+				if(conf.auxtype!=0 && conf.auxtype!=1 && conf.auxtype!=2)
 					perror("Unknown type of pattern acess for I/O operations");
 				break;
 			case 'x':
-				auxtype=atoll(&argv[1][2]);
-				if(auxtype==0){
-					fsyncf=0;
-					odirectf=0;
+				conf.auxtype=atoll(&argv[1][2]);
+				if(conf.auxtype==0){
+					conf.fsyncf=0;
+					conf.odirectf=0;
 				}
-				if(auxtype==1){
-					fsyncf=0;
-					odirectf=1;
+				if(conf.auxtype==1){
+					conf.fsyncf=0;
+					conf.odirectf=1;
 				}
-				if(auxtype==2){
-					fsyncf=1;
-					odirectf=0;
+				if(conf.auxtype==2){
+					conf.fsyncf=1;
+					conf.odirectf=0;
 				}
-				if(auxtype==3){
-					fsyncf=1;
-					odirectf=1;
+				if(conf.auxtype==3){
+					conf.fsyncf=1;
+					conf.odirectf=1;
 				}
 
-				if(auxtype!=0 && auxtype!=1 && auxtype!=2 && auxtype!=3)
+				if(conf.auxtype!=0 && conf.auxtype!=1 && conf.auxtype!=2 && conf.auxtype!=3)
 					perror("Unknown type of synchronization for I/O operations");
 				break;
 
 
 			case 'f':
-				filesize=atoll(&argv[1][2]);
+				conf.filesize=atoll(&argv[1][2]);
 				break;
 			case 'b':
-				block_size=atoll(&argv[1][2]);
+				conf.block_size=atoll(&argv[1][2]);
 				break;
 			case 'v':
-				seed=atof(&argv[1][2]);
+				conf.seed=atof(&argv[1][2]);
 				break;
 			case 'c':
-				nproc=atoi(&argv[1][2]);
+				conf.nprocs=atoi(&argv[1][2]);
 				break;
 			case 'h':
 				help();
 				break;
 			case 'g':
-				strcpy(distfile,&argv[1][2]);
-				distf=1;
+				strcpy(conf.distfile,&argv[1][2]);
+				conf.distf=1;
 				break;
 			case 'o':
-				strcpy(outputfile,&argv[1][2]);
-				distout=1;
+				strcpy(conf.outputfile,&argv[1][2]);
+				conf.distout=1;
 				break;
 			case 'k':
-				accesslog=1;
-				strcpy(accessfilelog,&argv[1][2]);
+				conf.accesslog=1;
+				strcpy(conf.accessfilelog,&argv[1][2]);
 				break;
 			case 'd':
-				strcpy(tempfilespath,&argv[1][2]);
+				strcpy(conf.tempfilespath,&argv[1][2]);
 				break;
 			case 'i':
-				rawdevice=1;
-				strcpy(rawpath,&argv[1][2]);
+				conf.rawdevice=1;
+				strcpy(conf.rawpath,&argv[1][2]);
 				break;
 			case 'j':
-				printtofile=1;
-				strcpy(printfile,&argv[1][2]);
+				conf.printtofile=1;
+				strcpy(conf.printfile,&argv[1][2]);
 				break;
 			case 'l':
-				logfeature=1;
+				conf.logfeature=1;
 				break;
 			case 'z':
-				destroypfile=0;
+				conf.destroypfile=0;
 				break;
 			case 'e':
-				if(populate!=0){
-					populate=1;
+				if(conf.populate!=0){
+					conf.populate=1;
 				}
 				else{
 					printf("Cannot use both -e and -d\n\n");
@@ -1178,8 +937,8 @@ int main(int argc, char *argv[]){
 				}
 				break;
 			case 'y':
-				if(populate!=1){
-					populate=0;
+				if(conf.populate!=1){
+					conf.populate=0;
 				}
 				else{
 					printf("Cannot use both -e and -y\n\n");
@@ -1199,147 +958,140 @@ int main(int argc, char *argv[]){
 
 
 	//test if iotype is defined
-	if(iotype!=WRITE && iotype!=READ && mixedIO==0){
+	if(conf.iotype!=WRITE && conf.iotype!=READ && conf.mixedIO==0){
 		printf("missing -w or -r\n\n");
 		usage();
 		exit(0);
 	}
 	//test if testype is defined
-	if(testtype!=PEAK && testtype!=NOMINAL){
+	if(conf.testtype!=PEAK && conf.testtype!=NOMINAL){
 		printf("missing -p or -n<value>\n\n");
 		usage();
 		exit(0);
 	}
 	//test if testype is defined
-	if(termination_type!=TIME && termination_type!=SIZE){
+	if(conf.termination_type!=TIME && conf.termination_type!=SIZE){
 			printf("missing -t or -s<value>\n\n");
 			usage();
 			exit(0);
 	}
 	//test if time_to_run is defined and > 0
-	if(termination_type==TIME && time_to_run<0){
+	if(conf.termination_type==TIME && conf.time_to_run<0){
 		printf("missing -t<value> with value higher than 0\n\n");
 		usage();
 		exit(0);
 	}
 	//test if numbe_ops is defined and > 0
-	if(termination_type==SIZE && number_ops<0){
+	if(conf.termination_type==SIZE && conf.number_ops<0){
 		printf("missing -s<value> with value higher than 0\n\n");
 		usage();
 		exit(0);
 	}
 
 	//test if filesize > 0
-	if(filesize<=0){
+	if(conf.filesize<=0){
 			printf("missing -f<value> with value higher than 0\n\n");
 			usage();
 			exit(0);
 	}
 	//test if ratio >0 and defined
-	if(testtype==NOMINAL && ratio<=0){
+	if(conf.testtype==NOMINAL && conf.ratio<=0){
 			printf("missing -n<value> with value higher than 0\n\n");
 			usage();
 			exit(0);
 	}
 
 	//test if blocksize >0
-	if(block_size<=0){
+	if(conf.block_size<=0){
 		printf("block size value must be higher than 0\n");
 		usage();
 		exit(0);
 	}
 
 	//convert to to ops/microsecond
-	ratio=ratio/1e6;
-	if(mixedIO==1){
-		ratior=ratior/1e6;
-		ratiow=ratiow/1e6;
+	conf.ratio=conf.ratio/1e6;
+	if(conf.mixedIO==1){
+		conf.ratior=conf.ratior/1e6;
+		conf.ratiow=conf.ratiow/1e6;
 	}
 
 	//convert to bytes
-	filesize=filesize*1024*1024;
+	conf.filesize=conf.filesize*1024*1024;
     //total blocks to be addressed at file
-    uint64_t totblocks = filesize/block_size;
+    conf.totblocks = conf.filesize/conf.block_size;
 
     //convert time_to_run to seconds
-    if(termination_type==TIME)
-    	time_to_run=time_to_run*60;
+    if(conf.termination_type==TIME)
+    	conf.time_to_run=conf.time_to_run*60;
 
-    if(termination_type==SIZE)
-    	number_ops=(number_ops*1024*1024)/block_size;
-
-    uint64_t **mem=malloc(sizeof(uint64_t*));
-    uint64_t sharedmem_size;
-    int fd_shared;
+    if(conf.termination_type==SIZE)
+    	conf.number_ops=(conf.number_ops*1024*1024)/conf.block_size;
 
 
     //check if a distribution file was given as parameter
-    if(distf==1){
+    if(conf.distf==1){
 
     	//get global information about duplicate and unique blocks
-    	printf("loading duplicates distribution %s...\n",distfile);
-    	get_distibution_stats(distfile);
+    	printf("loading duplicates distribution %s...\n",conf.distfile);
+    	get_distribution_stats(&info, conf.distfile);
 
-    	if(distout==1){
-    	   	loadmmap(mem,&sharedmem_size,&fd_shared);
-    	    *zerodups=0;
+    	if(conf.distout==1){
+    	   	loadmmap(mem,&sharedmem_size,&fd_shared, &info);
+    	    info.zerodups=0;
     	}else{
-    	    loadmem();
+    	    loadmem(&info);
     	}
     	//load duplicate array for using in the benchmark
-    	load_duplicates(distfile);
+    	load_duplicates(&info,conf.distfile);
     }
     else{
     	//get global information about duplicate and unique blocks
     	printf("loading duplicates distribution %s...\n",DFILE);
-    	get_distibution_stats(DFILE);
+    	get_distribution_stats(&info,DFILE);
 
 
-    	if(distout==1){
-    		loadmmap(mem,&sharedmem_size,&fd_shared);
-    		*zerodups=0;
+    	if(conf.distout==1){
+    		loadmmap(mem,&sharedmem_size,&fd_shared, &info);
+    		info.zerodups=0;
     	}else{
-    		loadmem();
+    		loadmem(&info);
     	}
 
     	//load duplicate array for using in the benchmark
-    	load_duplicates(DFILE);
+    	load_duplicates(&info, DFILE);
     }
 
 
 	//printf("distinct blocks %llu number unique blocks %llu number duplicates %llu\n",(long long unsigned int)total_blocks, (long long unsigned int)unique_blocks,(long long unsigned int)duplicated_blocks);
 
-	load_cumulativedist(distout);
+	load_cumulativedist(&info, conf.distout);
 
     //writes can be performed over a populated file (populate=1)
     //this functionality can be disabled if the files are already populated (populate=0)
     //Or we can verify if the files already exist and ask?
-    if((iotype==READ && populate!=0 && rawdevice==0) || (populate==1 && rawdevice==0)){
-    	populate_pfiles(filesize,nproc);
+    if((conf.iotype==READ && conf.populate!=0 && conf.rawdevice==0) || (conf.populate==1 && conf.rawdevice==0)){
+    	populate_pfiles(&conf);
     }
 
-    //initialize beginio variable with -1;
-    beginio=-1;
-    
     //init database for generating final distribution
-    dbpdist=malloc(sizeof(DB *));
-    envpdist=malloc(sizeof(DB_ENV *));
+    conf.dbpdist=malloc(sizeof(DB *));
+    conf.envpdist=malloc(sizeof(DB_ENV *));
 
-    remove_db(DISTDB,dbpdist,envpdist);
+    remove_db(DISTDB,conf.dbpdist,conf.envpdist);
 
-    launch_benchmark(nproc,totblocks,time_to_run,number_ops,ratio,seed,iotype,testtype,mixedIO,ratior,ratiow,rawdevice,rawpath,fsyncf,odirectf);
+    launch_benchmark(&conf, &info);
 
-    if(distout==1){
-    	init_db(DISTDB,dbpdist,envpdist);
-    	gen_outputdist(dbpdist,envpdist);
+    if(conf.distout==1){
+    	init_db(DISTDB,conf.dbpdist,conf.envpdist);
+    	gen_outputdist(&info, conf.dbpdist,conf.envpdist);
 
     	//print distribution file
-    	FILE* fpp=fopen(outputfile,"w");
-    	print_elements_print(dbpdist, envpdist,fpp);
+    	FILE* fpp=fopen(conf.outputfile,"w");
+    	print_elements_print(conf.dbpdist, conf.envpdist,fpp);
     	fclose(fpp);
 
-    	close_db(dbpdist,envpdist);
-    	remove_db(DISTDB,dbpdist,envpdist);
+    	close_db(conf.dbpdist,conf.envpdist);
+    	remove_db(DISTDB,conf.dbpdist,conf.envpdist);
     	closemmap(mem,&sharedmem_size,&fd_shared);
     }
 

@@ -10,16 +10,8 @@
 #include "random.h"
 
 
-//Number blocks withouth duplicates
-//it refers to blocks
-//without any duplicate and not to unique blocks found at the storage
-uint64_t zero_copy_blocks;
 
-uint64_t above=0;
-uint64_t below=0;
-
-
-void get_distibution_stats(char* fname){
+void get_distribution_stats(struct duplicates_info *info, char* fname){
 
 	//open file with distribution
 	//number_of_duplicates number_blocks_with_those_duplicates
@@ -27,12 +19,8 @@ void get_distibution_stats(char* fname){
 	//if the file did not opened try in alternative directory
 	//TODO THis is a temporary FIX
 	if(!fp){
-		char newname[200];
-		bzero(newname,sizeof(newname));
-		strcpy(newname,DFILEA);
-		strcat(newname,fname);
-		printf("could not open distribution file %s trying %s\n",fname,newname);
-		fp = fopen(newname,"r");
+		printf("could not open distribution file %s\n",fname);
+		exit(0);
 	}
 
 
@@ -77,14 +65,14 @@ void get_distibution_stats(char* fname){
           nb = atoll(nblocks); //number of blocks with N ocurrences where N is dn
 
           if(dn==1){
-        	  zero_copy_blocks=nb;
+        	  info->zero_copy_blocks=nb;
           }else{
         	  //total of blocks with duplicates (only 1 of the blocks is considered)
         	  //in other words, number of blocks with different content that are dup
-        	  duplicated_blocks=duplicated_blocks + nb;
+        	  info->duplicated_blocks=info->duplicated_blocks + nb;
 
           }
-          total_blocks = total_blocks + (nb*dn);
+          info->total_blocks = info->total_blocks + (nb*dn);
 
 	      //zero the structs
 	      bzero(nblocks,sizeof(nblocks));
@@ -107,10 +95,10 @@ void get_distibution_stats(char* fname){
 
 //fname = block4
 //Load duplicate distribution
-void load_duplicates(char* fname){
+void load_duplicates(struct duplicates_info *info, char* fname){
 
 
-	//stats=malloc(sizeof(uint64_t)*duplicated_blocks);
+	//info->stats=malloc(sizeof(uint64_t)*info->duplicated_blocks);
     int statscont =0;
 
     //open file with distribution
@@ -119,12 +107,8 @@ void load_duplicates(char* fname){
     //if the file did not opened try in alternative directory
     //THis is a temporary FIX
     if(!fp){
-    	char newname[200];
-    	bzero(newname,sizeof(newname));
-    	strcpy(newname,DFILEA);
-    	strcat(newname,fname);
-    	printf("could not open distribution file %s trying %s\n",fname,newname);
-    	fp = fopen(newname,"r");
+    	printf("could not open distribution file %s\n",fname);
+      exit(0);
     }
 
     //TODO: find reasonable size
@@ -172,7 +156,7 @@ void load_duplicates(char* fname){
           //exclude the cblocks withouth duplicates(1 occurence)
           if(dn>1){
         	while(nb>0){
-              stats[statscont] = dn;
+              info->stats[statscont] = dn;
 
               statscont++;
               nb--;
@@ -190,7 +174,7 @@ void load_duplicates(char* fname){
   fclose(fp);
 
 
-  printf("loaded duplicate distribution with the following statistics:\nTotal Blocks: %llu\nBlocks Without Duplicates %llu\nDistinct Blocks with Duplicates %llu\nDuplicated Blocks %llu\n\n\n",(unsigned long long int) total_blocks,(unsigned long long int) zero_copy_blocks,(unsigned long long int) duplicated_blocks, (unsigned long long int) total_blocks-zero_copy_blocks-duplicated_blocks);
+  printf("loaded duplicate distribution with the following statistics:\nTotal Blocks: %llu\nBlocks Without Duplicates %llu\nDistinct Blocks with Duplicates %llu\nDuplicated Blocks %llu\n\n\n",(unsigned long long int) info->total_blocks,(unsigned long long int) info->zero_copy_blocks,(unsigned long long int) info->duplicated_blocks, (unsigned long long int) info->total_blocks-info->zero_copy_blocks-info->duplicated_blocks);
 
   }
   else{
@@ -203,14 +187,14 @@ void load_duplicates(char* fname){
 }
 
 //function to load the cumulative array for simulating the duplicate distribution
-void load_cumulativedist(int distout){
+void load_cumulativedist(struct duplicates_info *info, int distout){
 
   int i;
   //size is equal to the number of duplicated blocks (1 for each unique content)
-  //sum=malloc(sizeof(uint64_t)*duplicated_blocks);
-  //statistics=malloc(sizeof(uint64_t)*duplicated_blocks);
+  //info->sum=malloc(sizeof(uint64_t)*info->duplicated_blocks);
+  //info->statistics=malloc(sizeof(uint64_t)*info->duplicated_blocks);
 
-  sum[0]=stats[0];
+  info->sum[0]=info->stats[0];
 
   //cumulative sum of stats array
   //this way if we generat ea number from 0 to sum[max] for each entry at the
@@ -221,10 +205,10 @@ void load_cumulativedist(int distout){
   // if r=(0,5) will belong to sum[0] if r=(20-30) belong to sum[3]
   //this way we folow the distribution by finding where the value belongs and
   //generating an unique block for each value at sum
-  for(i=1;i<duplicated_blocks;i++){
-    sum[i]=sum[i-1]+stats[i];
+  for(i=1;i<info->duplicated_blocks;i++){
+    info->sum[i]=info->sum[i-1]+info->stats[i];
     if(distout==1){
-    	statistics[i]=0;
+    	info->statistics[i]=0;
     }
   }
 
@@ -234,7 +218,7 @@ void load_cumulativedist(int distout){
 
 //binary search done to find the block content that we want to generate
 //or the number more close to this value
-uint64_t search(uint64_t value,int low, int high, uint64_t *res){
+uint64_t search(struct duplicates_info *info, uint64_t value,int low, int high, uint64_t *res){
 
    //when hign is lower that low then the value was not foundat the index and
    //is between *res and *res-1
@@ -248,16 +232,16 @@ uint64_t search(uint64_t value,int low, int high, uint64_t *res){
    //if the value at sum is higher than the value we are searching
    //decrease the higher limit and record this value
    //if a smaller indes is not found then this mid index is the right one
-   if (sum[mid] > value){
+   if (info->sum[mid] > value){
         *res = mid;
-        return search(value, low, mid-1, res);
+        return search(info, value, low, mid-1, res);
    }
    else {
 
 	 //if the value at sum is lower than the expected value then
 	 //increas the lower limit and search
-     if (sum[mid] < value)
-        return search(value, mid+1, high, res);
+     if (info->sum[mid] < value)
+        return search(info, value, mid+1, high, res);
 
      else
     	//if it is equal the value then return mid+1 because
@@ -272,16 +256,16 @@ uint64_t search(uint64_t value,int low, int high, uint64_t *res){
 // Used to know the content of the next block that will be generated
 // Follows the duplicate distribution
 // receives an unic counter and ....
-uint64_t get_writecontent(uint64_t *contnu){
+uint64_t get_writecontent(struct duplicates_info *info, uint64_t *contnu){
 
   //generates a random number between 0 and the total of blocks of the dataset
-  uint64_t r = genrand(total_blocks);
+  uint64_t r = genrand(info->total_blocks);
   //printf("search for %d\n",r);
 
   //if r is higher than the last value of sum then
   //an unique block withouth duplicates is written
   //the last value at sum is unique because the array starts at 0
-  if (duplicated_blocks<=0 || r>=sum[duplicated_blocks-1]) {
+  if (info->duplicated_blocks<=0 || r>=info->sum[info->duplicated_blocks-1]) {
       //r is equal to the unique counter for generating
       // a block with unique content from the others generated previously
       r = *contnu;
@@ -296,27 +280,27 @@ uint64_t get_writecontent(uint64_t *contnu){
 	 uint64_t ac =0;
      //binary search for the index at sum where that
      //r is the random value, 0 and duplicated_bloc are the range of positions at the sum array
-	 uint64_t res = search(r,0,duplicated_blocks-1,&ac);
+	 uint64_t res = search(info, r,0,info->duplicated_blocks-1,&ac);
      //increase the number of duplicates
 
      return res;
   }
 }
 
-int gen_outputdist(DB **dbpor,DB_ENV **envpor){
+int gen_outputdist(struct duplicates_info *info, DB **dbpor,DB_ENV **envpor){
 
 
 	uint64_t i=0;
-	for(i=0;i<duplicated_blocks;i++){
+	for(i=0;i<info->duplicated_blocks;i++){
 		//The array has the number of occurrences of a specific block
 		//the blocks
-		if(statistics[i]==1){
-			*zerodups=*zerodups+1;
+		if(info->statistics[i]==1){
+			*info->zerodups=*info->zerodups+1;
 		}
-		if(statistics[i]>1){
+		if(info->statistics[i]>1){
 
 			struct hash_value hvalue;
-			uint64_t ndups = statistics[i]-1;
+			uint64_t ndups = info->statistics[i]-1;
 
 			 //see if entry already exists and
 			 //Insert new value in hash for print number_of_duplicates->numberof blocks
@@ -351,13 +335,13 @@ int gen_outputdist(DB **dbpor,DB_ENV **envpor){
 	//if hash entry does not exist
 	if(retprint == DB_NOTFOUND){
 
-		hvalue.cont=*zerodups;
+		hvalue.cont=*info->zerodups;
 		//insert into into the hashtable
 		put_db_print(&ndups,&hvalue,dbpor,envpor);
 	}
 	else{
 	  //increase counter
-	  hvalue.cont+=*zerodups;
+	  hvalue.cont+=*info->zerodups;
 	  //insert counter in the right entry
 	  put_db_print(&ndups,&hvalue,dbpor,envpor);
     }

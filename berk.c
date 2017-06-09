@@ -133,7 +133,8 @@ int close_db(DB **dbp, DB_ENV ** envp){
 
 int remove_db(char *nome, DB **dbp, DB_ENV **envp){
 
-	char fullpath[100];
+  int size=strlen(nome)+10;
+	char fullpath[size];
 	strcpy(fullpath,nome);
 	strcat(fullpath,"dht.db");
 

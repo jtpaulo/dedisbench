@@ -3,6 +3,10 @@
  */
 //berkeley DB implementation of an hashtable
 
+#ifndef BERK_H
+#define BERK_H
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include <db.h>
@@ -31,6 +35,8 @@ int print_elements(DB **dbp, DB_ENV **envp,FILE *fp);
 int put_db_print(uint64_t *hash, struct hash_value *hvalue,DB **dbp, DB_ENV **envp);
 int get_db_print(uint64_t *hash, struct hash_value *hvalue,DB **dbp, DB_ENV **envp);
 int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp);
+
+#endif
 
 
 
