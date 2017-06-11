@@ -7,18 +7,21 @@
 
 #include <stdint.h>
 #include "defines.h"
+#include "duplicatedist.h"
+
+#define TMP_FILE "dedisbench_0010test"
+
 
 //Open rawdevice to write
 int open_rawdev(char* rawpath, struct user_confs *conf);
 
 //create the file where the process will perform I/O operations
-int create_pfile(int procid, int odirectf, struct user_confs *conf);
+int create_pfile(int procid, struct user_confs *conf);
 
 //Destroy files created by processes
 int destroy_pfile(int procid, struct user_confs *conf);
 
-//populate process files with content
-void populate_pfiles(struct user_confs* conf);
-
+//populate files/dev
+void populate(struct user_confs *conf, struct duplicates_info *info);
 
 #endif

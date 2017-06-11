@@ -6,6 +6,9 @@
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <sys/time.h>
+#include <time.h>
+
 #include "duplicatedist.h"
 #include "random.h"
 
@@ -89,6 +92,12 @@ void get_distribution_stats(struct duplicates_info *info, char* fname){
 		  exit(0);
 
 	  }
+
+    //unique counter for each process
+    //starts with value==max index at array sum
+    //since duplicated content is identified by number correspondent to the indexes at sum
+    //none will have a identifier bigger than this
+    info->u_count = info->duplicated_blocks+1;
 
 }
 
@@ -253,10 +262,7 @@ uint64_t search(struct duplicates_info *info, uint64_t value,int low, int high, 
 }
 
 
-// Used to know the content of the next block that will be generated
-// Follows the duplicate distribution
-// receives an unic counter and ....
-uint64_t get_writecontent(struct duplicates_info *info, uint64_t *contnu){
+uint64_t get_contentid(struct duplicates_info *info){
 
   //generates a random number between 0 and the total of blocks of the dataset
   uint64_t r = genrand(info->total_blocks);
@@ -268,9 +274,9 @@ uint64_t get_writecontent(struct duplicates_info *info, uint64_t *contnu){
   if (info->duplicated_blocks<=0 || r>=info->sum[info->duplicated_blocks-1]) {
       //r is equal to the unique counter for generating
       // a block with unique content from the others generated previously
-      r = *contnu;
+      r = info->u_count;
       //increment the counter...
-      *contnu = *contnu+1;
+      info->u_count = info->u_count+1;
       return r;
   }
   //the block to be generated has duplicated content
@@ -286,6 +292,54 @@ uint64_t get_writecontent(struct duplicates_info *info, uint64_t *contnu){
      return res;
   }
 }
+
+// Used to know the content of the next block that will be generated
+// Follows the duplicate distribution
+uint64_t get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc){
+  
+  uint64_t contwrite;
+  struct timeval tim;
+
+  //initialize the buffer with duplicate content
+  int bufp = 0;
+  for(bufp=0;bufp<conf->block_size;bufp++){
+    buf[bufp] = 'a';
+  }
+
+  //TODO: Stats should be removed from here...
+
+  //get the content
+  contwrite = get_contentid(info);
+
+  //if the content to write is unique write to the buffer
+  //the unique counter of the process + "string"  + process id
+  //to be unique among processes the string invalidates to have
+  //an identical number from other oprocess
+  //timestamp is used for multiple DEDIS benchs to be different
+  if(contwrite>info->duplicated_blocks){
+    //get current time for making this value unique for concurrent benchmarks
+    gettimeofday(&tim, NULL);
+    uint64_t tunique=tim.tv_sec*1000000+(tim.tv_usec);
+    sprintf(buf,"%llu pid %d time %llu", (long long unsigned int)contwrite,idproc,(long long unsigned int)tunique);
+    stat->uni++;
+    //uni referes to unique blocks meaning that
+    // also counts 1 copy of each duplicated block
+    //zerodups only refers to blocks with only one copy (no duplicates)
+    stat->zerod++;
+    if(conf->distout==1){
+      *info->zerodups=*info->zerodups+1;
+    }
+  }
+  //if it is duplicated write the result (index of sum) returned
+  //into the buffer
+  else{
+    sprintf(buf,"%llu", (long long unsigned int)contwrite);
+  }
+
+  return contwrite;
+
+}
+
 
 int gen_outputdist(struct duplicates_info *info, DB **dbpor,DB_ENV **envpor){
 

@@ -24,6 +24,10 @@
 #define UNIFORM 7
 #define TPCC 8
 
+#define NOPOP 0
+#define REPOP 1
+#define DDPOP 2 
+
 //FIle can be in source directory or in /etc/dedisbench if installed with deb package
 #define DFILE "dist_personalfiles"
 
@@ -134,6 +138,7 @@ struct user_confs{
 	uint64_t seed;
 
 	//populate feature, by default is off unless it is a read test
+	//0 -> off, 1-> on (realistic), 2 -> on (DD)
 	int populate;
 
 	//distribution file path

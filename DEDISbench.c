@@ -21,6 +21,7 @@
 #include "sharedmem.h"
 #include "populate.h"
 #include "defines.h"
+#include "io.h"
 
 
 //time elapsed since last I/O
@@ -70,13 +71,14 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
   struct stats stat = {.beginio=-1};
 
+  //TODO check if this is really needed...
   if(conf->mixedIO==1 && conf->iotype==READ){
 	  procid_r=procid_r+(conf->nprocs/2);
   }
 
   if(conf->rawdevice==0){
 	  //create file where process will perform I/O
-	   fd_test = create_pfile(idproc,conf->odirectf,conf);
+	   fd_test = create_pfile(idproc,conf);
   }else{
 	   fd_test = open_rawdev(conf->rawpath,conf);
   }
@@ -115,13 +117,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   stat.snap_latency=malloc(sizeof(double)*1000);
   stat.snap_ops=malloc(sizeof(double)*1000);
   stat.snap_time=malloc(sizeof(unsigned long long int)*1000);
-  
-
-  //unique counter for each process
-  //starts with value==max index at array sum
-  //since duplicated content is identified by number correspondent to the indexes at sum
-  //none will have a identifier bigger than this
-  uint64_t u_count = info->duplicated_blocks+1;
 
   //check if terminationis time or not
   int termination_type;
@@ -145,10 +140,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  begin=0;
 	  end=conf->number_ops/nproc;
 	  termination_type=SIZE;
-  }
-
-  if (conf->accesstype==TPCC){
-	  initialize_nurand(conf->totblocks);
   }
 
   //global timeval structure for nominal tests
@@ -179,6 +170,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
    if(conf->testtype==PEAK || ops_proc/time_elapsed<ratio){
 
 	 char* buf;
+	 uint64_t iooffset=0;
      //memory block
 	 if(conf->odirectf==1){
 		 buf = memalign(conf->block_size,conf->block_size);
@@ -190,80 +182,38 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	 //populate buffer with the content to be written
 	 if(iotype==WRITE){
 
-	   //initialize the buffer with duplicate content
-	   int bufp = 0;
-	   for(bufp=0;bufp<conf->block_size;bufp++){
-		   buf[bufp] = 'a';
-	   }
+	 	uint64_t idwrite=0;	 	
 
-	   //get the content
-	   uint64_t contwrite =	get_writecontent(info, &u_count);
+	 	iooffset=write_request(buf,conf, info, &stat, idproc, &idwrite);
 
-	   //contwrite is the index of sum where the block belongs
-	   //put in statistics this value ==1 to know when a duplicate is found
-	   if(conf->distout==1){
-		   if(contwrite<info->duplicated_blocks){
-			   info->statistics[contwrite]++;
-			   if(info->statistics[contwrite]>1){
-				   stat.dupl++;
-			   }
-			   else{
-				   stat.uni++;
-			   }
-		   }
-	   }
-	   else{
-		   stat.dupl++;
-	   }
-	   //if the content to write is unique write to the buffer
-	   //the unique counter of the process + "string"  + process id
-	   //to be unique among processes the string invalidates to have
-	   //an identical number from other oprocess
-	   //timestamp is used for multiple DEDIS benchs to be different
-	   if(contwrite>info->duplicated_blocks){
-		   	  //get current time for making this value unique for concurrent benchmarks
-		      gettimeofday(&tim, NULL);
-		      uint64_t tunique=tim.tv_sec*1000000+(tim.tv_usec);
-	       	  sprintf(buf,"%llu pid %d time %llu", (long long unsigned int)contwrite,idproc,(long long unsigned int)tunique);
-	       	  stat.uni++;
-	       	  //uni referes to unique blocks meaning that
-	       	  // also counts 1 copy of each duplicated block
-	       	  //zerodups only refers to blocks with only one copy (no duplicates)
-	       	  stat.zerod++;
-	       	  if(conf->distout==1){
-	       		  info->zerodups=info->zerodups+1;
-	       	  }
-	   }
-	   //if it is duplicated write the result (index of sum) returned
-	   //into the buffer
-	   else{
-	       	  sprintf(buf,"%llu", (long long unsigned int)contwrite);
-	   }
+	 	//idwrite is the index of sum where the block belongs
+  		//put in statistics this value ==1 to know when a duplicate is found
+  		//TODO this depends highly on the id generation and should be transparent
+  		if(conf->distout==1){
+    		if(idwrite<info->duplicated_blocks){
+      			info->statistics[idwrite]++;
+      			if(info->statistics[idwrite]>1){
+        			stat.dupl++;
+      			}
+      			else{
+        			stat.uni++;
+      			}
+   			}
+   			else{
+   				stat.uni++;
+			    //uni referes to unique blocks meaning that
+			    // also counts 1 copy of each duplicated block
+			    //zerodups only refers to blocks with only one copy (no duplicates)
+			    stat.zerod++;
+			    if(conf->distout==1){
+			      *info->zerodups=*info->zerodups+1;
+			    }			
+   			}
+  		}
 
-	   uint64_t iooffset;
-
-	   if(conf->accesstype==SEQUENTIAL){
-		   //Get the position to perform I/O operation
-		   iooffset = get_ioposition_seq(conf->totblocks, stat.tot_ops, conf->block_size);
-	   }else{
-		   if(conf->accesstype==UNIFORM){
-			   //Get the position to perform I/O operation
-			   iooffset = get_ioposition_uniform(conf->totblocks, conf->block_size);
-		   }
-		   else{
-			   //Get the position to perform I/O operation
-			  iooffset = get_ioposition_tpcc(conf->totblocks, conf->block_size);
-
-		   }
-	   }
-	  if(conf->rawdevice==1){
-		  iooffset = ((conf->totblocks*conf->block_size)*idproc)+iooffset;
-	  }
-
-	  if(conf->accesslog==1){
-		  acessesarray[iooffset/conf->block_size]++;
-	   }
-
+	 	if(conf->accesslog==1){
+      		acessesarray[iooffset/conf->block_size]++;
+     	}
 
        //get current time for calculating I/O op latency
        gettimeofday(&tim, NULL);
@@ -272,8 +222,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
        int res = pwrite(fd_test,buf,conf->block_size,iooffset);
        if(conf->fsyncf==1){
     	   fsync(fd_test);
-
-
        }
 
        //latency calculation
@@ -305,26 +253,8 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	//If it is a read benchmark
 	else{
 
-		uint64_t iooffset;
-
-		if(conf->accesstype==SEQUENTIAL){
-				   //Get the position to perform I/O operation
-				   iooffset = get_ioposition_seq(conf->totblocks, stat.tot_ops, conf->block_size);
-			   }else{
-				   if(conf->accesstype==UNIFORM){
-					   //Get the position to perform I/O operation
-					   iooffset = get_ioposition_uniform(conf->totblocks, conf->block_size);
-				   }
-				   else{
-					   //Get the position to perform I/O operation
-					  iooffset = get_ioposition_tpcc(conf->totblocks, conf->block_size);
-
-				   }
-			   }
-
-		if(conf->rawdevice==1){
-				  iooffset = ((conf->totblocks*conf->block_size)*idproc)+iooffset;
-			  }
+		iooffset=read_request(conf, &stat, idproc);
+		
 		if(conf->accesslog==1){
 			acessesarray[iooffset/conf->block_size]++;
 		}
@@ -566,12 +496,8 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 	  } else if (pids[i] == 0) {
 		  printf("loading process %d\n",i);
 
-		  //init random generator
-		  //if the seed is always the same the generator generates the same numbers
-		  //for each proces the seed = seed + processid or all the processes would
-		  //generate the same load
-		  init_rand(conf->seed+i);
-
+		  //Init IO and content structures (random generator, etc)
+		  init_io(conf, i);
 
 		  if(conf->mixedIO==1){
 
@@ -648,7 +574,7 @@ void help(void){
  	printf("\t\t\tdependent on the raw device size. By default, if this flag is not set each process writes to an individual file.\n");
 	printf(" -l\t\t\t(Enable file log feature for results)\n");
 	printf(" -d<value>\t\t(choose the directory where DEDISbench writes data)\n");
-	printf(" -e or -y\t\t(Enable or disable the population of process files before running DEDISbench. Only Enabled by default for read tests)\n");
+	printf(" -e<value>\t\t(Enable or disable the population of process files before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for read tests)\n");
 	printf(" -b<value>\t(Size of blocks for I/O operations in Bytes default: 4096)\n");
 	printf(" -g<value>\t\t(Input File with duplicate distribution. default: dist_personalfiles \n");
 	printf("\t\t\t DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage\n");
@@ -668,9 +594,6 @@ void help(void){
 
 int main(int argc, char *argv[]){
 
-	
-	struct duplicates_info info;
-
 	uint64_t **mem=malloc(sizeof(uint64_t*));
     uint64_t sharedmem_size;
     int fd_shared;
@@ -678,6 +601,9 @@ int main(int argc, char *argv[]){
 	//default seed is be given by current time
 	struct timeval tim;
 	gettimeofday(&tim, NULL);
+
+	struct duplicates_info info = {.duplicated_blocks = 0, .total_blocks =0, 
+	.zero_copy_blocks=0, .u_count =0};
 
 	struct user_confs conf = {.destroypfile = 1, .accesstype = TPCC, .iotype = -1, .testtype = -1,
 	.ratio = -1, .ratiow = -1, .ratior = -1, .termination_type = -1, .nprocs = 4, .filesize = 2048LLU,
@@ -848,22 +774,15 @@ int main(int argc, char *argv[]){
 				conf.destroypfile=0;
 				break;
 			case 'e':
-				if(conf.populate!=0){
-					conf.populate=1;
-				}
-				else{
-					printf("Cannot use both -e and -d\n\n");
-					usage();
-				}
-				break;
-			case 'y':
-				if(conf.populate!=1){
-					conf.populate=0;
-				}
-				else{
-					printf("Cannot use both -e and -y\n\n");
-					usage();
-				}
+				conf.auxtype=atoi(&argv[1][2]);
+				if(conf.auxtype==0)
+					conf.populate=NOPOP;
+				if(conf.auxtype==1)
+					conf.populate=REPOP;
+				if(conf.auxtype==2)
+					conf.populate=DDPOP;
+				if(conf.auxtype!=0 && conf.auxtype!=1 && conf.auxtype!=2)
+					perror("Unknown type of pattern acess for I/O operations");
 				break;
 			default:
 				printf("Wrong Argument: %s\n", argv[1]);
@@ -957,7 +876,6 @@ int main(int argc, char *argv[]){
 
     	if(conf.distout==1){
     	   	loadmmap(mem,&sharedmem_size,&fd_shared, &info);
-    	    info.zerodups=0;
     	}else{
     	    loadmem(&info);
     	}
@@ -972,7 +890,6 @@ int main(int argc, char *argv[]){
 
     	if(conf.distout==1){
     		loadmmap(mem,&sharedmem_size,&fd_shared, &info);
-    		info.zerodups=0;
     	}else{
     		loadmem(&info);
     	}
@@ -989,8 +906,8 @@ int main(int argc, char *argv[]){
     //writes can be performed over a populated file (populate=1)
     //this functionality can be disabled if the files are already populated (populate=0)
     //Or we can verify if the files already exist and ask?
-    if((conf.iotype==READ && conf.populate!=0 && conf.rawdevice==0) || (conf.populate==1 && conf.rawdevice==0)){
-    	populate_pfiles(&conf);
+    if((conf.iotype==READ && conf.populate<0) || (conf.mixedIO==1 && conf.populate<0) || (conf.populate>0)){
+    	populate(&conf, &info);
     }
 
     //init database for generating final distribution

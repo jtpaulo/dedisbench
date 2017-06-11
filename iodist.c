@@ -4,6 +4,7 @@
 
 #include "iodist.h"
 #include "random.h"
+#include "defines.h"
 
 uint64_t c_nurand=0;
 uint64_t a_nurand=0;
@@ -18,6 +19,16 @@ int initialize_nurand(uint64_t totb){
 	c_nurand = genrand(a_nurand+1);
 
     return 0;
+
+}
+
+int init_ioposition(struct user_confs *conf){
+
+  if (conf->accesstype==TPCC){
+    initialize_nurand(conf->totblocks);
+  }
+
+  return 0;
 
 }
 
@@ -73,3 +84,32 @@ uint64_t get_ioposition_seq(uint64_t totb,uint64_t cont, uint64_t block_size){
 
   return resf;
 }
+
+uint64_t get_ioposition(struct user_confs *conf, struct stats *stat, int idproc){
+
+  uint64_t iooffset;
+
+    if(conf->accesstype==SEQUENTIAL){
+           //Get the position to perform I/O operation
+           iooffset = get_ioposition_seq(conf->totblocks, stat->tot_ops, conf->block_size);
+         }else{
+           if(conf->accesstype==UNIFORM){
+             //Get the position to perform I/O operation
+             iooffset = get_ioposition_uniform(conf->totblocks, conf->block_size);
+           }
+           else{
+             //Get the position to perform I/O operation
+            iooffset = get_ioposition_tpcc(conf->totblocks, conf->block_size);
+
+           }
+         }
+
+    if(conf->rawdevice==1){
+          iooffset = ((conf->totblocks*conf->block_size)*idproc)+iooffset;
+    }
+
+    return iooffset;
+
+}
+
+

@@ -7,8 +7,7 @@
 
 #include <stdint.h>
 #include "berk.h"
-
-
+#include "defines.h"
 
 struct duplicates_info{
 
@@ -37,6 +36,12 @@ struct duplicates_info{
 	//without any duplicate and not to unique blocks found at the storage
 	uint64_t zero_copy_blocks;
 
+	//unique counter for each process
+  	//starts with value==max index at array sum
+  	//since duplicated content is identified by number correspondent to the indexes at sum
+  	//none will have a identifier bigger than this
+  	uint64_t u_count;
+
 };
 
 
@@ -44,7 +49,7 @@ void get_distribution_stats(struct duplicates_info *info, char* fname);
 void load_duplicates(struct duplicates_info *info, char* fname);
 void load_cumulativedist(struct duplicates_info *info, int distout);
 uint64_t search(struct duplicates_info *info, uint64_t value,int low, int high, uint64_t *res);
-uint64_t get_writecontent(struct duplicates_info *info, uint64_t *contnu);
+uint64_t get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc);
 int gen_outputdist(struct duplicates_info *info, DB **dbpor,DB_ENV **envpor);
 
 #endif

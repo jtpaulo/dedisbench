@@ -79,6 +79,7 @@ int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared, struct dupl
     info->stats=mem_aux;
     mem_aux=mem_aux+info->duplicated_blocks;
     info->zerodups = mem_aux;
+    *info->zerodups=0;
 
     return 0;
 }
