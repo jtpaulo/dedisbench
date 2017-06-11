@@ -42,21 +42,25 @@ int open_rawdev(char* rawpath, struct user_confs *conf){
 //create the file where the process will perform I/O operations
 int create_pfile(int procid, struct user_confs *conf){
 
-   //create the file with unique name for process with id procid
-   char id[4];
-   sprintf(id,"%d",procid);
-   strcat(conf->tempfilespath,TMP_FILE);
-   strcat(conf->tempfilespath,id);
-   int fd_test;
-   if(conf->odirectf==1){
-     printf("opening %s with O_DIRECT\n",conf->tempfilespath);
-     //device where the process will write
-     fd_test = open(conf->tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT | O_DIRECT, 0644);
-   }
+  int fd_test;
+
+  //create the file with unique name for process with id procid
+  char name[PATH_SIZE];
+  char id[4];
+  sprintf(id,"%d",procid);
+  strcpy(name,conf->tempfilespath);
+  strcat(name,TMP_FILE);
+  strcat(name,id);
+   
+  if(conf->odirectf==1){
+    printf("opening %s with O_DIRECT\n",name);
+    //device where the process will write
+    fd_test = open(name, O_RDWR | O_LARGEFILE | O_CREAT | O_DIRECT, 0644);
+  }
    else{
-     printf("opening %s\n",conf->tempfilespath);
+     printf("opening %s\n",name);
      //device where the process will write
-     fd_test = open(conf->tempfilespath, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
+     fd_test = open(name, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
    }
    if(fd_test==-1) {
      perror("Error opening file for process I/O");

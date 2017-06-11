@@ -88,24 +88,30 @@ uint64_t get_ioposition_seq(uint64_t totb,uint64_t cont, uint64_t block_size){
 uint64_t get_ioposition(struct user_confs *conf, struct stats *stat, int idproc){
 
   uint64_t iooffset;
+  uint64_t total_blocks=conf->totblocks;
+
+  
+  if(conf->rawdevice==1){
+    total_blocks=total_blocks/conf->nprocs;
+  }
 
     if(conf->accesstype==SEQUENTIAL){
            //Get the position to perform I/O operation
-           iooffset = get_ioposition_seq(conf->totblocks, stat->tot_ops, conf->block_size);
+           iooffset = get_ioposition_seq(total_blocks, stat->tot_ops, conf->block_size);
          }else{
            if(conf->accesstype==UNIFORM){
              //Get the position to perform I/O operation
-             iooffset = get_ioposition_uniform(conf->totblocks, conf->block_size);
+             iooffset = get_ioposition_uniform(total_blocks, conf->block_size);
            }
            else{
              //Get the position to perform I/O operation
-            iooffset = get_ioposition_tpcc(conf->totblocks, conf->block_size);
+            iooffset = get_ioposition_tpcc(total_blocks, conf->block_size);
 
            }
          }
 
     if(conf->rawdevice==1){
-          iooffset = ((conf->totblocks*conf->block_size)*idproc)+iooffset;
+      iooffset = ((total_blocks*conf->block_size)*idproc)+iooffset;
     }
 
     return iooffset;

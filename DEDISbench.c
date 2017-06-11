@@ -856,6 +856,7 @@ int main(int argc, char *argv[]){
 
 	//convert to bytes
 	conf.filesize=conf.filesize*1024*1024;
+
     //total blocks to be addressed at file
     conf.totblocks = conf.filesize/conf.block_size;
 
