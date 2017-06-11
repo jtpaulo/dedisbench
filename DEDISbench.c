@@ -574,7 +574,7 @@ void help(void){
  	printf("\t\t\tdependent on the raw device size. By default, if this flag is not set each process writes to an individual file.\n");
 	printf(" -l\t\t\t(Enable file log feature for results)\n");
 	printf(" -d<value>\t\t(choose the directory where DEDISbench writes data)\n");
-	printf(" -e<value>\t\t(Enable or disable the population of process files before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for read tests)\n");
+	printf(" -e<value>\t\t(Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for read tests)\n");
 	printf(" -b<value>\t(Size of blocks for I/O operations in Bytes default: 4096)\n");
 	printf(" -g<value>\t\t(Input File with duplicate distribution. default: dist_personalfiles \n");
 	printf("\t\t\t DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage\n");

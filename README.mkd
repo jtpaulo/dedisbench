@@ -77,13 +77,8 @@ Optional Flags
  each line, corresponds to a single I/O operations and presents: 
  (latency of I/O operation in microseconds) (current time in seconds) \n
  
- -e or -y			Enable or disable the population of process files before running 
- DEDISbench. test(processid files in DEDISbench directory are the files used by 
- each process. For write testes and by default, empty files are created, 
- for read tests and by default the files are populated with content.
- It is possible to enable this feature for write tests and acess rewrite 
- operations or to disable and use a custom file that respects the namings.
- 
+ -e			(Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for read tests).
+
  -b<value>			Size of blocks for I/O operations in Bytes default: 4096
  
  -g<value>			Input File with duplicate distribution default:internal file called dist_personalfiles
