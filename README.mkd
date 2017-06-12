@@ -117,7 +117,7 @@ run read benchmark in nominal mode (300 reads/second) for 10 minutes
 
 run write benchmark in peak mode for 5 minutes. Enable the population of process files before actually running the benchmark load and enable log output for results. Use files with 4GB for each process and 8 processes.
 
-./DEDISbench -p -w -t5 -e -l -f4096 -c8
+./DEDISbench -p -w -t5 -e0 -l -f4096 -c8
 
 run read benchmark in nominal mode (300 reads/second) for 8 minutes. Disable the pre-population of files. Carefull because files test(processid) must be present and have content or no content will be available for reading resulting in I/O errors.
 
