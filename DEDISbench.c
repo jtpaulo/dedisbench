@@ -107,18 +107,16 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   }
 
   uint64_t* acessesarray=NULL;
-  if(conf->accesslog==1){
-     	//init acesses array
+  //init acesses array
 
-	    acessesarray=malloc(sizeof(uint64_t)*conf->totblocks);
-     	uint64_t aux;
-     	for(aux=0;aux<conf->totblocks;aux++){
+  acessesarray=malloc(sizeof(uint64_t)*conf->totblocks);
+  uint64_t aux;
+  for(aux=0;aux<conf->totblocks;aux++){
 
-     		acessesarray[aux]=0;
+ 	acessesarray[aux]=0;
 
-     	}
   }
-
+  
 
   //TODO here we must have a variable that only initiates snapshots if the user specified
   //Also this must call realloc if the number of observations is higher thanthe size
@@ -224,10 +222,8 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
    			}
   		}
 
-	 	if(conf->accesslog==1){
-      		acessesarray[iooffset/conf->block_size]++;
-     	}
-
+	 	acessesarray[iooffset/conf->block_size]++;
+     
        //get current time for calculating I/O op latency
        gettimeofday(&tim, NULL);
        uint64_t t1=tim.tv_sec*1000000+(tim.tv_usec);
@@ -275,9 +271,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 		iooffset=read_request(conf, &stat, idproc);
 		
-		if(conf->accesslog==1){
-			acessesarray[iooffset/conf->block_size]++;
-		}
+		acessesarray[iooffset/conf->block_size]++;
 
 		//get current time for calculating I/O op latency
 		gettimeofday(&tim, NULL);
@@ -488,21 +482,38 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  fclose(pf);
   }
 
+  uint64_t pos_touched=0;
+  uint64_t bytes_processed=0;
+  FILE *fpp=NULL;
+
   if(conf->accesslog==1){
+  	strcat(conf->accessfilelog,id);
+ 	//print distribution file
+  	fpp=fopen(conf->accessfilelog,"w");
+  }
 
-	  	 strcat(conf->accessfilelog,id);
+  uint64_t iter;
+  for(iter=0;iter<conf->totblocks;iter++){
+   	if(acessesarray[iter]>0){
+   		pos_touched+=1;
+		bytes_processed+=conf->block_size*acessesarray[iter];
+	}
+	if(conf->accesslog==1){
+		fprintf(fpp,"%llu %llu\n",(unsigned long long int) iter, (unsigned long long int) acessesarray[iter]);
+	}
+  }
 
-	  	 //print distribution file
-	     FILE* fpp=fopen(conf->accessfilelog,"w");
-	     uint64_t iter;
-	     for(iter=0;iter<conf->totblocks;iter++){
-	    	 fprintf(fpp,"%llu %llu\n",(unsigned long long int) iter, (unsigned long long int) acessesarray[iter]);
-	     }
+  if(iotype==READ){
+	printf("Process touched %llu blocks totalling %llu MB. Process read %llu MB (including block reread)\n", (unsigned long long int) pos_touched, (unsigned long long int) (pos_touched*conf->block_size)/1024/1024, (unsigned long long int) bytes_processed/1024/1024);
+  }else{
+   	printf("Process touched %llu blocks totalling %llu MB. Process wrote %llu MB (including block rewrite)\n", (unsigned long long int) pos_touched, (unsigned long long int) (pos_touched*conf->block_size)/1024/1024, (unsigned long long int) bytes_processed/1024/1024);
+  }
 
-	     fclose(fpp);
-         //init acesses array
-         free(acessesarray);
-   }
+  if(conf->accesslog==1){
+	fclose(fpp);
+  }
+  //init acesses array
+  free(acessesarray);
 
 
 }

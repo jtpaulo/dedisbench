@@ -94,7 +94,7 @@ int destroy_pfile(int procid, struct user_confs *conf){
   return 0;
 }
 
-void dd_populate(char* name, struct user_confs* conf){
+uint64_t dd_populate(char* name, struct user_confs* conf){
 
   //create the file with unique name for process with id procid
   char command[PATH_SIZE];
@@ -111,10 +111,12 @@ void dd_populate(char* name, struct user_confs* conf){
     perror("System dd failed");
   }
 
+  return conf->filesize;
+
 }
 
 
-void real_populate(int fd, struct user_confs *conf, struct duplicates_info *info, int idproc){
+uint64_t real_populate(int fd, struct user_confs *conf, struct duplicates_info *info, int idproc){
 
   struct stats stat;
 
@@ -158,6 +160,7 @@ void real_populate(int fd, struct user_confs *conf, struct duplicates_info *info
     bytes_written+=conf->block_size;
   }
 
+  return bytes_written;
   
 
 }
@@ -169,6 +172,8 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
 
   int i;
   int fd;
+
+  uint64_t bytes_populated=0;
 
   if(conf->rawdevice==0){
 
@@ -185,7 +190,7 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
           
         if(conf->populate==DDPOP){
 
-          dd_populate(name, conf);
+          bytes_populated += dd_populate(name, conf);
 
         }else{
           
@@ -193,7 +198,7 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
           printf("populating file %s with realistic content\n",name);
 
           fd = create_pfile(i,conf);
-          real_populate(fd, conf, info, i);  
+          bytes_populated += real_populate(fd, conf, info, i);  
           fsync(fd);     
           close(fd);
         }
@@ -205,7 +210,7 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
 
     if(conf->populate==DDPOP){
 
-      dd_populate(conf->rawpath, conf);
+      bytes_populated += dd_populate(conf->rawpath, conf);
 
 
     }else{
@@ -214,7 +219,7 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
       printf("populating device %s with realistic content\n",conf->rawpath);
 
       fd = open_rawdev(conf->rawpath,conf);
-      real_populate(fd, conf, info, 0);
+      bytes_populated += real_populate(fd, conf, info, 0);
       fsync(fd);
       close(fd);
 
@@ -223,7 +228,7 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
 
   }
 
-  printf("File/device(s) population is completed\n");
+  printf("File/device(s) population is completed wrote %llu bytes\n", (unsigned long long int)bytes_populated);
 
 }
 

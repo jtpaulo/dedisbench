@@ -32,4 +32,3 @@ uint64_t read_request(struct user_confs *conf, struct stats *stat, int idproc){
   return get_ioposition(conf, stat, idproc);
 
 }
-
