@@ -9,6 +9,12 @@
 #include "berk.h"
 #include "defines.h"
 
+struct block_info{
+	uint64_t cont_id;
+	int procid;
+	uint64_t ts;
+};
+
 struct duplicates_info{
 
 	//Number of distinct content blocks with duplicates
@@ -42,14 +48,17 @@ struct duplicates_info{
   	//none will have a identifier bigger than this
   	uint64_t u_count;
 
-};
 
+  	struct block_info **content_tracker;
+
+};
 
 void get_distribution_stats(struct duplicates_info *info, char* fname);
 void load_duplicates(struct duplicates_info *info, char* fname);
 void load_cumulativedist(struct duplicates_info *info, int distout);
 uint64_t search(struct duplicates_info *info, uint64_t value,int low, int high, uint64_t *res);
-uint64_t get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc);
+void get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc, struct block_info *info_write);
 int gen_outputdist(struct duplicates_info *info, DB **dbpor,DB_ENV **envpor);
+void compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size);
 
 #endif

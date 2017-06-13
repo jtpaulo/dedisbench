@@ -73,7 +73,17 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
   //TODO check if this is really needed...
   if(conf->mixedIO==1 && conf->iotype==READ){
-	  procid_r=procid_r+(conf->nprocs/2);
+	
+	procid_r=procid_r+(conf->nprocs/2);
+	  
+	//Init IO and content structures (random generator, etc)
+  	init_io(conf, procid_r);
+
+  }else{
+
+  	//Init IO and content structures (random generator, etc)
+  	init_io(conf, idproc);
+
   }
 
   if(conf->rawdevice==0){
@@ -182,9 +192,12 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	 //populate buffer with the content to be written
 	 if(iotype==WRITE){
 
-	 	uint64_t idwrite=0;	 	
+	 	uint64_t idwrite=0;	 
+	 	struct block_info info_write;	
 
-	 	iooffset=write_request(buf,conf, info, &stat, idproc, &idwrite);
+	 	iooffset=write_request(buf,conf, info, &stat, idproc, &info_write);
+
+	 	idwrite=info_write.cont_id;
 
 	 	//idwrite is the index of sum where the block belongs
   		//put in statistics this value ==1 to know when a duplicate is found
@@ -224,6 +237,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
     	   fsync(fd_test);
        }
 
+       if(conf->integrity==1){
+       		int pos = (conf->rawdevice==1) ? 0 : idproc;
+       		info->content_tracker[pos][iooffset/conf->block_size].cont_id=info_write.cont_id;			
+       		info->content_tracker[pos][iooffset/conf->block_size].procid=info_write.procid;
+       		info->content_tracker[pos][iooffset/conf->block_size].ts=info_write.ts;
+       }
+       
        //latency calculation
        gettimeofday(&tim, NULL);
        uint64_t t2=tim.tv_sec*1000000+(tim.tv_usec);
@@ -273,6 +293,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 		//t1snap must take value of t2 because we want to get the time when requets are processed
 		stat.t1snap=t2;
+
+		if(conf->integrity==1){
+
+			int pos = (conf->rawdevice==1) ? 0 : idproc;
+			compare_blocks(buf, info->content_tracker[pos][iooffset/conf->block_size], conf->block_size);
+
+       	}
 
 		if(res != conf->block_size){
 			stat.misses_read++;
@@ -496,11 +523,7 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 	  } else if (pids[i] == 0) {
 		  printf("loading process %d\n",i);
 
-		  //Init IO and content structures (random generator, etc)
-		  init_io(conf, i);
-
 		  if(conf->mixedIO==1){
-
 
 			 //choose to launch read or write process
 			 if(i<conf->nprocs/2){
@@ -533,7 +556,9 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 	}
 	free(pids);
 
-
+	if(conf->integrity==1){
+		check_integrity(conf, info);
+	}
 
 	if(conf->destroypfile==1 && conf->rawdevice==0){
 	printf("Destroying temporary files\n");
@@ -543,6 +568,8 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 
 		}
 	}
+
+
 
 	printf("Exiting benchmark\n");
 
@@ -770,6 +797,9 @@ int main(int argc, char *argv[]){
 			case 'l':
 				conf.logfeature=1;
 				break;
+			case 'y':
+				conf.integrity=1;
+				break;
 			case 'z':
 				conf.destroypfile=0;
 				break;
@@ -833,6 +863,12 @@ int main(int argc, char *argv[]){
 			usage();
 			exit(0);
 	}
+	//test if filesize > 0
+	if(conf.integrity==1 && conf.mixedIO==1){
+			printf("Integrity checking and mixedIO are not supported simultaneously in this version\n\n");
+			usage();
+			exit(0);
+	}
 	//test if ratio >0 and defined
 	if(conf.testtype==NOMINAL && conf.ratio<=0){
 			printf("missing -n<value> with value higher than 0\n\n");
@@ -875,8 +911,8 @@ int main(int argc, char *argv[]){
     	printf("loading duplicates distribution %s...\n",conf.distfile);
     	get_distribution_stats(&info, conf.distfile);
 
-    	if(conf.distout==1){
-    	   	loadmmap(mem,&sharedmem_size,&fd_shared, &info);
+    	if(conf.distout==1 || conf.integrity==1){
+    	   	loadmmap(mem,&sharedmem_size,&fd_shared, &info, &conf);
     	}else{
     	    loadmem(&info);
     	}
@@ -889,8 +925,8 @@ int main(int argc, char *argv[]){
     	get_distribution_stats(&info,DFILE);
 
 
-    	if(conf.distout==1){
-    		loadmmap(mem,&sharedmem_size,&fd_shared, &info);
+    	if(conf.distout==1 || conf.integrity==1){
+    		loadmmap(mem,&sharedmem_size,&fd_shared, &info, &conf);
     	}else{
     		loadmem(&info);
     	}
@@ -901,8 +937,8 @@ int main(int argc, char *argv[]){
 
 
 	//printf("distinct blocks %llu number unique blocks %llu number duplicates %llu\n",(long long unsigned int)total_blocks, (long long unsigned int)unique_blocks,(long long unsigned int)duplicated_blocks);
-
 	load_cumulativedist(&info, conf.distout);
+
 
     //writes can be performed over a populated file (populate=1)
     //this functionality can be disabled if the files are already populated (populate=0)

@@ -114,7 +114,7 @@ void dd_populate(char* name, struct user_confs* conf){
 }
 
 
-void real_populate(int fd, struct user_confs *conf, struct duplicates_info *info){
+void real_populate(int fd, struct user_confs *conf, struct duplicates_info *info, int idproc){
 
   struct stats stat;
 
@@ -130,6 +130,7 @@ void real_populate(int fd, struct user_confs *conf, struct duplicates_info *info
   while(bytes_written<conf->filesize){
 
     char* buf;
+    struct block_info info_write;
 
     //memory block
     if(conf->odirectf==1){
@@ -138,12 +139,18 @@ void real_populate(int fd, struct user_confs *conf, struct duplicates_info *info
       buf = malloc(conf->block_size);
     }
 
-    get_writecontent(buf, conf, info, &stat, 0);
-
+    get_writecontent(buf, conf, info, &stat, 0, &info_write);
 
     int res = pwrite(fd,buf,conf->block_size,bytes_written);
     if(res<conf->block_size){
       perror("Error populating file");
+    }
+
+    if(conf->integrity==1){
+          int pos = (conf->rawdevice==1) ? 0 : idproc;
+          info->content_tracker[pos][bytes_written/conf->block_size].cont_id=info_write.cont_id;     
+          info->content_tracker[pos][bytes_written/conf->block_size].procid=info_write.procid;
+          info->content_tracker[pos][bytes_written/conf->block_size].ts=info_write.ts;
     }
 
     free(buf);
@@ -154,6 +161,8 @@ void real_populate(int fd, struct user_confs *conf, struct duplicates_info *info
   
 
 }
+
+
 
 //populate files with content
 void populate(struct user_confs *conf, struct duplicates_info *info){
@@ -174,17 +183,19 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
         strcat(name,TMP_FILE);
         strcat(name,id);
           
-        if(conf->populate==REPOP){
+        if(conf->populate==DDPOP){
+
+          dd_populate(name, conf);
+
+        }else{
+          
 
           printf("populating file %s with realistic content\n",name);
 
           fd = create_pfile(i,conf);
-          real_populate(fd, conf, info);  
+          real_populate(fd, conf, info, i);  
           fsync(fd);     
           close(fd);
-
-        }else{
-          dd_populate(name, conf);
         }
 
 
@@ -192,18 +203,20 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
   }  
   else{
 
-    if(conf->populate==REPOP){
+    if(conf->populate==DDPOP){
 
-      printf("populating device %s with realistic content\n",conf->rawpath);
+      dd_populate(conf->rawpath, conf);
 
-      fd = open_rawdev(conf->rawpath,conf);
-      real_populate(fd, conf, info);
-      fsync(fd);
-      close(fd);
 
     }else{
 
-       dd_populate(conf->rawpath, conf);
+       
+      printf("populating device %s with realistic content\n",conf->rawpath);
+
+      fd = open_rawdev(conf->rawpath,conf);
+      real_populate(fd, conf, info, 0);
+      fsync(fd);
+      close(fd);
 
     }
 
@@ -211,5 +224,73 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
   }
 
   printf("File/device(s) population is completed\n");
+
+}
+
+
+void file_integrity(int fd, struct user_confs *conf, struct duplicates_info *info, int idproc){
+
+  char *buf;
+
+  //memory block
+  if(conf->odirectf==1){
+    buf = memalign(conf->block_size,conf->block_size);
+  }else{
+    buf = malloc(conf->block_size);
+  }
+
+  uint64_t bytes_read=0;
+  while(bytes_read<conf->filesize){
+
+    int res = pread(fd,buf,conf->block_size,bytes_read);
+    if(res<0){
+      perror("Error reading in integrity tests\n");
+    }
+
+    compare_blocks(buf, info->content_tracker[idproc][bytes_read/conf->block_size], conf->block_size);
+        
+    bytes_read+=conf->block_size;
+  }
+
+  free(buf);
+
+
+}
+
+
+void check_integrity(struct user_confs *conf, struct duplicates_info *info){
+
+  int i;
+  int fd;
+
+  printf("File/device(s) integrity check is now Running...\n");
+
+  if(conf->rawdevice==0){
+
+    //for each process populate its file with size filesize
+    //we use DD for filling a non sparse image
+    for(i=0;i<conf->nprocs;i++){
+        //create the file with unique name for process with id procid
+        char name[PATH_SIZE];
+        char id[4];
+        sprintf(id,"%d",i);
+        strcpy(name,conf->tempfilespath);
+        strcat(name,TMP_FILE);
+        strcat(name,id);
+        
+        fd = create_pfile(i,conf);
+        file_integrity(fd,conf, info, i);
+        close(fd);        
+    }
+  }  
+  else{
+    fd = open_rawdev(conf->rawpath,conf);
+    file_integrity(fd,conf, info, 0);
+    close(fd);
+  }
+
+  printf("File/device(s) integrity check is completed\n");
+
+
 
 }

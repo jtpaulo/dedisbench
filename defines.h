@@ -152,6 +152,8 @@ struct user_confs{
 	int fsyncf;
 	int odirectf;
 
+	int integrity;
+
 	//print dist file DB
 	DB **dbpdist; // DB structure handle
 	DB_ENV **envpdist;

@@ -6,6 +6,7 @@
 #include "random.h"
 
 
+
 int init_io(struct user_confs *conf, int procid){
 
   //init random generator
@@ -19,9 +20,9 @@ int init_io(struct user_confs *conf, int procid){
   return 0;
 }
 
-uint64_t write_request(char* buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc, uint64_t *idwrite){
+uint64_t write_request(char* buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc, struct block_info *infowrite){
 
-  *idwrite = get_writecontent(buf, conf, info, stat, idproc);
+  get_writecontent(buf, conf, info, stat, idproc, infowrite);
 
   return get_ioposition(conf, stat, idproc);
 }

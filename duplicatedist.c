@@ -13,7 +13,6 @@
 #include "random.h"
 
 
-
 void get_distribution_stats(struct duplicates_info *info, char* fname){
 
 	//open file with distribution
@@ -293,9 +292,31 @@ uint64_t get_contentid(struct duplicates_info *info){
   }
 }
 
+void compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size){
+
+  char bufaux[block_size];
+  //initialize the buffer with duplicate content
+  int bufp = 0;
+  for(bufp=0;bufp<block_size;bufp++){
+    bufaux[bufp] = 'a';
+  }
+
+  if(infowrite.procid!=-1){
+    sprintf(bufaux,"%llu pid %d time %llu", (long long unsigned int)infowrite.cont_id,infowrite.procid,(long long unsigned int)infowrite.ts);
+  }
+  else{
+    sprintf(bufaux,"%llu ", (long long unsigned int)infowrite.cont_id);
+  }
+
+  if(memcmp(buf,bufaux,block_size)!=0){
+    printf("Error checking integrity\n");
+  }
+
+}
+
 // Used to know the content of the next block that will be generated
 // Follows the duplicate distribution
-uint64_t get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc){
+void get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc, struct block_info *info_write){
   
   uint64_t contwrite;
   struct timeval tim;
@@ -329,14 +350,20 @@ uint64_t get_writecontent(char *buf, struct user_confs *conf, struct duplicates_
     if(conf->distout==1){
       *info->zerodups=*info->zerodups+1;
     }
+
+    info_write->cont_id=contwrite;
+    info_write->procid=idproc;
+    info_write->ts=tunique;
   }
   //if it is duplicated write the result (index of sum) returned
   //into the buffer
   else{
-    sprintf(buf,"%llu", (long long unsigned int)contwrite);
+    sprintf(buf,"%llu ", (long long unsigned int)contwrite);
+    info_write->cont_id=contwrite;
+    info_write->procid=-1;
+    info_write->ts=-1;
   }
 
-  return contwrite;
 
 }
 

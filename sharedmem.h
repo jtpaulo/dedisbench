@@ -7,10 +7,11 @@
 
 #include <stdint.h>
 #include <duplicatedist.h>
+#include "defines.h"
 
 int loadmem(struct duplicates_info *info);
 
-int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared, struct duplicates_info *info);
+int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared, struct duplicates_info *info, struct user_confs *conf);
 
 int closemmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared);
 

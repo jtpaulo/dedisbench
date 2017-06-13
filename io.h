@@ -11,7 +11,8 @@
 #include "defines.h"
 
 int init_io(struct user_confs *conf, int procid);
-uint64_t write_request(char* buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc, uint64_t *idwrite);
+uint64_t write_request(char* buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc, struct block_info *infowrite);
 uint64_t read_request(struct user_confs *conf, struct stats *stat, int idproc);
+
 
 #endif

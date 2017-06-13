@@ -19,15 +19,23 @@ int loadmem(struct duplicates_info *info){
 
 }
 
-int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared, struct duplicates_info *info){
+int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared, struct duplicates_info *info, struct user_confs *conf){
 
    //Name of shared memory file
-   int result;
+   int result, i;
+   int nr_procs = conf->nprocs;
+   struct block_info *content_map;
 
+   if(conf->mixedIO==1){
+     nr_procs=nr_procs/2;
+   }
+
+   if(conf->rawdevice==1){
+     nr_procs=1;
+   }
 
     //size of shared memory structure
-    *sharedmem_size = sizeof(uint64_t)*(info->duplicated_blocks*3+1);
-
+    *sharedmem_size = (sizeof(uint64_t)*(info->duplicated_blocks*3+1)) + (sizeof(struct block_info)*(conf->totblocks*nr_procs));
 
     *fd_shared = open("dedisbench_0010sharedmemstats", O_RDWR | O_CREAT, (mode_t)0600);
     if (*fd_shared == -1) {
@@ -79,13 +87,20 @@ int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared, struct dupl
     info->stats=mem_aux;
     mem_aux=mem_aux+info->duplicated_blocks;
     info->zerodups = mem_aux;
+    mem_aux=mem_aux+1;
+    content_map=(struct block_info *)mem_aux;
+  
     *info->zerodups=0;
+
+    info->content_tracker=malloc(sizeof(struct block_info *)*nr_procs);
+    for (i=0; i<nr_procs; i++){
+      info->content_tracker[i]=content_map+(i*nr_procs);
+    }
 
     return 0;
 }
 
 int closemmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared){
-
 
   if (munmap(*mem,  *sharedmem_size) == -1) {
     perror("Error un-mmapping the file");

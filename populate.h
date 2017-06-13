@@ -24,4 +24,8 @@ int destroy_pfile(int procid, struct user_confs *conf);
 //populate files/dev
 void populate(struct user_confs *conf, struct duplicates_info *info);
 
+
+void check_integrity(struct user_confs *conf, struct duplicates_info *info);
+
+
 #endif
