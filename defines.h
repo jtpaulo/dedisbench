@@ -34,6 +34,12 @@
 #define DISTDB "benchdbs/distdb/"
 
 
+struct fault_conf{
+	int measure;
+	int when;
+	int fault_dist;
+	int fault_type;
+};
 
 struct stats{
 
@@ -158,6 +164,9 @@ struct user_confs{
 	DB **dbpdist; // DB structure handle
 	DB_ENV **envpdist;
 
+	struct fault_conf *fconf;
+	int nr_faults;
+	int fault_measure;
 };
 
 #endif

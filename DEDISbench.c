@@ -22,6 +22,7 @@
 #include "populate.h"
 #include "defines.h"
 #include "io.h"
+#include "fault.h"
 
 
 //time elapsed since last I/O
@@ -68,6 +69,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   
   int fd_test;
   int procid_r=idproc;
+  int fault_pos=0;
 
   struct stats stat = {.beginio=-1};
 
@@ -200,11 +202,17 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	 	//idwrite is the index of sum where the block belongs
   		//put in statistics this value ==1 to know when a duplicate is found
   		//TODO this depends highly on the id generation and should be transparent
-  		if(conf->distout==1){
+  		if(conf->distout==1 || conf->fault_measure>0){
     		if(idwrite<info->duplicated_blocks){
       			info->statistics[idwrite]++;
       			if(info->statistics[idwrite]>1){
         			stat.dupl++;
+        			if(info->statistics[idwrite]>info->topblock_dups){
+        				info->topblock=idwrite;
+        			}
+        			if(info->statistics[idwrite]<info->botblock_dups){
+        				info->botblock=idwrite;
+        			}
       			}
       			else{
         			stat.uni++;
@@ -219,10 +227,14 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 			    if(conf->distout==1){
 			      *info->zerodups=*info->zerodups+1;
 			    }			
+   				
+   				info->last_unique_block.cont_id=info_write.cont_id;
+   				info->last_unique_block.procid=info_write.procid;
+   				info->last_unique_block.ts=info_write.ts;
    			}
   		}
 
-	 	acessesarray[iooffset/conf->block_size]++;
+	 acessesarray[iooffset/conf->block_size]++;
      
        //get current time for calculating I/O op latency
        gettimeofday(&tim, NULL);
@@ -309,8 +321,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		stat.snap_lat+=(t2-t1);
 		stat.endio=t2;
 
-
-
 		if(conf->logfeature==1){
 		  //write in the log the operation latency
 		  fprintf(fres,"%llu %llu\n", (long long unsigned int) t2-t1, (long long unsigned int) t2s);
@@ -323,6 +333,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	 stat.tot_ops++;
      stat.snap_totops++;
 
+
+     if(fault_pos<conf->nr_faults && ((conf->fault_measure==OPS_F && stat.tot_ops==conf->fconf[fault_pos].when) || (conf->fault_measure==TIME_F && (time_elapsed/1e6/60)>=conf->fconf[fault_pos].when))){// && idproc==0){
+     	printf("%d op = %llu\n", fault_pos, (unsigned long long int)stat.tot_ops);
+     	inject_failure(conf->fconf[fault_pos].fault_type, conf->fconf[fault_pos].fault_dist,info, conf->block_size);
+     	fault_pos++;
+     }
+     
 	 if(stat.t1snap>=stat.last_snap_time+30*1e6){
 
 	    	   stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
@@ -611,9 +628,12 @@ void help(void){
  	printf("\t\t\tIf more than one process is defined, each process is assigned with an independent of the raw device,\n");
  	printf("\t\t\tdependent on the raw device size. By default, if this flag is not set each process writes to an individual file.\n");
 	printf(" -l\t\t\t(Enable file log feature for results)\n");
+	printf(" -y\t\t\t(Integrity checking for read requests is enabled. This flag also enables a final integrity check done by the benchmark after finishing the DEDISbench's workload).\n\t\t\tFiles must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct\n");
+	printf(" -qt<value>\t\tInject failure at a specific time period, each failure operation must be in the format <type_failure>:<failure_distribution>:<time_to_inject (minutes)>\n\t\t\tType of failures are: 0 - fill 1 - fill and 2 - fill\n\t\t\tFailure distributions are: 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates\n\t\t\t3 - inject in a block without duplicates\n\t\t\tExample: -qt0:1:2,1:2:5 - Inject a failure of type 0 with distribution 1 at 2 minutes and inject a failure of type 1 and distribution 2 at 5 minutes.\n");
+	printf(" -qo<value>\t\tInject failure at a specific number of operations, each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>\n\t\t\tType of failures are: 0 - fill 1 - fill and 2 - fill\n\t\t\tFailure distributions are: 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates\n\t\t\t3 - inject in a block without duplicates\n\t\t\tExample: -qo0:1:1000,1:2:20000 - Inject a failure of type 0 with distribution 1 at 1000 operations and inject a failure of type 1 and distribution 2 at 20000 operations.\n");
 	printf(" -d<value>\t\t(choose the directory where DEDISbench writes data)\n");
 	printf(" -e<value>\t\t(Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for read tests)\n");
-	printf(" -b<value>\t(Size of blocks for I/O operations in Bytes default: 4096)\n");
+	printf(" -b<value>\t\t(Size of blocks for I/O operations in Bytes default: 4096)\n");
 	printf(" -g<value>\t\t(Input File with duplicate distribution. default: dist_personalfiles \n");
 	printf("\t\t\t DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage\n");
 	printf("\t\t\t For choosing these distributions the <value> must be dist_archival, dist_personalfiles or dist_highperf respectively\n");
@@ -629,6 +649,7 @@ void help(void){
 	exit (8);
 
 }
+
 
 int main(int argc, char *argv[]){
 
@@ -653,6 +674,7 @@ int main(int argc, char *argv[]){
 	bzero(conf.rawpath,PATH_SIZE);
 	bzero(conf.distfile,PATH_SIZE);
 	bzero(conf.outputfile,PATH_SIZE);
+	conf.fconf=NULL;
 
 
    	while ((argc > 1) && (argv[1][0] == '-'))
@@ -689,6 +711,23 @@ int main(int argc, char *argv[]){
 					else{
 						//test if the value from -n is higher than 0
 						conf.ratio=atoi(&argv[1][2]);
+					}
+
+				}
+				break;
+			case 'q':
+				if(argv[1][2]=='t'){
+					conf.fault_measure=TIME_F;
+					conf.nr_faults=fault_split(&argv[1][3], &conf);
+				}
+				else{
+					if(argv[1][2]=='o'){
+						conf.fault_measure=OPS_F;
+						conf.nr_faults=fault_split(&argv[1][3], &conf);
+					}
+					else{
+						perror("Wrong usage for argument -q");
+						usage();
 					}
 
 				}
@@ -871,12 +910,6 @@ int main(int argc, char *argv[]){
 	//test if filesize > 0
 	if(conf.filesize<=0){
 			printf("missing -f<value> with value higher than 0\n\n");
-			usage();
-			exit(0);
-	}
-	//test if filesize > 0
-	if(conf.integrity==1 && conf.mixedIO==1){
-			printf("Integrity checking and mixedIO are not supported simultaneously in this version\n\n");
 			usage();
 			exit(0);
 	}

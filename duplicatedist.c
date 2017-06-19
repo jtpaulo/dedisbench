@@ -292,9 +292,8 @@ uint64_t get_contentid(struct duplicates_info *info){
   }
 }
 
-void compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size){
+void get_block_content(char* bufaux, struct block_info infowrite, uint64_t block_size){
 
-  char bufaux[block_size];
   //initialize the buffer with duplicate content
   int bufp = 0;
   for(bufp=0;bufp<block_size;bufp++){
@@ -308,11 +307,42 @@ void compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size)
     sprintf(bufaux,"%llu ", (long long unsigned int)infowrite.cont_id);
   }
 
+}
+
+void compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size){
+
+  char bufaux[block_size];
+
+  get_block_content(bufaux, infowrite, block_size);
+
   if(memcmp(buf,bufaux,block_size)!=0){
     printf("Error checking integrity\n");
   }
 
 }
+
+int next_block(struct duplicates_info *info, struct block_info *infowrite){
+
+  //get the content
+  uint64_t contwrite = get_contentid(info);
+
+  //if the content to write is unique write to the buffer
+  //the unique counter of the process + "string"  + process id
+  //to be unique among processes the string invalidates to have
+  //an identical number from other oprocess
+  //timestamp is used for multiple DEDIS benchs to be different
+  if(contwrite<info->duplicated_blocks){
+    infowrite->cont_id=contwrite;
+    infowrite->procid=-1;
+    infowrite->ts=-1;
+    return 1;
+  }
+  else{
+    return 0;
+  }
+
+}
+
 
 // Used to know the content of the next block that will be generated
 // Follows the duplicate distribution
@@ -337,7 +367,7 @@ void get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info
   //to be unique among processes the string invalidates to have
   //an identical number from other oprocess
   //timestamp is used for multiple DEDIS benchs to be different
-  if(contwrite>info->duplicated_blocks){
+  if(contwrite>=info->duplicated_blocks){
     //get current time for making this value unique for concurrent benchmarks
     gettimeofday(&tim, NULL);
     uint64_t tunique=tim.tv_sec*1000000+(tim.tv_usec);

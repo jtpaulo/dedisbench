@@ -141,7 +141,29 @@ uint64_t real_populate(int fd, struct user_confs *conf, struct duplicates_info *
       buf = malloc(conf->block_size);
     }
 
+
+
     get_writecontent(buf, conf, info, &stat, 0, &info_write);
+
+
+    if(conf->distout==1 || conf->fault_measure>0){
+      uint64_t idwrite=info_write.cont_id;
+
+      if(idwrite<info->duplicated_blocks){
+        info->statistics[idwrite]++;
+        if(info->statistics[idwrite]>1){
+          if(info->statistics[idwrite]>info->topblock_dups){
+            info->topblock=idwrite;
+          }
+          if(info->statistics[idwrite]<info->botblock_dups){
+            info->botblock=idwrite;
+          }
+        }
+        else{
+          stat.uni++;
+        }
+      }
+    }
 
     int res = pwrite(fd,buf,conf->block_size,bytes_written);
     if(res<conf->block_size){

@@ -75,8 +75,14 @@ Optional Flags
  -l					I/O latency results are written to a log file to extract additional 
  statistics. Each process writes these values in a file called result(processid) and
  each line, corresponds to a single I/O operations and presents: 
- (latency of I/O operation in microseconds) (current time in seconds) \n
+ (latency of I/O operation in microseconds) (current time in seconds).
+
+ -y                Integrity check for read requests is enabled. This flag also enables a final integrity check done by the benchmark after finishing DEDISbench's workload. Files must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct.
  
+ -qt<value>        Inject failure at a specific time period, each failure operation must be in the format <type_failure>:<failure_distribution>:<time_to_inject (minutes). Type of failures are 0 - fill 1 - fill and 2 - fill. Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
+ -qo<value>        Inject failure at a specific number of operations, each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>. Type of failures are 0 - fill 1 - fill and 2 - fill. Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
+	
+
  -e			(Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for read tests).
 
  -b<value>			Size of blocks for I/O operations in Bytes default: 4096
@@ -127,6 +133,22 @@ run 8 minutes mixed benchmark with a nominal load (100reads/s and 50 writes/s) i
 
 ./DEDISbench -m -nr100 -nw50 -t8 -ipath/to/rawdevice
 
+
+# Failure injection
+
+Type of failures are 0 - fill 1 - fill and 2 - fill. 
+Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
+
+Examples:
+
+Inject a failure of type 0 with distribution 1 at 2 minutes and inject a failure of type 1 and distribution 2 at 5 minutes.
+
+-qt0:1:2,1:2:5
+	
+Inject a failure of type 0 with distribution 1 at 1000 operations and inject a failure of type 1 and distribution 2 at 20000 operations
+
+-qo0:1:1000,1:2:20000
+	
 
 # Running the generator DEDISgen:
 
