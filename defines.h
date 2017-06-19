@@ -159,6 +159,7 @@ struct user_confs{
 	int odirectf;
 
 	int integrity;
+	char integrityfile[PATH_SIZE];
 
 	//print dist file DB
 	DB **dbpdist; // DB structure handle

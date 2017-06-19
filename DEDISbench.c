@@ -70,6 +70,8 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   int fd_test;
   int procid_r=idproc;
   int fault_pos=0;
+  FILE *fpi=NULL;
+
 
   struct stats stat = {.beginio=-1};
 
@@ -87,6 +89,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   	init_io(conf, idproc);
 
   }
+
 
   if(conf->rawdevice==0){
 	  //create file where process will perform I/O
@@ -106,6 +109,15 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  strcpy(name,"result");
 	  strcat(name,id);
 	  fres = fopen(name,"w");
+  }
+
+  char ifilename[PATH_SIZE];
+  int integrity_errors=0;
+  if(conf->integrity==1 && iotype==READ){
+  	strcpy(ifilename,conf->integrityfile);
+  	strcat(ifilename,id);
+  	fpi=fopen(ifilename,"w");
+  	fprintf(fpi, "Integrity Check results for process %d\n",procid_r);
   }
 
   uint64_t* acessesarray=NULL;
@@ -303,7 +315,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		if(conf->integrity==1){
 
 			int pos = (conf->rawdevice==1) ? 0 : idproc;
-			compare_blocks(buf, info->content_tracker[pos][iooffset/conf->block_size], conf->block_size);
+			integrity_errors+=compare_blocks(buf, info->content_tracker[pos][iooffset/conf->block_size], conf->block_size, fpi, 0);
 
        	}
 
@@ -526,6 +538,15 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
    	printf("Process touched %llu blocks totalling %llu MB. Process wrote %llu MB (including block rewrite)\n", (unsigned long long int) pos_touched, (unsigned long long int) (pos_touched*conf->block_size)/1024/1024, (unsigned long long int) bytes_processed/1024/1024);
   }
 
+  if(conf->integrity==1 && iotype==READ){
+  	if(integrity_errors>0){
+  		printf("Found %d integrity errors see %s file for more details\n", integrity_errors, ifilename);
+  	}else{
+  		fprintf(fpi,"No integrity issues found\n");
+  	}
+  	fclose(fpi);
+  }
+
   if(conf->accesslog==1){
 	fclose(fpp);
   }
@@ -628,11 +649,11 @@ void help(void){
  	printf("\t\t\tIf more than one process is defined, each process is assigned with an independent of the raw device,\n");
  	printf("\t\t\tdependent on the raw device size. By default, if this flag is not set each process writes to an individual file.\n");
 	printf(" -l\t\t\t(Enable file log feature for results)\n");
-	printf(" -y\t\t\t(Integrity checking for read requests is enabled. This flag also enables a final integrity check done by the benchmark after finishing the DEDISbench's workload).\n\t\t\tFiles must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct\n");
+	printf(" -y<value>\t\t\t(Enable integrity checks for read requests. The output is written to file specified in <value>. This flag also enables a final integrity check done by the benchmark after finishing the DEDISbench's workload).\n\t\t\tFiles must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct\n");
 	printf(" -qt<value>\t\tInject failure at a specific time period, each failure operation must be in the format <type_failure>:<failure_distribution>:<time_to_inject (minutes)>\n\t\t\tType of failures are: 0 - fill 1 - fill and 2 - fill\n\t\t\tFailure distributions are: 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates\n\t\t\t3 - inject in a block without duplicates\n\t\t\tExample: -qt0:1:2,1:2:5 - Inject a failure of type 0 with distribution 1 at 2 minutes and inject a failure of type 1 and distribution 2 at 5 minutes.\n");
 	printf(" -qo<value>\t\tInject failure at a specific number of operations, each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>\n\t\t\tType of failures are: 0 - fill 1 - fill and 2 - fill\n\t\t\tFailure distributions are: 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates\n\t\t\t3 - inject in a block without duplicates\n\t\t\tExample: -qo0:1:1000,1:2:20000 - Inject a failure of type 0 with distribution 1 at 1000 operations and inject a failure of type 1 and distribution 2 at 20000 operations.\n");
 	printf(" -d<value>\t\t(choose the directory where DEDISbench writes data)\n");
-	printf(" -e<value>\t\t(Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for read tests)\n");
+	printf(" -e<value>\t\t(Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for mixed and read tests)\n");
 	printf(" -b<value>\t\t(Size of blocks for I/O operations in Bytes default: 4096)\n");
 	printf(" -g<value>\t\t(Input File with duplicate distribution. default: dist_personalfiles \n");
 	printf("\t\t\t DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage\n");
@@ -849,6 +870,7 @@ int main(int argc, char *argv[]){
 				break;
 			case 'y':
 				conf.integrity=1;
+				strcpy(conf.integrityfile,&argv[1][2]);
 				break;
 			case 'z':
 				conf.destroypfile=0;

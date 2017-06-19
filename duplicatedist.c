@@ -301,7 +301,7 @@ void get_block_content(char* bufaux, struct block_info infowrite, uint64_t block
   }
 
   if(infowrite.procid!=-1){
-    sprintf(bufaux,"%llu pid %d time %llu", (long long unsigned int)infowrite.cont_id,infowrite.procid,(long long unsigned int)infowrite.ts);
+    sprintf(bufaux,"%llu pid %d time %llu ", (long long unsigned int)infowrite.cont_id,infowrite.procid,(long long unsigned int)infowrite.ts);
   }
   else{
     sprintf(bufaux,"%llu ", (long long unsigned int)infowrite.cont_id);
@@ -309,16 +309,91 @@ void get_block_content(char* bufaux, struct block_info infowrite, uint64_t block
 
 }
 
-void compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size){
+int check_block_content(char* buf, uint64_t block_size){
+
+  const char s[2] = " ";
+  char *token=NULL;
+  int contwrites_b=-1;
+  int times_b=-1;
+  uint64_t contwrites=0;
+  uint64_t times=0;
+  int pids=-1;
+
+  char original_buf[block_size];
+  memcpy(original_buf,buf, block_size);
+
+  //initialize the buffer with duplicate content
+  int bufp = 0;
+  char bufaux[block_size];
+  for(bufp=0;bufp<block_size;bufp++){
+    bufaux[bufp] = 'a';
+  }
+   
+  token = strtok(original_buf, s);
+  /* walk through other tokens */
+  while( token != NULL ) 
+  {
+
+      if(contwrites_b<0){
+        contwrites = atoll(token);
+        contwrites_b=1;
+      }
+
+      if(pids<0 && strcmp(token,"pid")==0){
+        token = strtok(NULL, s);
+        pids=atoi(token);
+        
+      }else{
+        if(times_b<0 && strcmp(token,"time")==0){
+          token = strtok(NULL, s);
+          times = atoll(token);
+          times_b=1;
+        }
+        else{
+          token = strtok(NULL, s);
+        }
+      }
+      
+  }
+
+  if(contwrites_b >= 0 && pids>=0 && times_b >=0){
+    sprintf(bufaux,"%llu pid %d time %llu ", (long long unsigned int)contwrites,pids,(long long unsigned int)times);
+  }
+  else{
+    if(contwrites_b>=0){
+      sprintf(bufaux,"%llu ", (long long unsigned int)contwrites);
+    }
+    else{
+      return -1;
+    }
+  }
+    
+  return memcmp(buf,bufaux, block_size);
+   
+}
+
+
+int compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size, FILE* fpi, int final_check){
 
   char bufaux[block_size];
+  int i=0;
 
   get_block_content(bufaux, infowrite, block_size);
 
   if(memcmp(buf,bufaux,block_size)!=0){
-    printf("Error checking integrity\n");
-  }
+    i=check_block_content(buf, block_size);
+    if(i==0 && final_check==0){
+      fprintf(fpi,"There was a mismatch regarding the last content written for the block isth id %llu and the content read.\n", (long long unsigned int) infowrite.cont_id);
+      fprintf(fpi,"Such is possible if the workload being ran is a mixed IO workload\n");
+      fprintf(fpi,"Nevertheless the content of the block seems well built\n");
+      return 1;
+    }else{
+      fprintf(fpi, "Error checking integrity for block with contentid %llu\n", (long long unsigned int) infowrite.cont_id);
+      return 1;
+    }
 
+  }
+  return 0;
 }
 
 int next_block(struct duplicates_info *info, struct block_info *infowrite){
@@ -371,7 +446,7 @@ void get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info
     //get current time for making this value unique for concurrent benchmarks
     gettimeofday(&tim, NULL);
     uint64_t tunique=tim.tv_sec*1000000+(tim.tv_usec);
-    sprintf(buf,"%llu pid %d time %llu", (long long unsigned int)contwrite,idproc,(long long unsigned int)tunique);
+    sprintf(buf,"%llu pid %d time %llu ", (long long unsigned int)contwrite,idproc,(long long unsigned int)tunique);
     stat->uni++;
     //uni referes to unique blocks meaning that
     // also counts 1 copy of each duplicated block

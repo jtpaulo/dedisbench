@@ -194,6 +194,14 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
 
   int i;
   int fd;
+  int nprocs=0;
+
+  if(conf->mixedIO==1){
+    nprocs=conf->nprocs/2;
+  }
+  else{
+    nprocs=conf->nprocs;
+  }
 
   uint64_t bytes_populated=0;
 
@@ -201,7 +209,7 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
 
     //for each process populate its file with size filesize
     //we use DD for filling a non sparse image
-    for(i=0;i<conf->nprocs;i++){
+    for(i=0;i<nprocs;i++){
         //create the file with unique name for process with id procid
         char name[PATH_SIZE];
         char id[4];
@@ -255,9 +263,11 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
 }
 
 
-void file_integrity(int fd, struct user_confs *conf, struct duplicates_info *info, int idproc){
+int file_integrity(int fd, struct user_confs *conf, struct duplicates_info *info, int idproc, FILE* fpi){
 
   char *buf;
+  int res=0;
+
 
   //memory block
   if(conf->odirectf==1){
@@ -274,12 +284,14 @@ void file_integrity(int fd, struct user_confs *conf, struct duplicates_info *inf
       perror("Error reading in integrity tests\n");
     }
 
-    compare_blocks(buf, info->content_tracker[idproc][bytes_read/conf->block_size], conf->block_size);
+    res+=compare_blocks(buf, info->content_tracker[idproc][bytes_read/conf->block_size], conf->block_size, fpi, 1);
         
     bytes_read+=conf->block_size;
   }
 
   free(buf);
+
+  return res;
 
 
 }
@@ -289,6 +301,22 @@ void check_integrity(struct user_confs *conf, struct duplicates_info *info){
 
   int i;
   int fd;
+  int nprocs=0;
+
+  FILE *fpi=NULL;
+  int integrity_errors=0;
+  char ifilename[PATH_SIZE];
+  strcpy(ifilename,conf->integrityfile);
+  strcat(ifilename,"_final_check");
+  fpi=fopen(ifilename,"w");
+  fprintf(fpi,"Final Integrity Check results\n");
+
+  if(conf->mixedIO==1){
+    nprocs=conf->nprocs/2;
+  }
+  else{
+    nprocs=conf->nprocs;
+  }
 
   printf("File/device(s) integrity check is now Running...\n");
 
@@ -296,7 +324,7 @@ void check_integrity(struct user_confs *conf, struct duplicates_info *info){
 
     //for each process populate its file with size filesize
     //we use DD for filling a non sparse image
-    for(i=0;i<conf->nprocs;i++){
+    for(i=0;i<nprocs;i++){
         //create the file with unique name for process with id procid
         char name[PATH_SIZE];
         char id[4];
@@ -306,15 +334,22 @@ void check_integrity(struct user_confs *conf, struct duplicates_info *info){
         strcat(name,id);
         
         fd = create_pfile(i,conf);
-        file_integrity(fd,conf, info, i);
+        integrity_errors += file_integrity(fd,conf, info, i, fpi);
         close(fd);        
     }
   }  
   else{
     fd = open_rawdev(conf->rawpath,conf);
-    file_integrity(fd,conf, info, 0);
+    integrity_errors += file_integrity(fd,conf, info, 0, fpi);
     close(fd);
   }
+
+  if(integrity_errors>0){
+    printf("Found %d integrity errors see %s file for more details\n", integrity_errors, ifilename);
+  }else{
+    fprintf(fpi,"No integrity issues found\n");
+  }
+  fclose(fpi);
 
   printf("File/device(s) integrity check is completed\n");
 
