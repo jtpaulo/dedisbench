@@ -80,6 +80,7 @@ Optional Flags
  -y                Integrity check for read requests is enabled. This flag also enables a final integrity check done by the benchmark after finishing DEDISbench's workload. Files must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct.
  
  -qt<value>        Inject failure at a specific time period, each failure operation must be in the format <type_failure>:<failure_distribution>:<time_to_inject (minutes). Type of failures are 0 - fill 1 - fill and 2 - fill. Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
+ 
  -qo<value>        Inject failure at a specific number of operations, each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>. Type of failures are 0 - fill 1 - fill and 2 - fill. Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
 	
 
