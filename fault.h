@@ -20,5 +20,5 @@
 
 int inject_failure(int fault_type, int fault_dist, struct duplicates_info *info, uint64_t block_size);
 int fault_split(char* a_str, struct user_confs *conf);
-
+void define_failure_per_process(struct user_confs *conf);
 #endif

@@ -81,7 +81,7 @@ Optional Flags
  
  -qt<value>        Inject failure at a specific time period, each failure operation must be in the format <type_failure>:<failure_distribution>:<time_to_inject (minutes). Type of failures are 0 - fill 1 - fill and 2 - fill. Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
 
- -qo<value>        Inject failure at a specific number of operations, each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>. Type of failures are 0 - fill 1 - fill and 2 - fill. Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
+ -qo<value>        Inject failure at a specific number of operations (operations are counter in a per-process basis), each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>. Type of failures are 0 - fill 1 - fill and 2 - fill. Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
 	
 
  -e			(Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for read tests).
@@ -139,6 +139,11 @@ run 8 minutes mixed benchmark with a nominal load (100reads/s and 50 writes/s) i
 
 Type of failures are 0 - fill 1 - fill and 2 - fill. 
 Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
+
+Failure injection for single read tests is only supported with realistic population of files enabled.
+
+Failure type following content generation distribution is not supported for single read tests.
+          
 
 Examples:
 
