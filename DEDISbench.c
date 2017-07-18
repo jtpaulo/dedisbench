@@ -843,7 +843,7 @@ static int config_handler(void* config, const char* section, const char* name, c
 
 	#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
 	if(MATCH("structural", "keep_dbs")){
-		if(!strcmp("false",value)){
+		if(!atoi(value)){
 			// delete benchdbs/distdb and gendbs
 			remove_dir("./benchdbs");
 			remove_dir("./gendbs");
@@ -856,7 +856,7 @@ static int config_handler(void* config, const char* section, const char* name, c
 	else if(MATCH("results","cool_down")){
 		//check some flag
 	}*/
-	else if(MATCH("results","printtofile")){
+	else if(MATCH("results","output")){
 		conf->printtofile = 1;
 		strcpy(conf->printfile, value);
 		printf("Output of DEDISbench will be printed to '%s'\n", conf->printfile);
@@ -871,7 +871,7 @@ static int config_handler(void* config, const char* section, const char* name, c
 		strcpy(conf->distfile,value);
 		printf("Using '%s' distribution file\n", conf->distfile);
 	}
-	else if(MATCH("results","output")){
+	else if(MATCH("results","outputdist")){
 		conf->distout = 1;
 		strcpy(conf->outputfile, value);
 		printf("Exact number of unique and duplicate blocks will be written into '%s'\n", conf->outputfile);
