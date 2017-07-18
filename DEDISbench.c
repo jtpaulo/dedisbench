@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <malloc.h>
+#include <unistd.h>
+#include <errno.h>
+#include <dirent.h>
+#include "inih/ini.h"
 
 #include "random.h"
 #include "duplicatedist.h"
@@ -61,6 +65,26 @@ FILE* create_plog(int procid){
 	FILE *fres = fopen(name,"w");
     return fres;
 
+}
+
+static int powr(int base, int exp){
+	int result = 1;
+	while(exp){
+		if(exp & 1)
+			result *= base;
+		exp /= 2;
+		base *= base;
+	}
+	return result;
+}
+
+static int find_bucket(unsigned long long int key){
+	int bucket = 0;
+	while(key){
+		key /= 10;
+		bucket++;
+	}
+	return bucket;
 }
 
 //run a a peak test
@@ -456,16 +480,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  		  FILE* pf=fopen(conf->printfile,"a");
 	  		  fprintf(pf,"Process %d:\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency);
 	  		  fclose(pf);
-
 	  	  }
-
-
-
   }
 
   if(conf->printtofile==1){
 	  //SNAP printing
 	  char snapthrname[PATH_SIZE];
+	  char snapthrfmt[PATH_SIZE];
 	  strcpy(snapthrname,conf->printfile);
 	  strcat(snapthrname,"snapthr");
 	  if(conf->iotype==WRITE){
@@ -475,8 +496,11 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		  strcat(snapthrname,"read");
 	  }
   	  strcat(snapthrname,id);
+	  strcpy(snapthrfmt, snapthrname);
+	  strcat(snapthrfmt, "compat");
 
 	  char snaplatname[PATH_SIZE];
+	  char snaplatfmt[PATH_SIZE];
 	  strcpy(snaplatname,conf->printfile);
 	  strcat(snaplatname,"snaplat");
 	  if(conf->iotype==WRITE){
@@ -486,42 +510,108 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  	  strcat(snaplatname,"read");
 	  }
 	  strcat(snaplatname,id);
+	  strcpy(snaplatfmt, snaplatname);
+	  strcat(snaplatfmt, "compat");
 
+	  unsigned long long int beginio = (unsigned long long int)stat.beginio;
 	  FILE* pf=fopen(snaplatname,"a");
+	  FILE* pfcompat = fopen(snaplatfmt,"w");
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
-	  int aux=0;
+	  int aux;
 	  for (aux=0;aux<stat.iter_snap;aux++){
 
 		  //SNAP printing
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_latency[aux],stat.snap_ops[aux]);
+		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30/*((unsigned long long int)stat.snap_time[aux]-beginio)/1000*/, stat.snap_latency[aux], stat.snap_ops[aux]);
 
 	  }
 	  fclose(pf);
+	  fclose(pfcompat);
+	  
+	  char plotfile[PATH_SIZE];
+	  strcpy(plotfile,conf->printfile);
+	  strcat(plotfile,"plot");
 
 	  //SNAP printing
 	  pf=fopen(snapthrname,"a");
+	  pfcompat = fopen(snapthrfmt,"w");
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
 	  for (aux=0;aux<stat.iter_snap;aux++){
 
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_throughput[aux],stat.snap_ops[aux]);
+		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
 
 	  }
+	  fclose(pf);
+	  fclose(pfcompat);
+	  
+	  pf = fopen(plotfile, "w");
+	  fprintf(pf, "set multiplot layout 1,2 rowsfirst\n");
+	  fprintf(pf, "set offsets 0,30,0.07,0\n");
+//	  fprintf(pf, "set label 1 'latency' at graph 0.25,0.25 font '8'\n");
+	  fprintf(pf, "set xlabel \"Time(s)\"\n");
+	  fprintf(pf, "set ylabel \"Latency\"\n");
+	  fprintf(pf, "set yrange [0.0:*]\n");
+	  fprintf(pf, "set xtics out rotate by -80\n");
+	  fprintf(pf, "set xrange [0.0:*]\n");
+	  fprintf(pf, "set pointsize 1.0\n");
+	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency',\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
+//	  fprintf(pf, "set label 1 'throughput' at graph 0.92,0.9 font '8'\n");
+	  fprintf(pf, "set offsets 0,30,1000,0\n");
+	  fprintf(pf, "set xlabel \"Time(s)\"\n");
+	  fprintf(pf, "set ylabel \"Throughput\"\n");
+	  fprintf(pf, "set autoscale y\n");
+	  fprintf(pf, "set xtics out rotate by -80\n");
+	  fprintf(pf, "set xrange [0.0:*]\n");
+	  fprintf(pf, "set pointsize 1.0\n");
+	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput', \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
+	  fprintf(pf, "unset multiplot\n");
 	  fclose(pf);
   }
 
   uint64_t pos_touched=0;
   uint64_t bytes_processed=0;
   FILE *fpp=NULL;
+  FILE *fpcumul = NULL;
+  FILE *fpplot = NULL;
 
   if(conf->accesslog==1){
   	strcat(conf->accessfilelog,id);
+	char cumulaccfile[128];
+	char plotfile[128];
+	strcpy(cumulaccfile, conf->accessfilelog);
+	strcat(cumulaccfile, "cumul");
+	strcpy(plotfile, cumulaccfile);
+	strcat(plotfile, "plot");
  	//print distribution file
   	fpp=fopen(conf->accessfilelog,"w");
+	fpcumul=fopen(cumulaccfile,"w");
+	
+	/*cria ficheiro a passar ao gnuplot*/	
+	fpplot=fopen(plotfile, "w");
+	fprintf(fpplot, "set style data histogram\n");
+	fprintf(fpplot, "set style histogram cluster gap 1\n");
+	fprintf(fpplot, "set style fill solid\n");
+	fprintf(fpplot, "set xlabel \"# accesses\"\n");
+	fprintf(fpplot, "set ylabel \"Blocks\"\n");
+	fprintf(fpplot, "set logscale y\n");
+	fprintf(fpplot, "set boxwidth 0.8\n");
+	fprintf(fpplot, "set xtic scale 0 font \"1\"\n");
+	fprintf(fpplot, "plot '%s' using 2:xtic(1)\n", cumulaccfile);
+	fclose(fpplot);
   }
 
   uint64_t iter;
+  // [1:5[[5:10[[10:50[[50:100[[100:500[[500:1000[
+  //P ---10¹---  ------10²----  ------10³--------
+  //     B1            B2             B3
+  //   1    2      3      4        5        6
+  unsigned long long int acs[8];
+  memset(acs, 0, sizeof(unsigned long long int)*8);
+  int init = 1, final = 10;
+
   for(iter=0;iter<conf->totblocks;iter++){
    	if(acessesarray[iter]>0){
    		pos_touched+=1;
@@ -529,8 +619,41 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	}
 	if(conf->accesslog==1){
 		fprintf(fpp,"%llu %llu\n",(unsigned long long int) iter, (unsigned long long int) acessesarray[iter]);
+		int bucket = find_bucket((unsigned long long int) acessesarray[iter]);
+		int power = powr(10, bucket);
+		int arr_pos;
+		if((unsigned long long int) acessesarray[iter] >= (power/2))
+			arr_pos = bucket*2;
+		else{
+			arr_pos = (bucket*2)-1;
+		}
+		acs[arr_pos]++;
 	}
   }
+  int i;
+  for(i = 1; i < 8;){
+	  if(acs[i]){
+	  	fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, acs[i++]);
+	  }
+	  else 
+		  i++;
+	  
+	  if(acs[i] && i < 8){
+	  	fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, final, acs[i++]);
+	  }
+	  else
+		  i++;
+	  init = final;
+	  final *= 10;
+  }
+  /*
+  for(i = 1; i < 8 && acs[i];){
+	  fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, acs[i++]);
+	  if(acs[i])
+	  	fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, final, acs[i++]);
+	  init = final;
+	  final *= 10;
+  }*/
 
   if(iotype==READ){
 	printf("Process touched %llu blocks totalling %llu MB. Process read %llu MB (including block reread)\n", (unsigned long long int) pos_touched, (unsigned long long int) (pos_touched*conf->block_size)/1024/1024, (unsigned long long int) bytes_processed/1024/1024);
@@ -548,6 +671,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   }
 
   if(conf->accesslog==1){
+	fclose(fpcumul);
 	fclose(fpp);
   }
   //init acesses array
@@ -671,6 +795,166 @@ void help(void){
 
 }
 
+// the recursive nature of this function could be its demise when dealing
+// with deep directories
+static int remove_dir(const char* path){
+	DIR* d = opendir(path);
+	size_t path_len = strlen(path);
+	int r = -1;
+	
+	if(d){
+		struct dirent *p;
+		r = 0;
+		while(!r && (p=readdir(d))){
+			int r2 = -1;
+			char* buf;
+			size_t len;
+
+			if(!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
+				continue;
+
+			len = path_len + strlen(p->d_name) + 2;
+			buf = malloc(sizeof(char)*len);
+
+			if(buf){
+				struct stat statbuf;
+				snprintf(buf, len, "%s/%s", path,p->d_name);
+				if(!stat(buf,&statbuf)){
+					if(S_ISDIR(statbuf.st_mode))
+						r2 = remove_dir(buf);
+					else
+						r2 = unlink(buf);
+				}
+				free(buf);
+			}
+			r = r2;
+		}
+		closedir(d);
+	}
+	
+	if(!r)
+		r = rmdir(path);
+
+	return r;
+}
+
+static int config_handler(void* config, const char* section, const char* name, const char* value){
+	struct user_confs* conf = (struct user_confs*) config;
+
+	#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+	if(MATCH("structural", "keep_dbs")){
+		if(!strcmp("false",value)){
+			// delete benchdbs/distdb and gendbs
+			remove_dir("./benchdbs");
+			remove_dir("./gendbs");
+			printf("Deleting old dbs\n");
+		}
+	}/*
+	else if(MATCH("results","ramp_up")){
+		//check some flag
+	}
+	else if(MATCH("results","cool_down")){
+		//check some flag
+	}*/
+	else if(MATCH("results","printtofile")){
+		conf->printtofile = 1;
+		strcpy(conf->printfile, value);
+		printf("Output of DEDISbench will be printed to '%s'\n", conf->printfile);
+	}
+	else if(MATCH("results","accesslog")){
+		conf->accesslog = 1;
+		strcpy(conf->accessfilelog,value);
+		printf("Access log will be printed to '%s'\n", conf->accessfilelog);
+	}
+	else if(MATCH("execution","distfile")){
+		conf->distf = 1;
+		strcpy(conf->distfile,value);
+		printf("Using '%s' distribution file\n", conf->distfile);
+	}
+	else if(MATCH("results","output")){
+		conf->distout = 1;
+		strcpy(conf->outputfile, value);
+		printf("Exact number of unique and duplicate blocks will be written into '%s'\n", conf->outputfile);
+		
+		struct stat st = {0};
+		if(stat("benchdbs/", &st) == -1){
+			printf("Creating benchdbs/distdb\n");
+			if(mkdir("benchdbs/", 0777) != 0){
+				perror("mkdir");
+				exit(1);
+			}
+			if(mkdir("benchdbs/distdb/",0777) != 0){
+				perror("mkdir");
+				exit(1);
+			}
+		}
+		else if(stat("benchdbs/distdb", &st) == -1){
+			if(mkdir("benchdbs/distdb/", 0777) != 0){
+				perror("mkdir");
+				exit(1);
+			}
+		}
+	}
+	else if(MATCH("structural", "cleantemp")){
+		conf->destroypfile = atoi(value);
+	}
+	else if(MATCH("execution", "logfeature")){
+		conf->logfeature = atoi(value);
+	}
+	else if(MATCH("execution", "access_type")){
+		// 0 - sequential | 1 - Rand uniform | 2 - NURand
+		int arg = atoi(value);
+		switch(arg){
+			case 0: conf->accesstype = SEQUENTIAL; break;
+			case 1: conf->accesstype = UNIFORM; break;
+			case 2: conf->accesstype = TPCC; break;
+			default:
+				perror("Unknown type of pattern acess for I/O operations");
+		}
+	}
+	else if(MATCH("execution", "nprocs")){
+		conf->nprocs = atoi(value);
+	}
+	else if(MATCH("execution", "filesize")){
+		conf->filesize = atoll(value);
+	}
+	else if(MATCH("execution", "tempfilespath")){
+		strcpy(conf->tempfilespath,value);
+	}
+	else if(MATCH("execution", "rawdevice")){
+		conf->rawdevice = 1;
+		strcpy(conf->rawpath,value);
+	}
+	else if(MATCH("execution", "integrity")){
+		conf->integrity = 1;
+		strcpy(conf->integrityfile,value);
+	}
+	else if(MATCH("execution", "blocksize")){
+		conf->block_size = atof(value);
+	}
+	else if(MATCH("execution", "seed")){
+		conf->seed = atof(value);
+	}
+	else if(MATCH("execution", "populate")){
+		conf->populate = atoi(value);
+	}
+	else if(MATCH("execution", "sync")){
+		int arg = atoi(value);
+		switch(arg){
+			case 0: conf->fsyncf = conf->odirectf = 0; break;
+			case 1: conf->fsyncf = 0; conf->odirectf = 1; break;
+			case 2: conf->fsyncf = 1; conf->odirectf = 0; break;
+			case 3: conf->fsyncf = conf->odirectf = 1; break;
+			default:
+				perror("Unknown type of pattern acess for I/O operations");
+		}
+	}
+	else
+		return 0;
+
+	return 1;
+}
+
 
 int main(int argc, char *argv[]){
 
@@ -697,6 +981,9 @@ int main(int argc, char *argv[]){
 	bzero(conf.outputfile,PATH_SIZE);
 	conf.fconf=NULL;
 
+	if(ini_parse("config.ini", config_handler, &conf) < 0){
+		printf("Couldn't load configuration file 'config.ini'\n");
+	}
 
    	while ((argc > 1) && (argv[1][0] == '-'))
 	{
@@ -781,7 +1068,7 @@ int main(int argc, char *argv[]){
 					usage();
 				}
 				break;
-			case 's':
+			case 's': 
 				if(conf.termination_type!=TIME){
 					conf.termination_type=SIZE;
 					conf.number_ops=atoll(&argv[1][2]);
@@ -791,100 +1078,8 @@ int main(int argc, char *argv[]){
 					usage();
 				}
 				break;
-			case 'a':
-				conf.auxtype=atoll(&argv[1][2]);
-				if(conf.auxtype==0)
-					conf.accesstype=SEQUENTIAL;
-				if(conf.auxtype==1)
-					conf.accesstype=UNIFORM;
-				if(conf.auxtype==2)
-					conf.accesstype=TPCC;
-
-				if(conf.auxtype!=0 && conf.auxtype!=1 && conf.auxtype!=2)
-					perror("Unknown type of pattern acess for I/O operations");
-				break;
-			case 'x':
-				conf.auxtype=atoll(&argv[1][2]);
-				if(conf.auxtype==0){
-					conf.fsyncf=0;
-					conf.odirectf=0;
-				}
-				if(conf.auxtype==1){
-					conf.fsyncf=0;
-					conf.odirectf=1;
-				}
-				if(conf.auxtype==2){
-					conf.fsyncf=1;
-					conf.odirectf=0;
-				}
-				if(conf.auxtype==3){
-					conf.fsyncf=1;
-					conf.odirectf=1;
-				}
-
-				if(conf.auxtype!=0 && conf.auxtype!=1 && conf.auxtype!=2 && conf.auxtype!=3)
-					perror("Unknown type of synchronization for I/O operations");
-				break;
-
-
-			case 'f':
-				conf.filesize=atoll(&argv[1][2]);
-				break;
-			case 'b':
-				conf.block_size=atoll(&argv[1][2]);
-				break;
-			case 'v':
-				conf.seed=atof(&argv[1][2]);
-				break;
-			case 'c':
-				conf.nprocs=atoi(&argv[1][2]);
-				break;
 			case 'h':
 				help();
-				break;
-			case 'g':
-				strcpy(conf.distfile,&argv[1][2]);
-				conf.distf=1;
-				break;
-			case 'o':
-				strcpy(conf.outputfile,&argv[1][2]);
-				conf.distout=1;
-				break;
-			case 'k':
-				conf.accesslog=1;
-				strcpy(conf.accessfilelog,&argv[1][2]);
-				break;
-			case 'd':
-				strcpy(conf.tempfilespath,&argv[1][2]);
-				break;
-			case 'i':
-				conf.rawdevice=1;
-				strcpy(conf.rawpath,&argv[1][2]);
-				break;
-			case 'j':
-				conf.printtofile=1;
-				strcpy(conf.printfile,&argv[1][2]);
-				break;
-			case 'l':
-				conf.logfeature=1;
-				break;
-			case 'y':
-				conf.integrity=1;
-				strcpy(conf.integrityfile,&argv[1][2]);
-				break;
-			case 'z':
-				conf.destroypfile=0;
-				break;
-			case 'e':
-				conf.auxtype=atoi(&argv[1][2]);
-				if(conf.auxtype==0)
-					conf.populate=NOPOP;
-				if(conf.auxtype==1)
-					conf.populate=REPOP;
-				if(conf.auxtype==2)
-					conf.populate=DDPOP;
-				if(conf.auxtype!=0 && conf.auxtype!=1 && conf.auxtype!=2)
-					perror("Unknown type of pattern acess for I/O operations");
 				break;
 			default:
 				printf("Wrong Argument: %s\n", argv[1]);
@@ -1025,10 +1220,32 @@ int main(int argc, char *argv[]){
     	init_db(DISTDB,conf.dbpdist,conf.envpdist);
     	gen_outputdist(&info, conf.dbpdist,conf.envpdist);
 
+		char plotfilename[100];
+		char distcumulfile[100];
+		strcpy(distcumulfile, conf.outputfile);
+		strcat(distcumulfile, "cumul");
+		strcpy(plotfilename, distcumulfile);
+		strcat(plotfilename, "plot");
+
     	//print distribution file
     	FILE* fpp=fopen(conf.outputfile,"w");
-    	print_elements_print(conf.dbpdist, conf.envpdist,fpp);
+		FILE* fpcumul = fopen(distcumulfile, "w");
+    	print_elements_print(conf.dbpdist, conf.envpdist,fpp, fpcumul);
     	fclose(fpp);
+		fclose(fpcumul);
+
+		FILE* fpplot = fopen(plotfilename, "w");
+		fprintf(fpplot, "set style data histogram\n");
+		fprintf(fpplot, "set style histogram cluster gap 2\n");
+		fprintf(fpplot, "set style fill solid\n");
+		fprintf(fpplot, "set xlabel \"Number duplicates\"\n");
+		fprintf(fpplot, "set ylabel \"Number blocks\"\n");
+		fprintf(fpplot, "set logscale y\n");
+		fprintf(fpplot, "set boxwidth 0.8\n");
+		fprintf(fpplot, "set xtic scale 0 font \"1\"\n");
+		fprintf(fpplot, "plot '%s' using 2:xtic(1) ti col\n", distcumulfile);
+		fclose(fpplot);
+
 
     	close_db(conf.dbpdist,conf.envpdist);
     	remove_db(DISTDB,conf.dbpdist,conf.envpdist);

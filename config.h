@@ -23,7 +23,7 @@
 #define HAVE_LIBCRYPTO 1
 
 /* Define to 1 if you have the `db' library (-ldb). */
-/* #undef HAVE_LIBDB */
+#define HAVE_LIBDB 1
 
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #define HAVE_LIBSSL 1
@@ -85,9 +85,6 @@
 
 /* Define to 1 if `vfork' works. */
 #define HAVE_WORKING_VFORK 1
-
-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
-/* #undef NO_MINUS_C_MINUS_O */
 
 /* Name of package */
 #define PACKAGE "full-package-name"
