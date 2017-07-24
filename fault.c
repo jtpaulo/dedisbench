@@ -12,20 +12,11 @@
 int next_failure(char* buf, int fault_dist, struct duplicates_info *info, uint64_t block_size){
 /*
   struct block_info bl;
-  uint64_t dupcontent;
 
   switch(fault_dist){
     case DIST_GEN:
-      dupcontent = next_block(info, &bl);
-      if(dupcontent==1){
-        printf("Injecting failure for content %llu\n", (unsigned long long int)bl.cont_id);
-        get_block_content(buf, bl, block_size);
-      }
-      else{
-        get_block_content(buf, info->last_unique_block, block_size);
-        printf("Injecting failure for content %llu\n", (unsigned long long int)info->last_unique_block.cont_id);
-      
-      }
+      printf("Injecting failure for content %llu procid %d\n", (unsigned long long int)info->last_block_written.cont_id, info->last_block_written.procid);
+      get_block_content(buf, info->last_block_written, block_size);
     break;
     case TOP_DUP:
       bl.procid=-1;
@@ -57,14 +48,13 @@ int next_failure(char* buf, int fault_dist, struct duplicates_info *info, uint64
 
 int inject_failure(int fault_type, int fault_dist, struct duplicates_info *info, uint64_t block_size){
 
-  printf("injecting failure\n");
+  printf("Injecting failure with type %d and dist %d\n", fault_type, fault_dist);
 
   char content[block_size];
 
   next_failure(content, fault_dist, info, block_size);
 
-  printf("Injecting failure with type %d and dist %d\n", fault_type, fault_dist);
-
+  
   //TODO: call fault layer
   //apply_failure(content, fault_type);
   //
@@ -122,9 +112,20 @@ int fault_split(char* a_str, struct user_confs *conf){
           info++;
         }
 
+        if(atoi(when)==0){
+          printf("Cannot inject a failure at time/nr operations == 0\n");
+          return -1;
+        }
+
+        if(atoi(dist)==DIST_GEN && conf->iotype==READ){
+          printf("Failure type following content generation distribution is not supported for single read tests\n");
+          return -1;
+        }
+
         conf->fconf[i].fault_type=atoi(type);
         conf->fconf[i].fault_dist=atoi(dist);
         conf->fconf[i].when=atoi(when);
+        
         printf("Arg is type %d, dist %d, when %d\n",conf->fconf[i].fault_type, conf->fconf[i].fault_dist, conf->fconf[i].when);
         token = strtok(NULL, ",");
         i++;
@@ -133,5 +134,15 @@ int fault_split(char* a_str, struct user_confs *conf){
 
 
     return nr_faults;
+
+}
+
+
+void define_failure_per_process(struct user_confs *conf){
+  int i;
+
+  for(i =0; i<conf->nr_faults;i++){
+    conf->fconf[i].proc_id=genrand(conf->nr_proc_w);
+  }
 
 }

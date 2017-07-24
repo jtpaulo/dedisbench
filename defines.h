@@ -39,6 +39,7 @@ struct fault_conf{
 	int when;
 	int fault_dist;
 	int fault_type;
+	int proc_id;
 };
 
 struct stats{
@@ -168,6 +169,10 @@ struct user_confs{
 	struct fault_conf *fconf;
 	int nr_faults;
 	int fault_measure;
+
+
+	uint64_t nr_proc_w;
+
 };
 
 #endif

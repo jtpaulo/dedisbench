@@ -396,29 +396,6 @@ int compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size, 
   return 0;
 }
 
-int next_block(struct duplicates_info *info, struct block_info *infowrite){
-
-  //get the content
-  uint64_t contwrite = get_contentid(info);
-
-  //if the content to write is unique write to the buffer
-  //the unique counter of the process + "string"  + process id
-  //to be unique among processes the string invalidates to have
-  //an identical number from other oprocess
-  //timestamp is used for multiple DEDIS benchs to be different
-  if(contwrite<info->duplicated_blocks){
-    infowrite->cont_id=contwrite;
-    infowrite->procid=-1;
-    infowrite->ts=-1;
-    return 1;
-  }
-  else{
-    return 0;
-  }
-
-}
-
-
 // Used to know the content of the next block that will be generated
 // Follows the duplicate distribution
 void get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc, struct block_info *info_write){

@@ -55,6 +55,7 @@ struct duplicates_info{
   	uint64_t topblock_dups;
   	uint64_t botblock_dups;
   	struct block_info last_unique_block;
+  	struct block_info last_block_written;
 
 };
 

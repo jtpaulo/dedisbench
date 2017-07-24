@@ -243,16 +243,20 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
       			info->statistics[idwrite]++;
       			if(info->statistics[idwrite]>1){
         			stat.dupl++;
-        			if(info->statistics[idwrite]>info->topblock_dups){
+        			if(info->statistics[idwrite]>=info->topblock_dups){
         				info->topblock=idwrite;
         			}
-        			if(info->statistics[idwrite]<info->botblock_dups){
+        			if(info->statistics[idwrite]<=info->botblock_dups){
         				info->botblock=idwrite;
         			}
       			}
       			else{
         			stat.uni++;
       			}
+
+            info->last_block_written.cont_id=idwrite;
+            info->last_block_written.procid=-1;
+            info->last_block_written.ts=-1;
    			}
    			else{
    				stat.uni++;
@@ -267,6 +271,10 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
    				info->last_unique_block.cont_id=info_write.cont_id;
    				info->last_unique_block.procid=info_write.procid;
    				info->last_unique_block.ts=info_write.ts;
+
+          info->last_block_written.cont_id=info_write.cont_id;
+          info->last_block_written.procid=info_write.procid;
+          info->last_block_written.ts=info_write.ts;
    			}
   		}
 
@@ -367,14 +375,17 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 	 //One more operation was performed
 	 stat.tot_ops++;
-     stat.snap_totops++;
+  stat.snap_totops++;
 
 
-     if(fault_pos<conf->nr_faults && ((conf->fault_measure==OPS_F && stat.tot_ops==conf->fconf[fault_pos].when) || (conf->fault_measure==TIME_F && (time_elapsed/1e6/60)>=conf->fconf[fault_pos].when))){// && idproc==0){
-     	printf("%d op = %llu\n", fault_pos, (unsigned long long int)stat.tot_ops);
-     	inject_failure(conf->fconf[fault_pos].fault_type, conf->fconf[fault_pos].fault_dist,info, conf->block_size);
-     	fault_pos++;
-     }
+  if(fault_pos<conf->nr_faults && ((conf->fault_measure==OPS_F && stat.tot_ops==conf->fconf[fault_pos].when) || (conf->fault_measure==TIME_F && (time_elapsed/1e6/60)>=conf->fconf[fault_pos].when)) && iotype==WRITE){
+     	
+      if(idproc==conf->fconf[fault_pos].proc_id){
+        printf("idproc %d, %d op = %llu\n", idproc, fault_pos, (unsigned long long int)stat.tot_ops);
+       	inject_failure(conf->fconf[fault_pos].fault_type, conf->fconf[fault_pos].fault_dist,info, conf->block_size);	
+      }
+      fault_pos++;
+  }
      
 	 if(stat.t1snap>=stat.last_snap_time+30*1e6){
 
@@ -689,6 +700,15 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 
 	pid_t *pids=malloc(sizeof(pid_t)*conf->nprocs);
 
+  init_rand(conf->seed);
+  if(conf->mixedIO==1){
+    conf->nr_proc_w=conf->nprocs/2;
+    define_failure_per_process(conf);
+  }else{
+    conf->nr_proc_w=conf->nprocs;
+    define_failure_per_process(conf);
+  }
+
 	for (i = 0; i < conf->nprocs; ++i) {
 	  if ((pids[i] = fork()) < 0) {
 	    perror("error forking");
@@ -696,7 +716,7 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 	  } else if (pids[i] == 0) {
 		  printf("loading process %d\n",i);
 
-		  if(conf->mixedIO==1){
+		  if(conf->mixedIO==1){     
 
 			 //choose to launch read or write process
 			 if(i<conf->nprocs/2){
@@ -732,6 +752,7 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 	if(conf->integrity==1){
 		check_integrity(conf, info);
 	}
+
 
 	if(conf->destroypfile==1 && conf->rawdevice==0){
 	printf("Destroying temporary files\n");
@@ -775,7 +796,7 @@ void help(void){
 	printf(" -l\t\t\t(Enable file log feature for results)\n");
 	printf(" -y<value>\t\t\t(Enable integrity checks for read requests. The output is written to file specified in <value>. This flag also enables a final integrity check done by the benchmark after finishing the DEDISbench's workload).\n\t\t\tFiles must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct\n");
 	printf(" -qt<value>\t\tInject failure at a specific time period, each failure operation must be in the format <type_failure>:<failure_distribution>:<time_to_inject (minutes)>\n\t\t\tType of failures are: 0 - fill 1 - fill and 2 - fill\n\t\t\tFailure distributions are: 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates\n\t\t\t3 - inject in a block without duplicates\n\t\t\tExample: -qt0:1:2,1:2:5 - Inject a failure of type 0 with distribution 1 at 2 minutes and inject a failure of type 1 and distribution 2 at 5 minutes.\n");
-	printf(" -qo<value>\t\tInject failure at a specific number of operations, each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>\n\t\t\tType of failures are: 0 - fill 1 - fill and 2 - fill\n\t\t\tFailure distributions are: 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates\n\t\t\t3 - inject in a block without duplicates\n\t\t\tExample: -qo0:1:1000,1:2:20000 - Inject a failure of type 0 with distribution 1 at 1000 operations and inject a failure of type 1 and distribution 2 at 20000 operations.\n");
+	printf(" -qo<value>\t\tInject failure at a specific number of operations (operations are counter in a per-process basis), each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>\n\t\t\tType of failures are: 0 - fill 1 - fill and 2 - fill\n\t\t\tFailure distributions are: 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates\n\t\t\t3 - inject in a block without duplicates\n\t\t\tExample: -qo0:1:1000,1:2:20000 - Inject a failure of type 0 with distribution 1 at 1000 operations and inject a failure of type 1 and distribution 2 at 20000 operations.\n");
 	printf(" -d<value>\t\t(choose the directory where DEDISbench writes data)\n");
 	printf(" -e<value>\t\t(Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). Only enabled by default (value 1) for mixed and read tests)\n");
 	printf(" -b<value>\t\t(Size of blocks for I/O operations in Bytes default: 4096)\n");
@@ -1035,6 +1056,10 @@ int main(int argc, char *argv[]){
 				if(argv[1][2]=='t'){
 					conf.fault_measure=TIME_F;
 					conf.nr_faults=fault_split(&argv[1][3], &conf);
+          if(conf.nr_faults==-1){
+            usage();
+            exit(0);
+          }
 				}
 				else{
 					if(argv[1][2]=='o'){
@@ -1151,6 +1176,18 @@ int main(int argc, char *argv[]){
 		usage();
 		exit(0);
 	}
+
+  if(conf.nr_faults>0 && conf.iotype == READ && conf.populate!=REPOP){
+    printf("Fault injection for read tests is only available with realistic population flag -e1\n");
+    usage();
+    exit(0);   
+  }
+
+  if(conf.nr_faults>0 && conf.iotype == READ && conf.populate!=REPOP){
+    printf("Fault injection for read tests is only available with realistic population flag -e1\n");
+    usage();
+    exit(0);   
+  }
 
 	//convert to to ops/microsecond
 	conf.ratio=conf.ratio/1e6;
