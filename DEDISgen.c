@@ -571,8 +571,6 @@ int main (int argc, char *argv[]){
 			printf("before printing output dist\n");
 
 			char outputfilename[100];
-			char distcumulfile[100];
-			char plotfilename[100];
 			char sizeid[10];
 
 			sprintf(sizeid,"%d",sizes_proc[aux]);
@@ -580,12 +578,16 @@ int main (int argc, char *argv[]){
 			strcat(outputfilename,sizeid);
 			FILE* fpp=fopen(outputfilename,"w");
 			
+			char distcumulfile[100];
+			char plotfilename[100];
 			strcpy(distcumulfile, outputfilename);
 			strcat(distcumulfile, "cumul");
 			FILE* fpcumul = fopen(distcumulfile, "w");
+			
 			print_elements_print(dbprinter[aux], envprinter[aux],fpp, fpcumul);
 			fclose(fpp);
-			
+		
+			fclose(fpcumul);			
 			strcpy(plotfilename, outputfilename);
 			strcat(plotfilename, "plot");
 			
@@ -629,9 +631,3 @@ int main (int argc, char *argv[]){
 return 0;
 
 }
-
-
-
-
-
-

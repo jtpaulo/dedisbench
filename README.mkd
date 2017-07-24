@@ -120,7 +120,8 @@ Configuration file options
                                                     3 - inject in a block without duplicates.
 
 ## [results] section
- 
+
+ plots=`value`				generate files needed to plot Lantency and Throughput (default 0, does not generate)
 
  tempfilespath=`value`      choose the directory where DEDISbench writes data
  

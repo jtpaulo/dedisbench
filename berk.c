@@ -393,6 +393,7 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
 //	   dups[bucket] += data_data;
    }
   }
+
   int i;
   for(i=max; i >= 0 && dups[i] <= 300; i--){
 		  dups[i-1] += dups[i];
@@ -401,21 +402,19 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
   
   for(i=1;i<10;){
 	  if(dups[i])
-	  	fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, dups[i++]);
+		fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, dups[i++]);
 	  else
 		  i++;
 
 	  if(dups[i] && i < 10)
-	  	fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, init*10, dups[i++]);
+		fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, init*10, dups[i++]);
 	  else
 		  i++;
 
 	  init = final;
 	  final *= 10;
   }
- /* for(i = 1; i < 10 && dups[i]; i++)
-	  fprintf(fpcumul, "[%d,%d[ %llu\n",powr(10,i), powr(10,i+1), dups[i]);
-*/
+  
   if (ret != DB_NOTFOUND) {
     /* Error handling goes here */
   }

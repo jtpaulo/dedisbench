@@ -506,9 +506,11 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  else{
 		  strcat(snapthrname,"read");
 	  }
-  	  strcat(snapthrname,id);
-	  strcpy(snapthrfmt, snapthrname);
-	  strcat(snapthrfmt, "compat");
+	  if(conf->plots){ 
+		  strcat(snapthrname,id);
+		  strcpy(snapthrfmt, snapthrname);
+		  strcat(snapthrfmt, "compat");
+	  }
 
 	  char snaplatname[PATH_SIZE];
 	  char snaplatfmt[PATH_SIZE];
@@ -520,13 +522,22 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  else{
 	  	  strcat(snaplatname,"read");
 	  }
-	  strcat(snaplatname,id);
-	  strcpy(snaplatfmt, snaplatname);
-	  strcat(snaplatfmt, "compat");
-
-	  unsigned long long int beginio = (unsigned long long int)stat.beginio;
+	 
+	  if(conf->plots){
+		  strcat(snaplatname,id);
+		  strcpy(snaplatfmt, snaplatname);
+		  strcat(snaplatfmt, "compat");
+	  }
+	  
+	  FILE* pfcompat = NULL;
+	  unsigned long long int beginio;
+	 
+	  if(conf->plots){ 
+		  beginio = (unsigned long long int)stat.beginio;
+		  pfcompat = fopen(snaplatfmt,"w");
+	  }
+	  
 	  FILE* pf=fopen(snaplatname,"a");
-	  FILE* pfcompat = fopen(snaplatfmt,"w");
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
 	  int aux;
@@ -534,52 +545,59 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 		  //SNAP printing
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_latency[aux],stat.snap_ops[aux]);
-		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30/*((unsigned long long int)stat.snap_time[aux]-beginio)/1000*/, stat.snap_latency[aux], stat.snap_ops[aux]);
+		  if(conf->plots)
+		  	fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30, stat.snap_latency[aux], stat.snap_ops[aux]);
 
 	  }
 	  fclose(pf);
 	  fclose(pfcompat);
 	  
 	  char plotfile[PATH_SIZE];
-	  strcpy(plotfile,conf->printfile);
-	  strcat(plotfile,"plot");
+
+	  if(conf->plots){
+		  strcpy(plotfile,conf->printfile);
+		  strcat(plotfile,"plot");
+	  	  pfcompat = fopen(snapthrfmt,"w");
+	  }
 
 	  //SNAP printing
-	  pf=fopen(snapthrname,"a");
-	  pfcompat = fopen(snapthrfmt,"w");
+	  pf=fopen(snapthrname,"a"); 
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
 	  for (aux=0;aux<stat.iter_snap;aux++){
 
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_throughput[aux],stat.snap_ops[aux]);
-		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
+		  if(conf->plots)
+		  	fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
 
 	  }
 	  fclose(pf);
 	  fclose(pfcompat);
-	  
-	  pf = fopen(plotfile, "w");
-	  fprintf(pf, "set multiplot layout 1,2 rowsfirst\n");
-	  fprintf(pf, "set offsets 0,30,0.07,0\n");
-//	  fprintf(pf, "set label 1 'latency' at graph 0.25,0.25 font '8'\n");
-	  fprintf(pf, "set xlabel \"Time(s)\"\n");
-	  fprintf(pf, "set ylabel \"Latency\"\n");
-	  fprintf(pf, "set yrange [0.0:*]\n");
-	  fprintf(pf, "set xtics out rotate by -80\n");
-	  fprintf(pf, "set xrange [0.0:*]\n");
-	  fprintf(pf, "set pointsize 1.0\n");
-	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency',\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
-//	  fprintf(pf, "set label 1 'throughput' at graph 0.92,0.9 font '8'\n");
-	  fprintf(pf, "set offsets 0,30,1000,0\n");
-	  fprintf(pf, "set xlabel \"Time(s)\"\n");
-	  fprintf(pf, "set ylabel \"Throughput\"\n");
-	  fprintf(pf, "set autoscale y\n");
-	  fprintf(pf, "set xtics out rotate by -80\n");
-	  fprintf(pf, "set xrange [0.0:*]\n");
-	  fprintf(pf, "set pointsize 1.0\n");
-	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput', \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
-	  fprintf(pf, "unset multiplot\n");
-	  fclose(pf);
+	 
+	  if(conf->plots){ 
+		  pf = fopen(plotfile, "w");
+		  fprintf(pf, "set multiplot layout 1,2 rowsfirst\n");
+		  fprintf(pf, "set offsets 0,30,0.07,0\n");
+	//	  fprintf(pf, "set label 1 'latency' at graph 0.25,0.25 font '8'\n");
+		  fprintf(pf, "set xlabel \"Time(s)\"\n");
+		  fprintf(pf, "set ylabel \"Latency\"\n");
+		  fprintf(pf, "set yrange [0.0:*]\n");
+		  fprintf(pf, "set xtics out rotate by -80\n");
+		  fprintf(pf, "set xrange [0.0:*]\n");
+		  fprintf(pf, "set pointsize 1.0\n");
+		  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency',\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
+	//	  fprintf(pf, "set label 1 'throughput' at graph 0.92,0.9 font '8'\n");
+		  fprintf(pf, "set offsets 0,30,1000,0\n");
+		  fprintf(pf, "set xlabel \"Time(s)\"\n");
+		  fprintf(pf, "set ylabel \"Throughput\"\n");
+		  fprintf(pf, "set autoscale y\n");
+		  fprintf(pf, "set xtics out rotate by -80\n");
+		  fprintf(pf, "set xrange [0.0:*]\n");
+		  fprintf(pf, "set pointsize 1.0\n");
+		  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput', \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
+		  fprintf(pf, "unset multiplot\n");
+		  fclose(pf);
+	  }
   }
 
   uint64_t pos_touched=0;
@@ -850,6 +868,10 @@ static int config_handler(void* config, const char* section, const char* name, c
 	else if(MATCH("results","cool_down")){
 		//check some flag
 	}*/
+	else if(MATCH("results", "plots")){
+		conf->plots = 1;
+		printf("Latency and Throughput file plots will be generated (use: gnuplot -p file)");
+	}
 	else if(MATCH("results","output")){
 		conf->printtofile = 1;
 		strcpy(conf->printfile, value);
@@ -964,6 +986,7 @@ int main(int argc, char *argv[]){
     uint64_t sharedmem_size;
     int fd_shared;
 	int confarg = 0;
+	int noplots = 1;
 	
 	//default seed is be given by current time
 	struct timeval tim;
@@ -972,7 +995,7 @@ int main(int argc, char *argv[]){
 	struct duplicates_info info = {.duplicated_blocks = 0, .total_blocks =0, 
 	.zero_copy_blocks=0, .u_count =0};
 
-	struct user_confs conf = {.destroypfile = 1, .accesstype = TPCC, .iotype = -1, .testtype = -1,
+	struct user_confs conf = {.destroypfile = 1, .plots=0, .accesstype = TPCC, .iotype = -1, .testtype = -1,
 	.ratio = -1, .ratiow = -1, .ratior = -1, .termination_type = -1, .nprocs = 4, .filesize = 2048LLU,
 	.block_size = 4096LL, .populate=-1};
 	conf.seed=tim.tv_sec*1000000+(tim.tv_usec);
