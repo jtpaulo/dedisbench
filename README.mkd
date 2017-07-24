@@ -99,7 +99,7 @@ access_type=`value`			Access pattern for I/O operations: 0-Sequential, 1-Random 
 
 
  
- -qt`value`                 Inject failure at a specific time period, each failure operation must be in the format <type_failure>:<failure_distribution>:<time_to_inject (minutes). 
+ faulttimer=`value`         Inject failure at a specific time period, each failure operation must be in the format <type_failure>:<failure_distribution>:<time_to_inject (minutes). 
                             Type of failures are 0 - fill 1 - fill and 2 - fill. 
                             Failure distribution:   0 - follow content generation distribution, 
                                                     1 - inject in the block with more duplicates, 
@@ -107,7 +107,7 @@ access_type=`value`			Access pattern for I/O operations: 0-Sequential, 1-Random 
                                                     3 - inject in a block without duplicates.
 
 
- -qo`value`                 Inject failure at a specific number of operations, each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>. 
+ faultops=`value`           Inject failure at a specific number of operations, each failure operation must be in the format <type_failure>:<failure_distribution>:<number_operations>. 
                             Type of failures are 0 - fill 1 - fill and 2 - fill. 
                             Failure distribution:   0 - follow content generation distribution, 
                                                     1 - inject in the block with more duplicates, 
