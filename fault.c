@@ -10,7 +10,7 @@
 
 
 int next_failure(char* buf, int fault_dist, struct duplicates_info *info, uint64_t block_size){
-/*
+
   struct block_info bl;
 
   switch(fault_dist){
@@ -42,7 +42,7 @@ int next_failure(char* buf, int fault_dist, struct duplicates_info *info, uint64
       break;
   }
 
-*/
+
   return 0;
 }
 
