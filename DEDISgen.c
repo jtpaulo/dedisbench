@@ -144,7 +144,7 @@ int check_duplicates(unsigned char* block,uint64_t bsize,int id_blocksize){
 
 //given a file extract blocks and check for duplicates
 int extract_blocks(char* filename){
-
+	
 	printf("Processing %s \n",filename);
     int fd = open(filename,O_RDONLY | O_LARGEFILE);
     uint64_t off=0;
@@ -187,8 +187,8 @@ int extract_blocks(char* filename){
 
         	 curr_sizes_proc++;
        	 }
-
-       	 //free this block from memory and process another
+       	 
+		 //free this block from memory and process another
          //free(block_read);
          //block_read=malloc(sizeof(unsigned char)*READSIZE);
          aux = pread(fd,block_read,READSIZE,off);
@@ -518,7 +518,7 @@ int main (int argc, char *argv[]){
 
 		printf("Initing new database\n");
 		init_db(duplicatedbpath,dbporiginal[aux],envporiginal[aux]);
-
+		
 		if(outputfile==1){
 			init_db(printdbpath,dbprinter[aux],envprinter[aux]);
 		}
@@ -571,15 +571,36 @@ int main (int argc, char *argv[]){
 			printf("before printing output dist\n");
 
 			char outputfilename[100];
+			char distcumulfile[100];
+			char plotfilename[100];
 			char sizeid[10];
 
 			sprintf(sizeid,"%d",sizes_proc[aux]);
 			strcpy(outputfilename,outputpath);
 			strcat(outputfilename,sizeid);
 			FILE* fpp=fopen(outputfilename,"w");
-
-			print_elements_print(dbprinter[aux], envprinter[aux],fpp);
+			
+			strcpy(distcumulfile, outputfilename);
+			strcat(distcumulfile, "cumul");
+			FILE* fpcumul = fopen(distcumulfile, "w");
+			print_elements_print(dbprinter[aux], envprinter[aux],fpp, fpcumul);
 			fclose(fpp);
+			
+			strcpy(plotfilename, outputfilename);
+			strcat(plotfilename, "plot");
+			
+			/* cria o ficheiro a ser passado ao gnuplot*/
+			FILE* fpplot = fopen(plotfilename,"w");
+			fprintf(fpplot, "set style data histogram\n");
+			fprintf(fpplot, "set style histogram cluster gap 2\n");
+			fprintf(fpplot, "set style fill solid\n");
+			fprintf(fpplot, "set xlabel \"Number duplicates\"\n");
+			fprintf(fpplot, "set ylabel \"Number blocks\"\n");
+			fprintf(fpplot, "set logscale y\n");
+			fprintf(fpplot, "set boxwidth 0.8\n");
+			fprintf(fpplot, "set xtic scale 0 font \"1\"\n");
+			fprintf(fpplot, "plot '%s' using 2:xtic(1) ti col\n", distcumulfile);
+			fclose(fpplot);
 
 			close_db(dbprinter[aux],envprinter[aux]);
 			//TODO this is not removed now but in the future it can be...

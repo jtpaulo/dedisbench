@@ -1,6 +1,7 @@
+AUTOMAKE_OPTIONS = subdir-objects
 CXXFLAGS = -Wall -Irandomgen
 bin_PROGRAMS=DEDISbench DEDISgen DEDISgenutils
-DEDISbench_SOURCES= random.c berk.c structs.h duplicatedist.c fault.c iodist.c io.c populate.c sharedmem.c DEDISbench.c
+DEDISbench_SOURCES= random.c berk.c structs.h duplicatedist.c fault.c iodist.c io.c populate.c sharedmem.c DEDISbench.c inih/ini.c
 DEDISbench_CFLAGS= -Wall -Irandomgen
 DEDISgen_SOURCES=DEDISgen.c berk.c
 DEDISgen_CFLAGS = -Wall

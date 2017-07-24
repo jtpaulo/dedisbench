@@ -6,6 +6,7 @@
 #define _FILE_OFFSET_BITS 64 
 #define _GNU_SOURCE
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -322,14 +323,41 @@ int get_db_print(uint64_t *hash, struct hash_value *hvalue,DB **dbp, DB_ENV **en
 
 }
 
+static int powr(int base, int power){
+	int result = 1;
+	while(power){
+		if(power & 1)
+			result *= base;
+		power /= 2;
+		base *= base;
+	}
+	return result;
+}
 
-int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp){
+static int find_bucket( unsigned long long int key ){
+	int bucket = 0;
+	while(key){
+		key /= 10;
+		bucket++;
+	}
+	return bucket;
+}
 
-  int ret;
+int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
+  int ret, init = 1, final = 10, max = 0;
+  unsigned long long int total = 0;
+
+  // [1:5[[5:10[[10:50[[50:100[[100:500[[500:1000[
+  //P ---10¹---  ------10²----  ------10³--------
+  /* how to compute the appropriate size of the array */
+  unsigned long long int dups[10];
+  memset(dups, 0, sizeof(unsigned long long int)*10);
 
   DBT key, data;
 
   DBC *cursorp;
+
+  //FILE* nfp = fopen("dist4096inter", "w");
 
   (*dbp)->cursor(*dbp, NULL, &cursorp, 0);
 
@@ -338,11 +366,56 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp){
   memset(&data, 0, sizeof(DBT));
   /* Iterate over the database, retrieving each record in turn. */
   while ((ret = cursorp->get(cursorp, &key, &data, DB_NEXT)) == 0) {
-    /* Do interesting things with the DBTs here. */
+   /* Do interesting things with the DBTs here. */
    fprintf(fp,"%llu %llu\n",(unsigned long long int)*((uint64_t *)key.data),(unsigned long long int)((struct hash_value *)data.data)->cont);
-   //printf("%llu %llu\n",(unsigned long long int)*((uint64_t *)key.data),(unsigned long long int)((struct hash_value *)data.data)->cont);
-
+   
+   if(!(unsigned long long int)*((uint64_t *)key.data)){
+	   fprintf(fpcumul, "type DEDISbench\n");
+	   fprintf(fpcumul, "[0] %llu\n", (unsigned long long int)((struct hash_value *)data.data)->cont);
+   
+   }
+   else{ 
+	   unsigned long long int key_data = (unsigned long long int)*((uint64_t *)key.data);
+	   unsigned long long int data_data = (unsigned long long int)((struct hash_value *)data.data)->cont;
+	   
+	   int bucket = find_bucket(key_data);
+	   int power = powr(10, bucket);
+	   int arr_pos;
+	   if(key_data >= power/2){
+		   arr_pos = bucket*2;
+		   max = bucket*2 > max ? bucket*2 : max;
+	   }else{
+		   arr_pos = (bucket*2)-1;
+		   max = (bucket*2)-1 > max ? (bucket*2)-1 : max;
+	   }
+	   
+	   dups[arr_pos]+=data_data;
+//	   dups[bucket] += data_data;
+   }
   }
+  int i;
+  for(i=max; i >= 0 && dups[i] <= 300; i--){
+		  dups[i-1] += dups[i];
+		  dups[i] = 0;
+  }
+  
+  for(i=1;i<10;){
+	  if(dups[i])
+	  	fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, dups[i++]);
+	  else
+		  i++;
+
+	  if(dups[i] && i < 10)
+	  	fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, init*10, dups[i++]);
+	  else
+		  i++;
+
+	  init = final;
+	  final *= 10;
+  }
+ /* for(i = 1; i < 10 && dups[i]; i++)
+	  fprintf(fpcumul, "[%d,%d[ %llu\n",powr(10,i), powr(10,i+1), dups[i]);
+*/
   if (ret != DB_NOTFOUND) {
     /* Error handling goes here */
   }
@@ -351,6 +424,7 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp){
   if (cursorp != NULL)
     cursorp->close(cursorp);
 
+/*  fclose(nfp); */
   return 0;
 }
 
