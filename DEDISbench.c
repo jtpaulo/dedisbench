@@ -949,9 +949,17 @@ static int config_handler(void* config, const char* section, const char* name, c
 				perror("Unknown type of pattern acess for I/O operations");
 		}
 	}
+	else if(MATCH("execution", "faulttimer")){
+		conf.fault_measure = TIME_F;
+		conf.nr_faults=fault_split(value, conf);
+	}
+	else if(MATCH("execution", "faultops")){
+		conf.fault_measure = OPS_F;
+		conf.nr_faults=fault_split(value, conf);
+	}
 	else
 		return 0;
-
+	
 	return 1;
 }
 
