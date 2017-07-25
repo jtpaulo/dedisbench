@@ -506,11 +506,10 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  else{
 		  strcat(snapthrname,"read");
 	  }
-	  if(conf->plots){ 
-		  strcat(snapthrname,id);
-		  strcpy(snapthrfmt, snapthrname);
-		  strcat(snapthrfmt, "compat");
-	  }
+	  
+	  strcat(snapthrname,id);
+	  strcpy(snapthrfmt, snapthrname);
+	  strcat(snapthrfmt, "compat");
 
 	  char snaplatname[PATH_SIZE];
 	  char snaplatfmt[PATH_SIZE];
@@ -523,19 +522,12 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  	  strcat(snaplatname,"read");
 	  }
 	 
-	  if(conf->plots){
-		  strcat(snaplatname,id);
-		  strcpy(snaplatfmt, snaplatname);
-		  strcat(snaplatfmt, "compat");
-	  }
+	  strcat(snaplatname,id);
+	  strcpy(snaplatfmt, snaplatname);
+	  strcat(snaplatfmt, "compat");
 	  
-	  FILE* pfcompat = NULL;
-	  unsigned long long int beginio;
-	 
-	  if(conf->plots){ 
-		  beginio = (unsigned long long int)stat.beginio;
-		  pfcompat = fopen(snaplatfmt,"w");
-	  }
+	  FILE* pfcompat = fopen(snaplatfmt,"w");
+	  unsigned long long int beginio = (unsigned long long int)stat.beginio;
 	  
 	  FILE* pf=fopen(snaplatname,"a");
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
@@ -545,20 +537,16 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 		  //SNAP printing
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_latency[aux],stat.snap_ops[aux]);
-		  if(conf->plots)
-		  	fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30, stat.snap_latency[aux], stat.snap_ops[aux]);
+		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30, stat.snap_latency[aux], stat.snap_ops[aux]);
 
 	  }
 	  fclose(pf);
 	  fclose(pfcompat);
 	  
 	  char plotfile[PATH_SIZE];
-
-	  if(conf->plots){
-		  strcpy(plotfile,conf->printfile);
-		  strcat(plotfile,"plot");
-	  	  pfcompat = fopen(snapthrfmt,"w");
-	  }
+	  strcpy(plotfile,conf->printfile);
+	  strcat(plotfile,"plot");
+	  pfcompat = fopen(snapthrfmt,"w");
 
 	  //SNAP printing
 	  pf=fopen(snapthrname,"a"); 
@@ -567,37 +555,34 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  for (aux=0;aux<stat.iter_snap;aux++){
 
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_throughput[aux],stat.snap_ops[aux]);
-		  if(conf->plots)
-		  	fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
+		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
 
 	  }
 	  fclose(pf);
 	  fclose(pfcompat);
 	 
-	  if(conf->plots){ 
-		  pf = fopen(plotfile, "w");
-		  fprintf(pf, "set multiplot layout 1,2 rowsfirst\n");
-		  fprintf(pf, "set offsets 0,30,0.07,0\n");
-	//	  fprintf(pf, "set label 1 'latency' at graph 0.25,0.25 font '8'\n");
-		  fprintf(pf, "set xlabel \"Time(s)\"\n");
-		  fprintf(pf, "set ylabel \"Latency\"\n");
-		  fprintf(pf, "set yrange [0.0:*]\n");
-		  fprintf(pf, "set xtics out rotate by -80\n");
-		  fprintf(pf, "set xrange [0.0:*]\n");
-		  fprintf(pf, "set pointsize 1.0\n");
-		  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency',\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
-	//	  fprintf(pf, "set label 1 'throughput' at graph 0.92,0.9 font '8'\n");
-		  fprintf(pf, "set offsets 0,30,1000,0\n");
-		  fprintf(pf, "set xlabel \"Time(s)\"\n");
-		  fprintf(pf, "set ylabel \"Throughput\"\n");
-		  fprintf(pf, "set autoscale y\n");
-		  fprintf(pf, "set xtics out rotate by -80\n");
-		  fprintf(pf, "set xrange [0.0:*]\n");
-		  fprintf(pf, "set pointsize 1.0\n");
-		  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput', \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
-		  fprintf(pf, "unset multiplot\n");
-		  fclose(pf);
-	  }
+	  pf = fopen(plotfile, "w");
+	  fprintf(pf, "set multiplot layout 1,2 rowsfirst\n");
+	  fprintf(pf, "set offsets 0,30,0.07,0\n");
+//	  fprintf(pf, "set label 1 'latency' at graph 0.25,0.25 font '8'\n");
+	  fprintf(pf, "set xlabel \"Time(s)\"\n");
+	  fprintf(pf, "set ylabel \"Latency\"\n");
+	  fprintf(pf, "set yrange [0.0:*]\n");
+	  fprintf(pf, "set xtics out rotate by -80\n");
+	  fprintf(pf, "set xrange [0.0:*]\n");
+	  fprintf(pf, "set pointsize 1.0\n");
+	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency',\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
+//	  fprintf(pf, "set label 1 'throughput' at graph 0.92,0.9 font '8'\n");
+	  fprintf(pf, "set offsets 0,30,1000,0\n");
+	  fprintf(pf, "set xlabel \"Time(s)\"\n");
+	  fprintf(pf, "set ylabel \"Throughput\"\n");
+	  fprintf(pf, "set autoscale y\n");
+	  fprintf(pf, "set xtics out rotate by -80\n");
+	  fprintf(pf, "set xrange [0.0:*]\n");
+	  fprintf(pf, "set pointsize 1.0\n");
+	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput', \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
+	  fprintf(pf, "unset multiplot\n");
+	  fclose(pf);
   }
 
   uint64_t pos_touched=0;
@@ -1107,6 +1092,8 @@ int main(int argc, char *argv[]){
 	if(confarg == 0 && ini_parse("defconf.ini", config_handler, &conf) < 0){
 		printf("Couldn't load default configuration file 'defconf.ini'\n");
 	}
+
+	printf("%d\n", conf.plots);
 
 
 	//test if iotype is defined
