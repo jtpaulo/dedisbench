@@ -95,7 +95,8 @@ struct user_confs{
 	//total blocks to be addressed at file
     uint64_t totblocks;
 
-	int plots;
+	int start;
+	int finish;
 
 	//path of directory for temporary files
 	char tempfilespath[PATH_SIZE];

@@ -533,11 +533,12 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
 	  int aux;
-	  for (aux=0;aux<stat.iter_snap;aux++){
+	  for (aux=conf->start*2; aux<(stat.iter_snap - conf->finish*2);aux++){
 
 		  //SNAP printing
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_latency[aux],stat.snap_ops[aux]);
 		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30, stat.snap_latency[aux], stat.snap_ops[aux]);
+		  
 
 	  }
 	  fclose(pf);
@@ -552,7 +553,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  pf=fopen(snapthrname,"a"); 
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
-	  for (aux=0;aux<stat.iter_snap;aux++){
+	  for (aux=conf->start*2; aux<(stat.iter_snap - conf->finish*2);aux++){
 
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_throughput[aux],stat.snap_ops[aux]);
 		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
@@ -840,6 +841,7 @@ static int config_handler(void* config, const char* section, const char* name, c
 
 	#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
 	if(MATCH("structural", "keep_dbs")){
+		printf("keep_dbs\n");
 		if(!atoi(value)){
 			// delete benchdbs/distdb and gendbs
 			remove_dir("./benchdbs");
@@ -853,26 +855,43 @@ static int config_handler(void* config, const char* section, const char* name, c
 	else if(MATCH("results","cool_down")){
 		//check some flag
 	}*/
-	else if(MATCH("results", "plots")){
-		conf->plots = 1;
-		printf("Latency and Throughput file plots will be generated (use: gnuplot -p file)");
-	}
-	else if(MATCH("results","output")){
+	else if(MATCH("results","general_results")){
+		printf("general_results\n");
 		conf->printtofile = 1;
-		strcpy(conf->printfile, value);
+		
+		char* token;	
+		char* val = strdup(value);
+		token = strtok(val,":");
+		if(token){
+			strcpy(conf->printfile, token);
+		}
+
+		token = strtok(NULL, ":");
+		if(token)
+			conf->start = atoi(token);
+
+		token = strtok(NULL, ":");
+		if(token)
+			conf->finish = atoi(token);
+
+		free(val);	
+
 		printf("Output of DEDISbench will be printed to '%s'\n", conf->printfile);
 	}
-	else if(MATCH("results","accesslog")){
+	else if(MATCH("results","access_results")){
+		printf("access_results\n");
 		conf->accesslog = 1;
 		strcpy(conf->accessfilelog,value);
 		printf("Access log will be printed to '%s'\n", conf->accessfilelog);
 	}
 	else if(MATCH("execution","distfile")){
+		printf("distfile - %s\n", value);
 		conf->distf = 1;
 		strcpy(conf->distfile,value);
 		printf("Using '%s' distribution file\n", conf->distfile);
 	}
-	else if(MATCH("results","outputdist")){
+	else if(MATCH("results","dist_results")){
+		printf("dist_results\n");
 		conf->distout = 1;
 		strcpy(conf->outputfile, value);
 		printf("Exact number of unique and duplicate blocks will be written into '%s'\n", conf->outputfile);
@@ -897,12 +916,15 @@ static int config_handler(void* config, const char* section, const char* name, c
 		}
 	}
 	else if(MATCH("structural", "cleantemp")){
+		printf("cleantemp\n");
 		conf->destroypfile = atoi(value);
 	}
 	else if(MATCH("execution", "logging")){
+		printf("logging\n");
 		conf->logfeature = atoi(value);
 	}
 	else if(MATCH("execution", "access_type")){
+		printf("access_type");
 		// 0 - sequential | 1 - Rand uniform | 2 - NURand
 		int arg = atoi(value);
 		switch(arg){
@@ -912,34 +934,44 @@ static int config_handler(void* config, const char* section, const char* name, c
 			default:
 				perror("Unknown type of pattern acess for I/O operations");
 		}
+		printf("-YO\n");
 	}
 	else if(MATCH("execution", "nprocs")){
+		printf("nprocs\n");
 		conf->nprocs = atoi(value);
 	}
 	else if(MATCH("execution", "filesize")){
+		printf("filesize\n");
 		conf->filesize = atoll(value);
 	}
 	else if(MATCH("results", "tempfilespath")){
+		printf("tempfilespath\n");
 		strcpy(conf->tempfilespath,value);
 	}
 	else if(MATCH("execution", "rawdevice")){
+		printf("rawdevice\n");
 		conf->rawdevice = 1;
 		strcpy(conf->rawpath,value);
 	}
 	else if(MATCH("execution", "integrity")){
+		printf("integrity\n");
 		conf->integrity = 1;
 		strcpy(conf->integrityfile,value);
 	}
 	else if(MATCH("execution", "blocksize")){
+		printf("blocksize\n");
 		conf->block_size = atof(value);
 	}
 	else if(MATCH("execution", "seed")){
+		printf("seed\n");
 		conf->seed = atof(value);
 	}
 	else if(MATCH("execution", "populate")){
+		printf("populate\n");
 		conf->populate = atoi(value);
 	}
 	else if(MATCH("execution", "sync")){
+		printf("synci - %s\n", value);
 		int arg = atoi(value);
 		switch(arg){
 			case 0: conf->fsyncf = conf->odirectf = 0; break;
@@ -951,10 +983,12 @@ static int config_handler(void* config, const char* section, const char* name, c
 		}
 	}
 	else if(MATCH("execution", "faulttimer")){
+		printf("faulttimer\n");
 		conf->fault_measure = TIME_F;
 		conf->nr_faults=fault_split((char*)value, conf);
 	}
 	else if(MATCH("execution", "faultops")){
+		printf("faultops\n");
 		conf->fault_measure = OPS_F;
 		conf->nr_faults=fault_split((char*)value, conf);
 	}
@@ -979,7 +1013,7 @@ int main(int argc, char *argv[]){
 	struct duplicates_info info = {.duplicated_blocks = 0, .total_blocks =0, 
 	.zero_copy_blocks=0, .u_count =0};
 
-	struct user_confs conf = {.destroypfile = 1, .plots=0, .accesstype = TPCC, .iotype = -1, .testtype = -1,
+	struct user_confs conf = {.destroypfile = 1, .start=0, .finish=0, .accesstype = TPCC, .iotype = -1, .testtype = -1,
 	.ratio = -1, .ratiow = -1, .ratior = -1, .termination_type = -1, .nprocs = 4, .filesize = 2048LLU,
 	.block_size = 4096LL, .populate=-1};
 	conf.seed=tim.tv_sec*1000000+(tim.tv_usec);
@@ -1091,9 +1125,6 @@ int main(int argc, char *argv[]){
 	if(confarg == 0 && ini_parse("defconf.ini", config_handler, &conf) < 0){
 		printf("Couldn't load default configuration file 'defconf.ini'\n");
 	}
-
-	printf("%d\n", conf.plots);
-
 
 	//test if iotype is defined
 	if(conf.iotype!=WRITE && conf.iotype!=READ && conf.mixedIO==0){
