@@ -241,7 +241,9 @@ Example
 file:
 
 0 1000
+
 1 500
+
 5 10
 
 There are 1000 blocks without any duplicate, 500 blocks with one duplicate and 10 blocks with 5 duplicates
