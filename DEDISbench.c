@@ -841,7 +841,6 @@ static int config_handler(void* config, const char* section, const char* name, c
 
 	#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
 	if(MATCH("structural", "keep_dbs")){
-		printf("keep_dbs\n");
 		if(!atoi(value)){
 			// delete benchdbs/distdb and gendbs
 			remove_dir("./benchdbs");
@@ -856,7 +855,6 @@ static int config_handler(void* config, const char* section, const char* name, c
 		//check some flag
 	}*/
 	else if(MATCH("results","general_results")){
-		printf("general_results\n");
 		conf->printtofile = 1;
 		
 		char* token;	
@@ -879,19 +877,16 @@ static int config_handler(void* config, const char* section, const char* name, c
 		printf("Output of DEDISbench will be printed to '%s'\n", conf->printfile);
 	}
 	else if(MATCH("results","access_results")){
-		printf("access_results\n");
 		conf->accesslog = 1;
 		strcpy(conf->accessfilelog,value);
 		printf("Access log will be printed to '%s'\n", conf->accessfilelog);
 	}
 	else if(MATCH("execution","distfile")){
-		printf("distfile - %s\n", value);
 		conf->distf = 1;
 		strcpy(conf->distfile,value);
 		printf("Using '%s' distribution file\n", conf->distfile);
 	}
 	else if(MATCH("results","dist_results")){
-		printf("dist_results\n");
 		conf->distout = 1;
 		strcpy(conf->outputfile, value);
 		printf("Exact number of unique and duplicate blocks will be written into '%s'\n", conf->outputfile);
@@ -916,15 +911,12 @@ static int config_handler(void* config, const char* section, const char* name, c
 		}
 	}
 	else if(MATCH("structural", "cleantemp")){
-		printf("cleantemp\n");
 		conf->destroypfile = atoi(value);
 	}
 	else if(MATCH("execution", "logging")){
-		printf("logging\n");
 		conf->logfeature = atoi(value);
 	}
 	else if(MATCH("execution", "access_type")){
-		printf("access_type");
 		// 0 - sequential | 1 - Rand uniform | 2 - NURand
 		int arg = atoi(value);
 		switch(arg){
@@ -937,41 +929,32 @@ static int config_handler(void* config, const char* section, const char* name, c
 		printf("-YO\n");
 	}
 	else if(MATCH("execution", "nprocs")){
-		printf("nprocs\n");
 		conf->nprocs = atoi(value);
 	}
 	else if(MATCH("execution", "filesize")){
-		printf("filesize\n");
 		conf->filesize = atoll(value);
 	}
 	else if(MATCH("results", "tempfilespath")){
-		printf("tempfilespath\n");
 		strcpy(conf->tempfilespath,value);
 	}
 	else if(MATCH("execution", "rawdevice")){
-		printf("rawdevice\n");
 		conf->rawdevice = 1;
 		strcpy(conf->rawpath,value);
 	}
 	else if(MATCH("execution", "integrity")){
-		printf("integrity\n");
 		conf->integrity = 1;
 		strcpy(conf->integrityfile,value);
 	}
 	else if(MATCH("execution", "blocksize")){
-		printf("blocksize\n");
 		conf->block_size = atof(value);
 	}
 	else if(MATCH("execution", "seed")){
-		printf("seed\n");
 		conf->seed = atof(value);
 	}
 	else if(MATCH("execution", "populate")){
-		printf("populate\n");
 		conf->populate = atoi(value);
 	}
 	else if(MATCH("execution", "sync")){
-		printf("synci - %s\n", value);
 		int arg = atoi(value);
 		switch(arg){
 			case 0: conf->fsyncf = conf->odirectf = 0; break;
@@ -983,12 +966,10 @@ static int config_handler(void* config, const char* section, const char* name, c
 		}
 	}
 	else if(MATCH("execution", "faulttimer")){
-		printf("faulttimer\n");
 		conf->fault_measure = TIME_F;
 		conf->nr_faults=fault_split((char*)value, conf);
 	}
 	else if(MATCH("execution", "faultops")){
-		printf("faultops\n");
 		conf->fault_measure = OPS_F;
 		conf->nr_faults=fault_split((char*)value, conf);
 	}
