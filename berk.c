@@ -345,7 +345,6 @@ static int find_bucket( unsigned long long int key ){
 
 int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
   int ret, init = 1, final = 10, max = 0;
-  unsigned long long int total = 0;
 
   // [1:5[[5:10[[10:50[[50:100[[100:500[[500:1000[
   //P ---10¹---  ------10²----  ------10³--------
@@ -399,14 +398,15 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
 		  dups[i-1] += dups[i];
 		  dups[i] = 0;
   }
-  
-  for(i=1;i<10;){
+ 
+  i = 1; 
+  while(i<10){
 	  if(dups[i])
 		fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, dups[i++]);
 	  else
 		  i++;
 
-	  if(dups[i] && i < 10)
+	  if(i < 10 && dups[i])
 		fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, init*10, dups[i++]);
 	  else
 		  i++;

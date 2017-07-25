@@ -527,7 +527,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  strcat(snaplatfmt, "compat");
 	  
 	  FILE* pfcompat = fopen(snaplatfmt,"w");
-	  unsigned long long int beginio = (unsigned long long int)stat.beginio;
+	  //unsigned long long int beginio = (unsigned long long int)stat.beginio;
 	  
 	  FILE* pf=fopen(snaplatname,"a");
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
@@ -644,15 +644,15 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		acs[arr_pos]++;
 	}
   }
-  int i;
-  for(i = 1; i < 8;){
+  int i = 1;
+  while(i < 8){
 	  if(acs[i]){
 	  	fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, acs[i++]);
 	  }
 	  else 
 		  i++;
 	  
-	  if(acs[i] && i < 8){
+	  if(i < 8 && acs[i]){
 	  	fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, final, acs[i++]);
 	  }
 	  else
@@ -971,7 +971,6 @@ int main(int argc, char *argv[]){
     uint64_t sharedmem_size;
     int fd_shared;
 	int confarg = 0;
-	int noplots = 1;
 	
 	//default seed is be given by current time
 	struct timeval tim;
