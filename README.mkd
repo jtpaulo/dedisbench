@@ -97,7 +97,7 @@ Configuration file options
                                                                             3 - both.
  
  populate=`value`		    Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). 
-                            Only enabled by default (with value 1) for read tests).
+                            Only enabled by default (with value 1) for read and mixed tests).
                             
 
  seed=`value`	    		Seed for random generator default:current time. Usefull for repeating
