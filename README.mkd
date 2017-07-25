@@ -157,7 +157,7 @@ config.ini
 [execution]
 filesize=4096
 nprocs=8
-populate=0
+populate=1
 [results]
 logging=1
 ```
