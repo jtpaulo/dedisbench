@@ -168,6 +168,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   int termination_type;
   uint64_t begin;
   uint64_t end;
+  uint64_t ru_begin;
   struct timeval tim;
   int duration = conf->time_to_run;
   if(duration > 0 ){
@@ -176,8 +177,11 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 	  gettimeofday(&tim, NULL);
 	  begin=tim.tv_sec;
+	  ru_begin = begin + conf->start*60;
 	  //the test will run for duration seconds
-	  end = begin+duration;
+	  end = begin+duration - conf->finish*60;
+	  //conf->finish = end - conf->finish*60*1000000;
+
 	  termination_type=TIME;
 
   }
@@ -278,7 +282,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
    			}
   		}
 
-	 acessesarray[iooffset/conf->block_size]++;
+	   acessesarray[iooffset/conf->block_size]++;
      
        //get current time for calculating I/O op latency
        gettimeofday(&tim, NULL);
@@ -307,18 +311,21 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
            perror("Error writing block ");
 
        if(stat.beginio==-1){
-    	   stat.beginio=t1;
-    	   stat.last_snap_time=stat.t1snap;
-
+		    if(begin >= ru_begin){
+				stat.beginio=t1;
+				stat.last_snap_time=stat.t1snap;
+			}
        }
 
-       stat.latency+=(t2-t1);
-       stat.snap_lat+=(t2-t1);
-       stat.endio=t2;
-
-       if(conf->logfeature==1){
+	   if(begin >= ru_begin){
+		   stat.latency+=(t2-t1);
+		   stat.snap_lat+=(t2-t1);
+	   }
+	   stat.endio=t2;
+       
+	   if(conf->logfeature==1){
          //write in the log the operation latency
-         fprintf(fres,"%llu %llu\n", (long long unsigned int) t2-t1, (long long unsigned int)t2s);
+		fprintf(fres,"%llu %llu\n", (long long unsigned int) t2-t1, (long long unsigned int)t2s);
        }
 
 	}
@@ -357,12 +364,16 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		}
 
 		if(stat.beginio==-1){
-		   	   stat.beginio=t1;
-		   	   stat.last_snap_time=stat.t1snap;
+		   if(begin >= ru_begin){
+			   stat.beginio=t1;
+			   stat.last_snap_time=stat.t1snap;
+		   }
 		}
 
-		stat.latency+=(t2-t1);
-		stat.snap_lat+=(t2-t1);
+		if(begin >= ru_begin){
+			stat.latency+=(t2-t1);
+			stat.snap_lat+=(t2-t1);
+		}
 		stat.endio=t2;
 
 		if(conf->logfeature==1){
@@ -374,8 +385,10 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	 free(buf);
 
 	 //One more operation was performed
-	 stat.tot_ops++;
-  stat.snap_totops++;
+	 if(begin>=ru_begin){
+		 stat.tot_ops++;
+		 stat.snap_totops++;
+	 }
 
 
   if(fault_pos<conf->nr_faults && ((conf->fault_measure==OPS_F && stat.tot_ops==conf->fconf[fault_pos].when) || (conf->fault_measure==TIME_F && (time_elapsed/1e6/60)>=conf->fconf[fault_pos].when)) && iotype==WRITE){
@@ -387,7 +400,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
       fault_pos++;
   }
      
-	 if(stat.t1snap>=stat.last_snap_time+30*1e6){
+	 if( begin >= ru_begin && stat.t1snap>=stat.last_snap_time+30*1e6){
 
 	    	   stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
 	    	   stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
@@ -440,7 +453,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   close(fd_test);
 
 
-  if(stat.t1snap>stat.last_snap_time){
+  if(begin >= ru_begin && stat.t1snap>stat.last_snap_time){
 	  //Write last snap because ther may be some operations missing
 	  stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
 	  stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
@@ -453,8 +466,10 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   }
 
   //calculate average latency milisseconds
-  stat.latency=(stat.latency/stat.tot_ops)/1000.0;
-  stat.throughput=(stat.tot_ops/((stat.endio-stat.beginio)/1.0e6));
+  if(begin >= ru_begin){
+	  stat.latency=(stat.latency/stat.tot_ops)/1000.0;
+	  stat.throughput=(stat.tot_ops/((stat.endio-stat.beginio)/1.0e6));
+  }
 
   /*
   //inserts statistics list into berkeleyDB in order to sum with all processes and then calculate
@@ -533,7 +548,8 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
 	  int aux;
-	  for (aux=conf->start*2; aux<(stat.iter_snap - conf->finish*2);aux++){
+	  //for (aux=conf->start*2; aux<(stat.iter_snap - conf->finish*2);aux++){
+	  for (aux=0; aux<stat.iter_snap;aux++){
 
 		  //SNAP printing
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_latency[aux],stat.snap_ops[aux]);
@@ -553,7 +569,8 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  pf=fopen(snapthrname,"a"); 
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
-	  for (aux=conf->start*2; aux<(stat.iter_snap - conf->finish*2);aux++){
+	  //for (aux=conf->start*2; aux<(stat.iter_snap - conf->finish*2);aux++){
+	  for (aux=0; aux<stat.iter_snap;aux++){
 
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_throughput[aux],stat.snap_ops[aux]);
 		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
@@ -572,7 +589,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  fprintf(pf, "set xtics out rotate by -80\n");
 	  fprintf(pf, "set xrange [0.0:*]\n");
 	  fprintf(pf, "set pointsize 1.0\n");
-	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency',\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
+	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency'#,\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
 //	  fprintf(pf, "set label 1 'throughput' at graph 0.92,0.9 font '8'\n");
 	  fprintf(pf, "set offsets 0,30,1000,0\n");
 	  fprintf(pf, "set xlabel \"Time(s)\"\n");
@@ -581,7 +598,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  fprintf(pf, "set xtics out rotate by -80\n");
 	  fprintf(pf, "set xrange [0.0:*]\n");
 	  fprintf(pf, "set pointsize 1.0\n");
-	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput', \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
+	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput'#, \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
 	  fprintf(pf, "unset multiplot\n");
 	  fclose(pf);
   }
@@ -734,7 +751,6 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 			 }
 		  }
 		  else{
-
 			  //work performed by each process
 			  process_run(i, conf->nprocs, conf->ratio, conf->iotype, conf, info);
 		  }
@@ -847,17 +863,11 @@ static int config_handler(void* config, const char* section, const char* name, c
 			remove_dir("./gendbs");
 			printf("Deleting old dbs\n");
 		}
-	}/*
-	else if(MATCH("results","ramp_up")){
-		//check some flag
 	}
-	else if(MATCH("results","cool_down")){
-		//check some flag
-	}*/
 	else if(MATCH("results","general_results")){
 		conf->printtofile = 1;
 		
-		char* token;	
+		char* token;
 		char* val = strdup(value);
 		token = strtok(val,":");
 		if(token){
@@ -926,7 +936,6 @@ static int config_handler(void* config, const char* section, const char* name, c
 			default:
 				perror("Unknown type of pattern acess for I/O operations");
 		}
-		printf("-YO\n");
 	}
 	else if(MATCH("execution", "nprocs")){
 		conf->nprocs = atoi(value);
