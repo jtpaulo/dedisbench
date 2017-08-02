@@ -562,6 +562,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  
 	  char plotfile[PATH_SIZE];
 	  strcpy(plotfile,conf->printfile);
+	  strcat(plotfile,id);
 	  strcat(plotfile,"plot");
 	  pfcompat = fopen(snapthrfmt,"w");
 
@@ -581,6 +582,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	 
 	  pf = fopen(plotfile, "w");
 	  fprintf(pf, "set multiplot layout 1,2 rowsfirst\n");
+	  fprintf(pf, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n")
 	  fprintf(pf, "set offsets 0,30,0.07,0\n");
 //	  fprintf(pf, "set label 1 'latency' at graph 0.25,0.25 font '8'\n");
 	  fprintf(pf, "set xlabel \"Time(s)\"\n");
@@ -589,8 +591,9 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  fprintf(pf, "set xtics out rotate by -80\n");
 	  fprintf(pf, "set xrange [0.0:*]\n");
 	  fprintf(pf, "set pointsize 1.0\n");
-	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency'#,\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
+	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency (miliseconds)'#,\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
 //	  fprintf(pf, "set label 1 'throughput' at graph 0.92,0.9 font '8'\n");
+	  fprintf(pf, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n")
 	  fprintf(pf, "set offsets 0,30,1000,0\n");
 	  fprintf(pf, "set xlabel \"Time(s)\"\n");
 	  fprintf(pf, "set ylabel \"Throughput\"\n");
@@ -598,7 +601,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  fprintf(pf, "set xtics out rotate by -80\n");
 	  fprintf(pf, "set xrange [0.0:*]\n");
 	  fprintf(pf, "set pointsize 1.0\n");
-	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput'#, \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
+	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput (blocks/second)'#, \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
 	  fprintf(pf, "unset multiplot\n");
 	  fclose(pf);
   }
@@ -623,6 +626,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	
 	/*cria ficheiro a passar ao gnuplot*/	
 	fpplot=fopen(plotfile, "w");
+	fprintf(fpplot, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n")
 	fprintf(fpplot, "set style data histogram\n");
 	fprintf(fpplot, "set style histogram cluster gap 1\n");
 	fprintf(fpplot, "set style fill solid\n");
@@ -1270,6 +1274,7 @@ int main(int argc, char *argv[]){
 		fclose(fpcumul);
 
 		FILE* fpplot = fopen(plotfilename, "w");
+		fprintf(fpplot, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n"
 		fprintf(fpplot, "set style data histogram\n");
 		fprintf(fpplot, "set style histogram cluster gap 2\n");
 		fprintf(fpplot, "set style fill solid\n");
