@@ -349,8 +349,8 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
   // [1:5[[5:10[[10:50[[50:100[[100:500[[500:1000[
   //P ---10¹---  ------10²----  ------10³--------
   /* how to compute the appropriate size of the array */
-  unsigned long long int dups[10];
-  memset(dups, 0, sizeof(unsigned long long int)*10);
+  unsigned long long int dups[50];
+  memset(dups, 0, sizeof(unsigned long long int)*50);
 
   DBT key, data;
 
@@ -369,7 +369,6 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
    fprintf(fp,"%llu %llu\n",(unsigned long long int)*((uint64_t *)key.data),(unsigned long long int)((struct hash_value *)data.data)->cont);
    
    if(!(unsigned long long int)*((uint64_t *)key.data)){
-	   fprintf(fpcumul, "type DEDISbench\n");
 	   fprintf(fpcumul, "[0] %llu\n", (unsigned long long int)((struct hash_value *)data.data)->cont);
    
    }
@@ -400,13 +399,13 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
   }
  
   i = 1; 
-  while(i<10){
+  while(i<50){
 	  if(dups[i])
 		fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, dups[i++]);
 	  else
 		  i++;
 
-	  if(i < 10 && dups[i])
+	  if(i < 50 && dups[i])
 		fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, init*10, dups[i++]);
 	  else
 		  i++;

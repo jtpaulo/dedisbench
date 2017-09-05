@@ -177,9 +177,14 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 	  gettimeofday(&tim, NULL);
 	  begin=tim.tv_sec;
-	  ru_begin = begin + conf->start*60;
+//	  printf("begin := %lu\n", begin);
+	  ru_begin = begin + conf->start*30;
+//	  printf("ramp up := %d\n", conf->start*30);
+//	  printf("ru_begin := %lu\n", ru_begin);
 	  //the test will run for duration seconds
-	  end = begin+duration - conf->finish*60;
+	  end = begin+duration - conf->finish*30;
+//	  printf("cool_down := %d\n", conf->finish*30);
+//	  printf("end := %lu\n", end);
 	  //conf->finish = end - conf->finish*60*1000000;
 
 	  termination_type=TIME;
@@ -188,6 +193,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   //SIZE termination
   else{
 	  begin=0;
+	  ru_begin = 0;
 	  end=conf->number_ops/nproc;
 	  termination_type=SIZE;
   }
@@ -206,7 +212,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
   //while bench time has not ended or amount of data is not written
   while(begin<end){
-
    //for nominal testes only
    //number of operations performed for all processes
    //since we are running N processes concurrently at the same I/O rate
@@ -311,13 +316,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
            perror("Error writing block ");
 
        if(stat.beginio==-1){
-		    if(begin >= ru_begin){
+		    if(begin > ru_begin){
 				stat.beginio=t1;
 				stat.last_snap_time=stat.t1snap;
 			}
        }
 
-	   if(begin >= ru_begin){
+	   if(begin > ru_begin){
 		   stat.latency+=(t2-t1);
 		   stat.snap_lat+=(t2-t1);
 	   }
@@ -364,13 +369,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		}
 
 		if(stat.beginio==-1){
-		   if(begin >= ru_begin){
+		   if(begin > ru_begin){
 			   stat.beginio=t1;
 			   stat.last_snap_time=stat.t1snap;
 		   }
 		}
 
-		if(begin >= ru_begin){
+		if(begin > ru_begin){
 			stat.latency+=(t2-t1);
 			stat.snap_lat+=(t2-t1);
 		}
@@ -385,7 +390,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	 free(buf);
 
 	 //One more operation was performed
-	 if(begin>=ru_begin){
+	 if(begin>ru_begin){
 		 stat.tot_ops++;
 		 stat.snap_totops++;
 	 }
@@ -400,17 +405,22 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
       fault_pos++;
   }
      
-	 if( begin >= ru_begin && stat.t1snap>=stat.last_snap_time+30*1e6){
+	 if(stat.t1snap>=stat.last_snap_time+30*1e6){
 
-	    	   stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
-	    	   stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
-	    	   stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
-	    	   stat.snap_time[stat.iter_snap]=stat.t1snap;
+			   if(begin > ru_begin){
+				   stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
+				   stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
+				   stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
+				   stat.snap_time[stat.iter_snap]=stat.t1snap;
+				 /*printf("begin := %lu\n", begin);
+				   printf("ru_begin := %lu\n", ru_begin);
+				   printf("end := %lu\n", end);
+				   printf("iter = %d\n",(int)stat.iter_snap*30);*/
+			   }
 	    	   stat.iter_snap++;
-	    	   stat.last_snap_time=stat.t1snap;
-	    	   stat.snap_lat=0;
-	    	   stat.snap_totops=0;
-
+			   stat.snap_lat=0;
+			   stat.snap_totops=0;
+			   stat.last_snap_time=stat.t1snap;
 	 }
 
 	 if(conf->termination_type==SIZE){
@@ -453,16 +463,23 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   close(fd_test);
 
 
-  if(begin >= ru_begin && stat.t1snap>stat.last_snap_time){
+  if(stat.t1snap>stat.last_snap_time){
 	  //Write last snap because ther may be some operations missing
-	  stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
-	  stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
-	  stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
-	  stat.snap_time[stat.iter_snap]=stat.t1snap;
+	  if(begin>ru_begin){
+		  stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
+		  stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
+		  stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
+		  stat.snap_time[stat.iter_snap]=stat.t1snap;
+		/*printf("begin := %lu\n", begin);
+		  printf("ru_begin := %lu\n", ru_begin);
+		  printf("iter = %d\n",(int)stat.iter_snap*30);
+		  printf("end := %lu\n", end);*/
+	  }
 	  stat.iter_snap++;
 	  stat.last_snap_time=stat.t1snap;
 	  stat.snap_lat=0;
 	  stat.snap_totops=0;
+//	  printf("iter_snap = %i\n", stat.iter_snap);
   }
 
   //calculate average latency milisseconds
@@ -548,12 +565,11 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
 	  int aux;
-	  //for (aux=conf->start*2; aux<(stat.iter_snap - conf->finish*2);aux++){
-	  for (aux=0; aux<stat.iter_snap;aux++){
+	  for (aux=conf->start+1; aux<stat.iter_snap;aux++){
 
 		  //SNAP printing
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_latency[aux],stat.snap_ops[aux]);
-		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30, stat.snap_latency[aux], stat.snap_ops[aux]);
+		  fprintf(pfcompat,"%d %.3f %f\n", (aux)*30, stat.snap_latency[aux], stat.snap_ops[aux]);
 		  
 
 	  }
@@ -570,35 +586,36 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  pf=fopen(snapthrname,"a"); 
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
 
-	  //for (aux=conf->start*2; aux<(stat.iter_snap - conf->finish*2);aux++){
-	  for (aux=0; aux<stat.iter_snap;aux++){
+	  for (aux=conf->start+1; aux<stat.iter_snap;aux++){
 
 		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_throughput[aux],stat.snap_ops[aux]);
-		  fprintf(pfcompat,"%d %.3f %f\n", (aux+1)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
+		  fprintf(pfcompat,"%d %.3f %f\n", (aux)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
 
 	  }
 	  fclose(pf);
 	  fclose(pfcompat);
 	 
 	  pf = fopen(plotfile, "w");
-	  fprintf(pf, "set multiplot layout 1,2 rowsfirst\n");
-	  fprintf(pf, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n")
+	  fprintf(pf, "set multiplot layout 2,1 rowsfirst title \"Latency and Throughput Plots ('%s' data set)\" noenhanced\n", conf->distfile);
+	  fprintf(pf, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n");
 	  fprintf(pf, "set offsets 0,30,0.07,0\n");
 //	  fprintf(pf, "set label 1 'latency' at graph 0.25,0.25 font '8'\n");
-	  fprintf(pf, "set xlabel \"Time(s)\"\n");
-	  fprintf(pf, "set ylabel \"Latency\"\n");
+//	  fprintf(pf, "set xlabel \"Time(s)\"\n");
+	  fprintf(pf, "set ylabel \"Latency (ms)\"\n");
 	  fprintf(pf, "set yrange [0.0:*]\n");
-	  fprintf(pf, "set xtics out rotate by -80\n");
+	  fprintf(pf, "set xtics rotate by 45 right\n");
+	  fprintf(pf, "set xtics nomirror\n");
+	  fprintf(pf, "set ytics nomirror\n");
 	  fprintf(pf, "set xrange [0.0:*]\n");
 	  fprintf(pf, "set pointsize 1.0\n");
+	  fprintf(pf, "set key off\n");
 	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency (miliseconds)'#,\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
 //	  fprintf(pf, "set label 1 'throughput' at graph 0.92,0.9 font '8'\n");
-	  fprintf(pf, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n")
+	  fprintf(pf, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n");
 	  fprintf(pf, "set offsets 0,30,1000,0\n");
 	  fprintf(pf, "set xlabel \"Time(s)\"\n");
-	  fprintf(pf, "set ylabel \"Throughput\"\n");
+	  fprintf(pf, "set ylabel \"Throughput (blocks/s)\"\n");
 	  fprintf(pf, "set autoscale y\n");
-	  fprintf(pf, "set xtics out rotate by -80\n");
 	  fprintf(pf, "set xrange [0.0:*]\n");
 	  fprintf(pf, "set pointsize 1.0\n");
 	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput (blocks/second)'#, \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
@@ -626,18 +643,32 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	
 	/*cria ficheiro a passar ao gnuplot*/	
 	fpplot=fopen(plotfile, "w");
-	fprintf(fpplot, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n")
+	fprintf(fpplot, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n");
 	fprintf(fpplot, "set style data histogram\n");
 	fprintf(fpplot, "set style histogram cluster gap 1\n");
 	fprintf(fpplot, "set style fill solid\n");
-	fprintf(fpplot, "set xlabel \"# accesses\"\n");
-	fprintf(fpplot, "set ylabel \"Blocks\"\n");
+	fprintf(fpplot, "set xtics rotate by 45 right\n");
+	fprintf(fpplot, "set ytics nomirror\n");
+	fprintf(fpplot, "set xlabel \"Number of accesses\"\n");
+	fprintf(fpplot, "set ylabel \"Number of Blocks\"\n");
 	fprintf(fpplot, "set logscale y\n");
+	fprintf(fpplot, "#set key at screen 0.90,screen 1 top right horizontal font \"Times-Roman, 9\"\n");
+	fprintf(fpplot, "set key outside\n");
+	fprintf(fpplot, "set key top horizontal\n");
 	fprintf(fpplot, "set boxwidth 0.8\n");
 	fprintf(fpplot, "set xtic scale 0 font \"1\"\n");
-	fprintf(fpplot, "plot '%s' using 2:xtic(1)\n", cumulaccfile);
+	fprintf(fpplot, "plot '%s' using 2:xtic(1) ti col fillstyle pattern 4 lc rgb \"#e70000\"\n", cumulaccfile);
 	fclose(fpplot);
   }
+  
+  // add name of mode
+  char *mode;
+  if(conf->accesstype == SEQUENTIAL)
+	  mode = "sequential";
+  else if(conf->accesstype == UNIFORM)
+	  mode = "uniform";
+  else
+	  mode = "hotspot";
 
   uint64_t iter;
   // [1:5[[5:10[[10:50[[50:100[[100:500[[500:1000[
@@ -666,6 +697,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		acs[arr_pos]++;
 	}
   }
+  fprintf(fpcumul, "\t%s\n",mode);
   int i = 1;
   while(i < 8){
 	  if(acs[i]){
@@ -878,15 +910,23 @@ static int config_handler(void* config, const char* section, const char* name, c
 			strcpy(conf->printfile, token);
 		}
 
-		token = strtok(NULL, ":");
-		if(token)
-			conf->start = atoi(token);
+		if(conf->termination_type == TIME){
+			token = strtok(NULL, ":");
+			if(token)
+				conf->start = atoi(token);
 
-		token = strtok(NULL, ":");
-		if(token)
-			conf->finish = atoi(token);
+			token = strtok(NULL, ":");
+			if(token)
+				conf->finish = atoi(token);
+
+		}
+
 
 		free(val);	
+		if(conf->termination_type == TIME){
+			printf("Only starts counting on the %i snap\n", conf->start);
+			printf("Stops counting when there are %i snaps left\n", conf->finish);
+		}
 
 		printf("Output of DEDISbench will be printed to '%s'\n", conf->printfile);
 	}
@@ -1274,16 +1314,19 @@ int main(int argc, char *argv[]){
 		fclose(fpcumul);
 
 		FILE* fpplot = fopen(plotfilename, "w");
-		fprintf(fpplot, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n"
+		fprintf(fpplot, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n");
 		fprintf(fpplot, "set style data histogram\n");
 		fprintf(fpplot, "set style histogram cluster gap 2\n");
 		fprintf(fpplot, "set style fill solid\n");
-		fprintf(fpplot, "set xlabel \"Number duplicates\"\n");
-		fprintf(fpplot, "set ylabel \"Number blocks\"\n");
+		fprintf(fpplot, "set xlabel \"Number of duplicates\"\n");
+		fprintf(fpplot, "set ylabel \"Number of blocks\"\n");
 		fprintf(fpplot, "set logscale y\n");
 		fprintf(fpplot, "set boxwidth 0.8\n");
 		fprintf(fpplot, "set xtic scale 0 font \"1\"\n");
-		fprintf(fpplot, "plot '%s' using 2:xtic(1) ti col\n", distcumulfile);
+		fprintf(fpplot, "set xtics rotate by 45 right\n");
+		fprintf(fpplot, "set key outside\n");
+		fprintf(fpplot, "set key top horizontal\n");
+		fprintf(fpplot, "plot '%s' using 2:xtic(1) ti '%s' noenhanced fillstyle pattern 4 lc rgb \"#e70000\"\n", distcumulfile, conf.distfile);
 		fclose(fpplot);
 
 
