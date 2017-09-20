@@ -105,22 +105,6 @@ Required flags
  seed=`value`	    		Seed for random generator default:current time. Usefull for repeating
 
 
- 
- faulttimer=`value`         Inject failure at a specific time period, each failure operation must be in the format `type_failure`:`failure_distribution`:`time_to_inject (minutes)`. 
-                            Type of failures are 0 - fill 1 - fill and 2 - fill. 
-                            Failure distribution:   0 - follow content generation distribution, 
-                                                    1 - inject in the block with more duplicates, 
-                                                    2 - inject in the block with less duplicates, 
-                                                    3 - inject in a block without duplicates.
-
-
- faultops=`value`           Inject failure at a specific number of operations, each failure operation must be in the format `type_failurer`:`failure_distribution`:`number_operations`. 
-                            Type of failures are 0 - fill 1 - fill and 2 - fill. 
-                            Failure distribution:   0 - follow content generation distribution, 
-                                                    1 - inject in the block with more duplicates, 
-                                                    2 - inject in the block with less duplicates, 
-                                                    3 - inject in a block without duplicates.
-
 ## [results] section
 
  tempfilespath=`value`      choose the directory where DEDISbench writes data
@@ -183,28 +167,6 @@ config.ini
 [execution]
 rawdevice=path/to/rawdevice
 ```
-
-
-# Failure injection
-
-Type of failures are 0 - fill 1 - fill and 2 - fill. 
-Failure distribution 0 - follow content generation distribution, 1 - inject in the block with more duplicates, 2 - inject in the block with less duplicates, 3 - inject in a block without duplicates.
-
-Failure injection for single read tests is only supported with realistic population of files enabled.
-
-Failure type following content generation distribution is not supported for single read tests.
-          
-
-Examples:
-
-Inject a failure of type 0 with distribution 1 at 2 minutes and inject a failure of type 1 and distribution 2 at 5 minutes.
-
-faulttimer=0:1:2,1:2:5
-	
-Inject a failure of type 0 with distribution 1 at 1000 operations and inject a failure of type 1 and distribution 2 at 20000 operations
-
-faultops=0:1:1000,1:2:20000
-	
 
 # Running the generator DEDISgen:
 
