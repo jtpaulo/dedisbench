@@ -26,7 +26,6 @@
 #include "populate.h"
 #include "defines.h"
 #include "io.h"
-#include "fault.h"
 
 
 //time elapsed since last I/O
@@ -93,7 +92,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   
   int fd_test;
   int procid_r=idproc;
-  int fault_pos=0;
   FILE *fpi=NULL;
 
 
@@ -247,7 +245,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	 	//idwrite is the index of sum where the block belongs
   		//put in statistics this value ==1 to know when a duplicate is found
   		//TODO this depends highly on the id generation and should be transparent
-  		if(conf->distout==1 || conf->fault_measure>0){
+  		if(conf->distout==1){
     		if(idwrite<info->duplicated_blocks){
       			info->statistics[idwrite]++;
       			if(info->statistics[idwrite]>1){
@@ -394,17 +392,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		 stat.tot_ops++;
 		 stat.snap_totops++;
 	 }
-
-
-  if(fault_pos<conf->nr_faults && ((conf->fault_measure==OPS_F && stat.tot_ops==conf->fconf[fault_pos].when) || (conf->fault_measure==TIME_F && (time_elapsed/1e6/60)>=conf->fconf[fault_pos].when)) && iotype==WRITE){
-     	
-      if(idproc==conf->fconf[fault_pos].proc_id){
-        printf("idproc %d, %d op = %llu\n", idproc, fault_pos, (unsigned long long int)stat.tot_ops);
-       	inject_failure(conf->fconf[fault_pos].fault_type, conf->fconf[fault_pos].fault_dist,info, conf->block_size);	
-      }
-      fault_pos++;
-  }
-     
+	 
 	 if(stat.t1snap>=stat.last_snap_time+30*1e6){
 
 			   if(begin > ru_begin){
@@ -1018,14 +1006,6 @@ static int config_handler(void* config, const char* section, const char* name, c
 				perror("Unknown type of pattern acess for I/O operations");
 		}
 	}
-	else if(MATCH("execution", "faulttimer")){
-		conf->fault_measure = TIME_F;
-		conf->nr_faults=fault_split((char*)value, conf);
-	}
-	else if(MATCH("execution", "faultops")){
-		conf->fault_measure = OPS_F;
-		conf->nr_faults=fault_split((char*)value, conf);
-	}
 	else
 		return 0;
 	
@@ -1210,19 +1190,7 @@ int main(int argc, char *argv[]){
 		usage();
 		exit(0);
 	}
-
-  if(conf.nr_faults>0 && conf.iotype == READ && conf.populate!=REPOP){
-    printf("Fault injection for read tests is only available with realistic population: option populate=1\n");
-    usage();
-    exit(0);   
-  }
-
-  if(conf.nr_faults>0 && conf.iotype == READ && conf.populate!=REPOP){
-    printf("Fault injection for read tests is only available with realistic population: option populate=1\n");
-    usage();
-    exit(0);   
-  }
-
+	
 	//convert to to ops/microsecond
 	conf.ratio=conf.ratio/1e6;
 	if(conf.mixedIO==1){
