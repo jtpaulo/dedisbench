@@ -6,8 +6,8 @@
 #define POPULATE_H
 
 #include <stdint.h>
-#include "defines.h"
-#include "duplicatedist.h"
+#include "../structs/defines.h"
+#include "../core/duplicates/duplicatedist.h"
 
 #define TMP_FILE "dedisbench_0010test"
 

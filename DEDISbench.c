@@ -16,16 +16,16 @@
 #include <unistd.h>
 #include <errno.h>
 #include <dirent.h>
-#include "inih/ini.h"
+#include "parserconf/inih/ini.h"
 
-#include "random.h"
-#include "duplicatedist.h"
-#include "iodist.h"
-#include "berk.h"
-#include "sharedmem.h"
-#include "populate.h"
-#include "defines.h"
-#include "io.h"
+#include "utils/random/random.h"
+#include "core/duplicates/duplicatedist.h"
+#include "core/accesses/iodist.h"
+#include "utils/db/berk.h"
+#include "core/sharedmem/sharedmem.h"
+#include "populate/populate.h"
+#include "structs/defines.h"
+#include "core/io.h"
 
 
 //time elapsed since last I/O
@@ -748,12 +748,9 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
   init_rand(conf->seed);
   if(conf->mixedIO==1){
     conf->nr_proc_w=conf->nprocs/2;
-    define_failure_per_process(conf);
   }else{
     conf->nr_proc_w=conf->nprocs;
-    define_failure_per_process(conf);
   }
-
 	for (i = 0; i < conf->nprocs; ++i) {
 	  if ((pids[i] = fork()) < 0) {
 	    perror("error forking");
@@ -1037,8 +1034,7 @@ int main(int argc, char *argv[]){
 	bzero(conf.rawpath,PATH_SIZE);
 	bzero(conf.distfile,PATH_SIZE);
 	bzero(conf.outputfile,PATH_SIZE);
-	conf.fconf=NULL;
-
+	
 
    	while ((argc > 1) && (argv[1][0] == '-'))
 	{
@@ -1136,7 +1132,7 @@ int main(int argc, char *argv[]){
 		--argc;
 	}
 
-	if(confarg == 0 && ini_parse("defconf.ini", config_handler, &conf) < 0){
+	if(confarg == 0 && ini_parse("conf/defconf.ini", config_handler, &conf) < 0){
 		printf("Couldn't load default configuration file 'defconf.ini'\n");
 	}
 

@@ -3,8 +3,8 @@
  */
 
 #include "iodist.h"
-#include "random.h"
-#include "defines.h"
+#include "../../utils/random/random.h"
+
 
 uint64_t c_nurand=0;
 uint64_t a_nurand=0;

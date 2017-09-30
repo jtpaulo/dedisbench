@@ -1,9 +1,9 @@
 AUTOMAKE_OPTIONS = subdir-objects
-CXXFLAGS = -Wall -Irandomgen 
+CXXFLAGS = -Wall -Iutils/random/randomgen 
 bin_PROGRAMS=DEDISbench DEDISgen DEDISgenutils
-DEDISbench_SOURCES= random.c berk.c structs.h duplicatedist.c iodist.c io.c populate.c sharedmem.c DEDISbench.c inih/ini.c
-DEDISbench_CFLAGS= -Wall -Irandomgen -DINI_INLINE_COMMENT_PREFIXES=\"\#\"
-DEDISgen_SOURCES=DEDISgen.c berk.c
+DEDISbench_SOURCES= utils/random/random.c utils/db/berk.c structs/structs.h core/duplicates/duplicatedist.c core/accesses/iodist.c core/io.c populate/populate.c core/sharedmem/sharedmem.c DEDISbench.c parserconf/inih/ini.c
+DEDISbench_CFLAGS= -Wall -Iutils/random/randomgen -DINI_INLINE_COMMENT_PREFIXES=\"\#\"
+DEDISgen_SOURCES=DEDISgen.c utils/db/berk.c
 DEDISgen_CFLAGS = -Wall
-DEDISgenutils_SOURCES=DEDISgen-utils.c berk.c 
+DEDISgenutils_SOURCES=DEDISgen-utils.c utils/db/berk.c
 DEDISgenutils_CFLAGS = -Wall

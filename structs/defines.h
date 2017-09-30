@@ -28,8 +28,7 @@
 #define REPOP 1
 #define DDPOP 2 
 
-//FIle can be in source directory or in /etc/dedisbench if installed with deb package
-#define DFILE "dist_personalfiles"
+#define DFILE "conf/dist_personalfiles"
 
 #define DISTDB "benchdbs/distdb/"
 

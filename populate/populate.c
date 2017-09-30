@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#include "random.h"
+#include "../utils/random/random.h"
 #include "populate.h"
 
 
@@ -146,25 +146,16 @@ uint64_t real_populate(int fd, struct user_confs *conf, struct duplicates_info *
     get_writecontent(buf, conf, info, &stat, 0, &info_write);
 
 
-    if(conf->distout==1 || conf->fault_measure>0){
+    if(conf->distout==1){
       uint64_t idwrite=info_write.cont_id;
 
       if(idwrite<info->duplicated_blocks){
         info->statistics[idwrite]++;
-        if(info->statistics[idwrite]>1){
-          if(info->statistics[idwrite]>info->topblock_dups){
-            info->topblock=idwrite;
-          }
-          if(info->statistics[idwrite]<info->botblock_dups){
-            info->botblock=idwrite;
-          }
-        }
-        else{
+        if(info->statistics[idwrite]<=1){
           stat.uni++;
         }
       }
     }
-
     int res = pwrite(fd,buf,conf->block_size,bytes_written);
     if(res<conf->block_size){
       perror("Error populating file");

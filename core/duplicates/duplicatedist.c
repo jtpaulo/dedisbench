@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include "duplicatedist.h"
-#include "random.h"
+#include "../../utils/random/random.h"
 
 
 void get_distribution_stats(struct duplicates_info *info, char* fname){

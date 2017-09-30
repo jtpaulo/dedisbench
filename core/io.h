@@ -6,9 +6,9 @@
 #define IO_H
 
 
-#include "iodist.h"
-#include "duplicatedist.h"
-#include "defines.h"
+#include "accesses/iodist.h"
+#include "duplicates/duplicatedist.h"
+#include "../structs/defines.h"
 
 int init_io(struct user_confs *conf, int procid);
 uint64_t write_request(char* buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc, struct block_info *infowrite);

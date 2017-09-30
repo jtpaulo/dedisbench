@@ -6,8 +6,8 @@
 #define DUPLICATEDIST_H
 
 #include <stdint.h>
-#include "berk.h"
-#include "defines.h"
+#include "../../utils/db/berk.h"
+#include "../../structs/defines.h"
 
 struct block_info{
 	uint64_t cont_id;

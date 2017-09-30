@@ -82,27 +82,31 @@ subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
 	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/configure $(am__configure_deps) \
-	$(srcdir)/config.h.in mkinstalldirs \
-	$(top_srcdir)/randomgen/Makefile.in depcomp COPYING compile \
-	install-sh missing
+	$(srcdir)/config.h.in \
+	$(top_srcdir)/utils/random/randomgen/Makefile.in depcomp \
+	COPYING compile install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = randomgen/Makefile
+CONFIG_CLEAN_FILES = utils/random/randomgen/Makefile
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__dirstamp = $(am__leading_dot)dirstamp
-am_DEDISbench_OBJECTS = DEDISbench-random.$(OBJEXT) \
-	DEDISbench-berk.$(OBJEXT) DEDISbench-duplicatedist.$(OBJEXT) \
-	DEDISbench-iodist.$(OBJEXT) DEDISbench-io.$(OBJEXT) \
-	DEDISbench-populate.$(OBJEXT) DEDISbench-sharedmem.$(OBJEXT) \
-	DEDISbench-DEDISbench.$(OBJEXT) inih/DEDISbench-ini.$(OBJEXT)
+am_DEDISbench_OBJECTS = utils/random/DEDISbench-random.$(OBJEXT) \
+	core/duplicates/DEDISbench-duplicatedist.$(OBJEXT) \
+	utils/db/DEDISbench-berk.$(OBJEXT) \
+	core/accesses/DEDISbench-iodist.$(OBJEXT) \
+	core/DEDISbench-io.$(OBJEXT) \
+	populate/DEDISbench-populate.$(OBJEXT) \
+	core/sharedmem/DEDISbench-sharedmem.$(OBJEXT) \
+	DEDISbench-DEDISbench.$(OBJEXT) \
+	parseconf/inih/DEDISbench-ini.$(OBJEXT)
 DEDISbench_OBJECTS = $(am_DEDISbench_OBJECTS)
 DEDISbench_LDADD = $(LDADD)
 DEDISbench_LINK = $(CCLD) $(DEDISbench_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
@@ -211,6 +215,9 @@ CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
 CPP = gcc -E
 CPPFLAGS = 
+CXX = g++
+CXXDEPMODE = depmode=gcc3
+CXXFLAGS = -Wall -Irandomgen 
 CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
@@ -227,7 +234,7 @@ INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LDFLAGS = 
 LIBOBJS = 
-LIBS = -lcrypto -lssl 
+LIBS = 
 LTLIBOBJS = 
 MAKEINFO = makeinfo
 MKDIR_P = ./install-sh -c -d
@@ -240,6 +247,7 @@ PACKAGE_TARNAME = full-package-name
 PACKAGE_URL = 
 PACKAGE_VERSION = VERSION
 PATH_SEPARATOR = :
+POW_LIB = 
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
@@ -249,6 +257,7 @@ abs_srcdir = /Users/jtpaulo/Desktop/dedisbench
 abs_top_builddir = /Users/jtpaulo/Desktop/dedisbench
 abs_top_srcdir = /Users/jtpaulo/Desktop/dedisbench
 ac_ct_CC = gcc
+ac_ct_CXX = g++
 am__include = include
 am__leading_dot = .
 am__quote = 
@@ -266,7 +275,7 @@ host_alias =
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /Users/jtpaulo/Desktop/dedisbench/install-sh
+install_sh = ${SHELL} /Users/jtpaulo/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -287,8 +296,7 @@ top_build_prefix =
 top_builddir = .
 top_srcdir = .
 AUTOMAKE_OPTIONS = subdir-objects
-CXXFLAGS = -Wall -Irandomgen 
-DEDISbench_SOURCES = random.c berk.c structs.h duplicatedist.c iodist.c io.c populate.c sharedmem.c DEDISbench.c inih/ini.c
+DEDISbench_SOURCES = utils/random/random.c structs/structs.h core/duplicates/duplicatedist.c utils/db/berk.c core/accesses/iodist.c core/io.c populate/populate.c core/sharedmem/sharedmem.c DEDISbench.c parseconf/inih/ini.c
 DEDISbench_CFLAGS = -Wall -Irandomgen -DINI_INLINE_COMMENT_PREFIXES=\"\#\"
 DEDISgen_SOURCES = DEDISgen.c berk.c
 DEDISgen_CFLAGS = -Wall
@@ -348,7 +356,7 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
-randomgen/Makefile: $(top_builddir)/config.status $(top_srcdir)/randomgen/Makefile.in
+utils/random/randomgen/Makefile: $(top_builddir)/config.status $(top_srcdir)/utils/random/randomgen/Makefile.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
@@ -392,14 +400,75 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-inih/$(am__dirstamp):
-	@$(MKDIR_P) inih
-	@: > inih/$(am__dirstamp)
-inih/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) inih/$(DEPDIR)
-	@: > inih/$(DEPDIR)/$(am__dirstamp)
-inih/DEDISbench-ini.$(OBJEXT): inih/$(am__dirstamp) \
-	inih/$(DEPDIR)/$(am__dirstamp)
+utils/random/$(am__dirstamp):
+	@$(MKDIR_P) utils/random
+	@: > utils/random/$(am__dirstamp)
+utils/random/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) utils/random/$(DEPDIR)
+	@: > utils/random/$(DEPDIR)/$(am__dirstamp)
+utils/random/DEDISbench-random.$(OBJEXT):  \
+	utils/random/$(am__dirstamp) \
+	utils/random/$(DEPDIR)/$(am__dirstamp)
+core/duplicates/$(am__dirstamp):
+	@$(MKDIR_P) core/duplicates
+	@: > core/duplicates/$(am__dirstamp)
+core/duplicates/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) core/duplicates/$(DEPDIR)
+	@: > core/duplicates/$(DEPDIR)/$(am__dirstamp)
+core/duplicates/DEDISbench-duplicatedist.$(OBJEXT):  \
+	core/duplicates/$(am__dirstamp) \
+	core/duplicates/$(DEPDIR)/$(am__dirstamp)
+utils/db/$(am__dirstamp):
+	@$(MKDIR_P) utils/db
+	@: > utils/db/$(am__dirstamp)
+utils/db/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) utils/db/$(DEPDIR)
+	@: > utils/db/$(DEPDIR)/$(am__dirstamp)
+utils/db/DEDISbench-berk.$(OBJEXT): utils/db/$(am__dirstamp) \
+	utils/db/$(DEPDIR)/$(am__dirstamp)
+core/accesses/$(am__dirstamp):
+	@$(MKDIR_P) core/accesses
+	@: > core/accesses/$(am__dirstamp)
+core/accesses/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) core/accesses/$(DEPDIR)
+	@: > core/accesses/$(DEPDIR)/$(am__dirstamp)
+core/accesses/DEDISbench-iodist.$(OBJEXT):  \
+	core/accesses/$(am__dirstamp) \
+	core/accesses/$(DEPDIR)/$(am__dirstamp)
+core/$(am__dirstamp):
+	@$(MKDIR_P) core
+	@: > core/$(am__dirstamp)
+core/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) core/$(DEPDIR)
+	@: > core/$(DEPDIR)/$(am__dirstamp)
+core/DEDISbench-io.$(OBJEXT): core/$(am__dirstamp) \
+	core/$(DEPDIR)/$(am__dirstamp)
+populate/$(am__dirstamp):
+	@$(MKDIR_P) populate
+	@: > populate/$(am__dirstamp)
+populate/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) populate/$(DEPDIR)
+	@: > populate/$(DEPDIR)/$(am__dirstamp)
+populate/DEDISbench-populate.$(OBJEXT): populate/$(am__dirstamp) \
+	populate/$(DEPDIR)/$(am__dirstamp)
+core/sharedmem/$(am__dirstamp):
+	@$(MKDIR_P) core/sharedmem
+	@: > core/sharedmem/$(am__dirstamp)
+core/sharedmem/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) core/sharedmem/$(DEPDIR)
+	@: > core/sharedmem/$(DEPDIR)/$(am__dirstamp)
+core/sharedmem/DEDISbench-sharedmem.$(OBJEXT):  \
+	core/sharedmem/$(am__dirstamp) \
+	core/sharedmem/$(DEPDIR)/$(am__dirstamp)
+parseconf/inih/$(am__dirstamp):
+	@$(MKDIR_P) parseconf/inih
+	@: > parseconf/inih/$(am__dirstamp)
+parseconf/inih/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) parseconf/inih/$(DEPDIR)
+	@: > parseconf/inih/$(DEPDIR)/$(am__dirstamp)
+parseconf/inih/DEDISbench-ini.$(OBJEXT):  \
+	parseconf/inih/$(am__dirstamp) \
+	parseconf/inih/$(DEPDIR)/$(am__dirstamp)
 
 DEDISbench$(EXEEXT): $(DEDISbench_OBJECTS) $(DEDISbench_DEPENDENCIES) $(EXTRA_DEDISbench_DEPENDENCIES) 
 	@rm -f DEDISbench$(EXEEXT)
@@ -415,24 +484,31 @@ DEDISgenutils$(EXEEXT): $(DEDISgenutils_OBJECTS) $(DEDISgenutils_DEPENDENCIES) $
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
-	-rm -f inih/*.$(OBJEXT)
+	-rm -f core/*.$(OBJEXT)
+	-rm -f core/accesses/*.$(OBJEXT)
+	-rm -f core/duplicates/*.$(OBJEXT)
+	-rm -f core/sharedmem/*.$(OBJEXT)
+	-rm -f parseconf/inih/*.$(OBJEXT)
+	-rm -f populate/*.$(OBJEXT)
+	-rm -f utils/db/*.$(OBJEXT)
+	-rm -f utils/random/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/DEDISbench-DEDISbench.Po
-include ./$(DEPDIR)/DEDISbench-berk.Po
-include ./$(DEPDIR)/DEDISbench-duplicatedist.Po
-include ./$(DEPDIR)/DEDISbench-io.Po
-include ./$(DEPDIR)/DEDISbench-iodist.Po
-include ./$(DEPDIR)/DEDISbench-populate.Po
-include ./$(DEPDIR)/DEDISbench-random.Po
-include ./$(DEPDIR)/DEDISbench-sharedmem.Po
 include ./$(DEPDIR)/DEDISgen-DEDISgen.Po
 include ./$(DEPDIR)/DEDISgen-berk.Po
 include ./$(DEPDIR)/DEDISgenutils-DEDISgen-utils.Po
 include ./$(DEPDIR)/DEDISgenutils-berk.Po
-include inih/$(DEPDIR)/DEDISbench-ini.Po
+include core/$(DEPDIR)/DEDISbench-io.Po
+include core/accesses/$(DEPDIR)/DEDISbench-iodist.Po
+include core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Po
+include core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Po
+include parseconf/inih/$(DEPDIR)/DEDISbench-ini.Po
+include populate/$(DEPDIR)/DEDISbench-populate.Po
+include utils/db/$(DEPDIR)/DEDISbench-berk.Po
+include utils/random/$(DEPDIR)/DEDISbench-random.Po
 
 .c.o:
 	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -450,103 +526,103 @@ include inih/$(DEPDIR)/DEDISbench-ini.Po
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-DEDISbench-random.o: random.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-random.o -MD -MP -MF $(DEPDIR)/DEDISbench-random.Tpo -c -o DEDISbench-random.o `test -f 'random.c' || echo '$(srcdir)/'`random.c
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-random.Tpo $(DEPDIR)/DEDISbench-random.Po
-#	$(AM_V_CC)source='random.c' object='DEDISbench-random.o' libtool=no \
+utils/random/DEDISbench-random.o: utils/random/random.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT utils/random/DEDISbench-random.o -MD -MP -MF utils/random/$(DEPDIR)/DEDISbench-random.Tpo -c -o utils/random/DEDISbench-random.o `test -f 'utils/random/random.c' || echo '$(srcdir)/'`utils/random/random.c
+	$(AM_V_at)$(am__mv) utils/random/$(DEPDIR)/DEDISbench-random.Tpo utils/random/$(DEPDIR)/DEDISbench-random.Po
+#	$(AM_V_CC)source='utils/random/random.c' object='utils/random/DEDISbench-random.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-random.o `test -f 'random.c' || echo '$(srcdir)/'`random.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o utils/random/DEDISbench-random.o `test -f 'utils/random/random.c' || echo '$(srcdir)/'`utils/random/random.c
 
-DEDISbench-random.obj: random.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-random.obj -MD -MP -MF $(DEPDIR)/DEDISbench-random.Tpo -c -o DEDISbench-random.obj `if test -f 'random.c'; then $(CYGPATH_W) 'random.c'; else $(CYGPATH_W) '$(srcdir)/random.c'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-random.Tpo $(DEPDIR)/DEDISbench-random.Po
-#	$(AM_V_CC)source='random.c' object='DEDISbench-random.obj' libtool=no \
+utils/random/DEDISbench-random.obj: utils/random/random.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT utils/random/DEDISbench-random.obj -MD -MP -MF utils/random/$(DEPDIR)/DEDISbench-random.Tpo -c -o utils/random/DEDISbench-random.obj `if test -f 'utils/random/random.c'; then $(CYGPATH_W) 'utils/random/random.c'; else $(CYGPATH_W) '$(srcdir)/utils/random/random.c'; fi`
+	$(AM_V_at)$(am__mv) utils/random/$(DEPDIR)/DEDISbench-random.Tpo utils/random/$(DEPDIR)/DEDISbench-random.Po
+#	$(AM_V_CC)source='utils/random/random.c' object='utils/random/DEDISbench-random.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-random.obj `if test -f 'random.c'; then $(CYGPATH_W) 'random.c'; else $(CYGPATH_W) '$(srcdir)/random.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o utils/random/DEDISbench-random.obj `if test -f 'utils/random/random.c'; then $(CYGPATH_W) 'utils/random/random.c'; else $(CYGPATH_W) '$(srcdir)/utils/random/random.c'; fi`
 
-DEDISbench-berk.o: berk.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-berk.o -MD -MP -MF $(DEPDIR)/DEDISbench-berk.Tpo -c -o DEDISbench-berk.o `test -f 'berk.c' || echo '$(srcdir)/'`berk.c
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-berk.Tpo $(DEPDIR)/DEDISbench-berk.Po
-#	$(AM_V_CC)source='berk.c' object='DEDISbench-berk.o' libtool=no \
+core/duplicates/DEDISbench-duplicatedist.o: core/duplicates/duplicatedist.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/duplicates/DEDISbench-duplicatedist.o -MD -MP -MF core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo -c -o core/duplicates/DEDISbench-duplicatedist.o `test -f 'core/duplicates/duplicatedist.c' || echo '$(srcdir)/'`core/duplicates/duplicatedist.c
+	$(AM_V_at)$(am__mv) core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Po
+#	$(AM_V_CC)source='core/duplicates/duplicatedist.c' object='core/duplicates/DEDISbench-duplicatedist.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-berk.o `test -f 'berk.c' || echo '$(srcdir)/'`berk.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/duplicates/DEDISbench-duplicatedist.o `test -f 'core/duplicates/duplicatedist.c' || echo '$(srcdir)/'`core/duplicates/duplicatedist.c
 
-DEDISbench-berk.obj: berk.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-berk.obj -MD -MP -MF $(DEPDIR)/DEDISbench-berk.Tpo -c -o DEDISbench-berk.obj `if test -f 'berk.c'; then $(CYGPATH_W) 'berk.c'; else $(CYGPATH_W) '$(srcdir)/berk.c'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-berk.Tpo $(DEPDIR)/DEDISbench-berk.Po
-#	$(AM_V_CC)source='berk.c' object='DEDISbench-berk.obj' libtool=no \
+core/duplicates/DEDISbench-duplicatedist.obj: core/duplicates/duplicatedist.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/duplicates/DEDISbench-duplicatedist.obj -MD -MP -MF core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo -c -o core/duplicates/DEDISbench-duplicatedist.obj `if test -f 'core/duplicates/duplicatedist.c'; then $(CYGPATH_W) 'core/duplicates/duplicatedist.c'; else $(CYGPATH_W) '$(srcdir)/core/duplicates/duplicatedist.c'; fi`
+	$(AM_V_at)$(am__mv) core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Po
+#	$(AM_V_CC)source='core/duplicates/duplicatedist.c' object='core/duplicates/DEDISbench-duplicatedist.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-berk.obj `if test -f 'berk.c'; then $(CYGPATH_W) 'berk.c'; else $(CYGPATH_W) '$(srcdir)/berk.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/duplicates/DEDISbench-duplicatedist.obj `if test -f 'core/duplicates/duplicatedist.c'; then $(CYGPATH_W) 'core/duplicates/duplicatedist.c'; else $(CYGPATH_W) '$(srcdir)/core/duplicates/duplicatedist.c'; fi`
 
-DEDISbench-duplicatedist.o: duplicatedist.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-duplicatedist.o -MD -MP -MF $(DEPDIR)/DEDISbench-duplicatedist.Tpo -c -o DEDISbench-duplicatedist.o `test -f 'duplicatedist.c' || echo '$(srcdir)/'`duplicatedist.c
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-duplicatedist.Tpo $(DEPDIR)/DEDISbench-duplicatedist.Po
-#	$(AM_V_CC)source='duplicatedist.c' object='DEDISbench-duplicatedist.o' libtool=no \
+utils/db/DEDISbench-berk.o: utils/db/berk.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT utils/db/DEDISbench-berk.o -MD -MP -MF utils/db/$(DEPDIR)/DEDISbench-berk.Tpo -c -o utils/db/DEDISbench-berk.o `test -f 'utils/db/berk.c' || echo '$(srcdir)/'`utils/db/berk.c
+	$(AM_V_at)$(am__mv) utils/db/$(DEPDIR)/DEDISbench-berk.Tpo utils/db/$(DEPDIR)/DEDISbench-berk.Po
+#	$(AM_V_CC)source='utils/db/berk.c' object='utils/db/DEDISbench-berk.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-duplicatedist.o `test -f 'duplicatedist.c' || echo '$(srcdir)/'`duplicatedist.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o utils/db/DEDISbench-berk.o `test -f 'utils/db/berk.c' || echo '$(srcdir)/'`utils/db/berk.c
 
-DEDISbench-duplicatedist.obj: duplicatedist.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-duplicatedist.obj -MD -MP -MF $(DEPDIR)/DEDISbench-duplicatedist.Tpo -c -o DEDISbench-duplicatedist.obj `if test -f 'duplicatedist.c'; then $(CYGPATH_W) 'duplicatedist.c'; else $(CYGPATH_W) '$(srcdir)/duplicatedist.c'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-duplicatedist.Tpo $(DEPDIR)/DEDISbench-duplicatedist.Po
-#	$(AM_V_CC)source='duplicatedist.c' object='DEDISbench-duplicatedist.obj' libtool=no \
+utils/db/DEDISbench-berk.obj: utils/db/berk.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT utils/db/DEDISbench-berk.obj -MD -MP -MF utils/db/$(DEPDIR)/DEDISbench-berk.Tpo -c -o utils/db/DEDISbench-berk.obj `if test -f 'utils/db/berk.c'; then $(CYGPATH_W) 'utils/db/berk.c'; else $(CYGPATH_W) '$(srcdir)/utils/db/berk.c'; fi`
+	$(AM_V_at)$(am__mv) utils/db/$(DEPDIR)/DEDISbench-berk.Tpo utils/db/$(DEPDIR)/DEDISbench-berk.Po
+#	$(AM_V_CC)source='utils/db/berk.c' object='utils/db/DEDISbench-berk.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-duplicatedist.obj `if test -f 'duplicatedist.c'; then $(CYGPATH_W) 'duplicatedist.c'; else $(CYGPATH_W) '$(srcdir)/duplicatedist.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o utils/db/DEDISbench-berk.obj `if test -f 'utils/db/berk.c'; then $(CYGPATH_W) 'utils/db/berk.c'; else $(CYGPATH_W) '$(srcdir)/utils/db/berk.c'; fi`
 
-DEDISbench-iodist.o: iodist.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-iodist.o -MD -MP -MF $(DEPDIR)/DEDISbench-iodist.Tpo -c -o DEDISbench-iodist.o `test -f 'iodist.c' || echo '$(srcdir)/'`iodist.c
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-iodist.Tpo $(DEPDIR)/DEDISbench-iodist.Po
-#	$(AM_V_CC)source='iodist.c' object='DEDISbench-iodist.o' libtool=no \
+core/accesses/DEDISbench-iodist.o: core/accesses/iodist.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/accesses/DEDISbench-iodist.o -MD -MP -MF core/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo -c -o core/accesses/DEDISbench-iodist.o `test -f 'core/accesses/iodist.c' || echo '$(srcdir)/'`core/accesses/iodist.c
+	$(AM_V_at)$(am__mv) core/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo core/accesses/$(DEPDIR)/DEDISbench-iodist.Po
+#	$(AM_V_CC)source='core/accesses/iodist.c' object='core/accesses/DEDISbench-iodist.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-iodist.o `test -f 'iodist.c' || echo '$(srcdir)/'`iodist.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/accesses/DEDISbench-iodist.o `test -f 'core/accesses/iodist.c' || echo '$(srcdir)/'`core/accesses/iodist.c
 
-DEDISbench-iodist.obj: iodist.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-iodist.obj -MD -MP -MF $(DEPDIR)/DEDISbench-iodist.Tpo -c -o DEDISbench-iodist.obj `if test -f 'iodist.c'; then $(CYGPATH_W) 'iodist.c'; else $(CYGPATH_W) '$(srcdir)/iodist.c'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-iodist.Tpo $(DEPDIR)/DEDISbench-iodist.Po
-#	$(AM_V_CC)source='iodist.c' object='DEDISbench-iodist.obj' libtool=no \
+core/accesses/DEDISbench-iodist.obj: core/accesses/iodist.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/accesses/DEDISbench-iodist.obj -MD -MP -MF core/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo -c -o core/accesses/DEDISbench-iodist.obj `if test -f 'core/accesses/iodist.c'; then $(CYGPATH_W) 'core/accesses/iodist.c'; else $(CYGPATH_W) '$(srcdir)/core/accesses/iodist.c'; fi`
+	$(AM_V_at)$(am__mv) core/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo core/accesses/$(DEPDIR)/DEDISbench-iodist.Po
+#	$(AM_V_CC)source='core/accesses/iodist.c' object='core/accesses/DEDISbench-iodist.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-iodist.obj `if test -f 'iodist.c'; then $(CYGPATH_W) 'iodist.c'; else $(CYGPATH_W) '$(srcdir)/iodist.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/accesses/DEDISbench-iodist.obj `if test -f 'core/accesses/iodist.c'; then $(CYGPATH_W) 'core/accesses/iodist.c'; else $(CYGPATH_W) '$(srcdir)/core/accesses/iodist.c'; fi`
 
-DEDISbench-io.o: io.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-io.o -MD -MP -MF $(DEPDIR)/DEDISbench-io.Tpo -c -o DEDISbench-io.o `test -f 'io.c' || echo '$(srcdir)/'`io.c
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-io.Tpo $(DEPDIR)/DEDISbench-io.Po
-#	$(AM_V_CC)source='io.c' object='DEDISbench-io.o' libtool=no \
+core/DEDISbench-io.o: core/io.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/DEDISbench-io.o -MD -MP -MF core/$(DEPDIR)/DEDISbench-io.Tpo -c -o core/DEDISbench-io.o `test -f 'core/io.c' || echo '$(srcdir)/'`core/io.c
+	$(AM_V_at)$(am__mv) core/$(DEPDIR)/DEDISbench-io.Tpo core/$(DEPDIR)/DEDISbench-io.Po
+#	$(AM_V_CC)source='core/io.c' object='core/DEDISbench-io.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-io.o `test -f 'io.c' || echo '$(srcdir)/'`io.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/DEDISbench-io.o `test -f 'core/io.c' || echo '$(srcdir)/'`core/io.c
 
-DEDISbench-io.obj: io.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-io.obj -MD -MP -MF $(DEPDIR)/DEDISbench-io.Tpo -c -o DEDISbench-io.obj `if test -f 'io.c'; then $(CYGPATH_W) 'io.c'; else $(CYGPATH_W) '$(srcdir)/io.c'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-io.Tpo $(DEPDIR)/DEDISbench-io.Po
-#	$(AM_V_CC)source='io.c' object='DEDISbench-io.obj' libtool=no \
+core/DEDISbench-io.obj: core/io.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/DEDISbench-io.obj -MD -MP -MF core/$(DEPDIR)/DEDISbench-io.Tpo -c -o core/DEDISbench-io.obj `if test -f 'core/io.c'; then $(CYGPATH_W) 'core/io.c'; else $(CYGPATH_W) '$(srcdir)/core/io.c'; fi`
+	$(AM_V_at)$(am__mv) core/$(DEPDIR)/DEDISbench-io.Tpo core/$(DEPDIR)/DEDISbench-io.Po
+#	$(AM_V_CC)source='core/io.c' object='core/DEDISbench-io.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-io.obj `if test -f 'io.c'; then $(CYGPATH_W) 'io.c'; else $(CYGPATH_W) '$(srcdir)/io.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/DEDISbench-io.obj `if test -f 'core/io.c'; then $(CYGPATH_W) 'core/io.c'; else $(CYGPATH_W) '$(srcdir)/core/io.c'; fi`
 
-DEDISbench-populate.o: populate.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-populate.o -MD -MP -MF $(DEPDIR)/DEDISbench-populate.Tpo -c -o DEDISbench-populate.o `test -f 'populate.c' || echo '$(srcdir)/'`populate.c
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-populate.Tpo $(DEPDIR)/DEDISbench-populate.Po
-#	$(AM_V_CC)source='populate.c' object='DEDISbench-populate.o' libtool=no \
+populate/DEDISbench-populate.o: populate/populate.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT populate/DEDISbench-populate.o -MD -MP -MF populate/$(DEPDIR)/DEDISbench-populate.Tpo -c -o populate/DEDISbench-populate.o `test -f 'populate/populate.c' || echo '$(srcdir)/'`populate/populate.c
+	$(AM_V_at)$(am__mv) populate/$(DEPDIR)/DEDISbench-populate.Tpo populate/$(DEPDIR)/DEDISbench-populate.Po
+#	$(AM_V_CC)source='populate/populate.c' object='populate/DEDISbench-populate.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-populate.o `test -f 'populate.c' || echo '$(srcdir)/'`populate.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o populate/DEDISbench-populate.o `test -f 'populate/populate.c' || echo '$(srcdir)/'`populate/populate.c
 
-DEDISbench-populate.obj: populate.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-populate.obj -MD -MP -MF $(DEPDIR)/DEDISbench-populate.Tpo -c -o DEDISbench-populate.obj `if test -f 'populate.c'; then $(CYGPATH_W) 'populate.c'; else $(CYGPATH_W) '$(srcdir)/populate.c'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-populate.Tpo $(DEPDIR)/DEDISbench-populate.Po
-#	$(AM_V_CC)source='populate.c' object='DEDISbench-populate.obj' libtool=no \
+populate/DEDISbench-populate.obj: populate/populate.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT populate/DEDISbench-populate.obj -MD -MP -MF populate/$(DEPDIR)/DEDISbench-populate.Tpo -c -o populate/DEDISbench-populate.obj `if test -f 'populate/populate.c'; then $(CYGPATH_W) 'populate/populate.c'; else $(CYGPATH_W) '$(srcdir)/populate/populate.c'; fi`
+	$(AM_V_at)$(am__mv) populate/$(DEPDIR)/DEDISbench-populate.Tpo populate/$(DEPDIR)/DEDISbench-populate.Po
+#	$(AM_V_CC)source='populate/populate.c' object='populate/DEDISbench-populate.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-populate.obj `if test -f 'populate.c'; then $(CYGPATH_W) 'populate.c'; else $(CYGPATH_W) '$(srcdir)/populate.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o populate/DEDISbench-populate.obj `if test -f 'populate/populate.c'; then $(CYGPATH_W) 'populate/populate.c'; else $(CYGPATH_W) '$(srcdir)/populate/populate.c'; fi`
 
-DEDISbench-sharedmem.o: sharedmem.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-sharedmem.o -MD -MP -MF $(DEPDIR)/DEDISbench-sharedmem.Tpo -c -o DEDISbench-sharedmem.o `test -f 'sharedmem.c' || echo '$(srcdir)/'`sharedmem.c
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-sharedmem.Tpo $(DEPDIR)/DEDISbench-sharedmem.Po
-#	$(AM_V_CC)source='sharedmem.c' object='DEDISbench-sharedmem.o' libtool=no \
+core/sharedmem/DEDISbench-sharedmem.o: core/sharedmem/sharedmem.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/sharedmem/DEDISbench-sharedmem.o -MD -MP -MF core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo -c -o core/sharedmem/DEDISbench-sharedmem.o `test -f 'core/sharedmem/sharedmem.c' || echo '$(srcdir)/'`core/sharedmem/sharedmem.c
+	$(AM_V_at)$(am__mv) core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Po
+#	$(AM_V_CC)source='core/sharedmem/sharedmem.c' object='core/sharedmem/DEDISbench-sharedmem.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-sharedmem.o `test -f 'sharedmem.c' || echo '$(srcdir)/'`sharedmem.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/sharedmem/DEDISbench-sharedmem.o `test -f 'core/sharedmem/sharedmem.c' || echo '$(srcdir)/'`core/sharedmem/sharedmem.c
 
-DEDISbench-sharedmem.obj: sharedmem.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-sharedmem.obj -MD -MP -MF $(DEPDIR)/DEDISbench-sharedmem.Tpo -c -o DEDISbench-sharedmem.obj `if test -f 'sharedmem.c'; then $(CYGPATH_W) 'sharedmem.c'; else $(CYGPATH_W) '$(srcdir)/sharedmem.c'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/DEDISbench-sharedmem.Tpo $(DEPDIR)/DEDISbench-sharedmem.Po
-#	$(AM_V_CC)source='sharedmem.c' object='DEDISbench-sharedmem.obj' libtool=no \
+core/sharedmem/DEDISbench-sharedmem.obj: core/sharedmem/sharedmem.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/sharedmem/DEDISbench-sharedmem.obj -MD -MP -MF core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo -c -o core/sharedmem/DEDISbench-sharedmem.obj `if test -f 'core/sharedmem/sharedmem.c'; then $(CYGPATH_W) 'core/sharedmem/sharedmem.c'; else $(CYGPATH_W) '$(srcdir)/core/sharedmem/sharedmem.c'; fi`
+	$(AM_V_at)$(am__mv) core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Po
+#	$(AM_V_CC)source='core/sharedmem/sharedmem.c' object='core/sharedmem/DEDISbench-sharedmem.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-sharedmem.obj `if test -f 'sharedmem.c'; then $(CYGPATH_W) 'sharedmem.c'; else $(CYGPATH_W) '$(srcdir)/sharedmem.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/sharedmem/DEDISbench-sharedmem.obj `if test -f 'core/sharedmem/sharedmem.c'; then $(CYGPATH_W) 'core/sharedmem/sharedmem.c'; else $(CYGPATH_W) '$(srcdir)/core/sharedmem/sharedmem.c'; fi`
 
 DEDISbench-DEDISbench.o: DEDISbench.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-DEDISbench.o -MD -MP -MF $(DEPDIR)/DEDISbench-DEDISbench.Tpo -c -o DEDISbench-DEDISbench.o `test -f 'DEDISbench.c' || echo '$(srcdir)/'`DEDISbench.c
@@ -562,19 +638,19 @@ DEDISbench-DEDISbench.obj: DEDISbench.c
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o DEDISbench-DEDISbench.obj `if test -f 'DEDISbench.c'; then $(CYGPATH_W) 'DEDISbench.c'; else $(CYGPATH_W) '$(srcdir)/DEDISbench.c'; fi`
 
-inih/DEDISbench-ini.o: inih/ini.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT inih/DEDISbench-ini.o -MD -MP -MF inih/$(DEPDIR)/DEDISbench-ini.Tpo -c -o inih/DEDISbench-ini.o `test -f 'inih/ini.c' || echo '$(srcdir)/'`inih/ini.c
-	$(AM_V_at)$(am__mv) inih/$(DEPDIR)/DEDISbench-ini.Tpo inih/$(DEPDIR)/DEDISbench-ini.Po
-#	$(AM_V_CC)source='inih/ini.c' object='inih/DEDISbench-ini.o' libtool=no \
+parseconf/inih/DEDISbench-ini.o: parseconf/inih/ini.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT parseconf/inih/DEDISbench-ini.o -MD -MP -MF parseconf/inih/$(DEPDIR)/DEDISbench-ini.Tpo -c -o parseconf/inih/DEDISbench-ini.o `test -f 'parseconf/inih/ini.c' || echo '$(srcdir)/'`parseconf/inih/ini.c
+	$(AM_V_at)$(am__mv) parseconf/inih/$(DEPDIR)/DEDISbench-ini.Tpo parseconf/inih/$(DEPDIR)/DEDISbench-ini.Po
+#	$(AM_V_CC)source='parseconf/inih/ini.c' object='parseconf/inih/DEDISbench-ini.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o inih/DEDISbench-ini.o `test -f 'inih/ini.c' || echo '$(srcdir)/'`inih/ini.c
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o parseconf/inih/DEDISbench-ini.o `test -f 'parseconf/inih/ini.c' || echo '$(srcdir)/'`parseconf/inih/ini.c
 
-inih/DEDISbench-ini.obj: inih/ini.c
-	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT inih/DEDISbench-ini.obj -MD -MP -MF inih/$(DEPDIR)/DEDISbench-ini.Tpo -c -o inih/DEDISbench-ini.obj `if test -f 'inih/ini.c'; then $(CYGPATH_W) 'inih/ini.c'; else $(CYGPATH_W) '$(srcdir)/inih/ini.c'; fi`
-	$(AM_V_at)$(am__mv) inih/$(DEPDIR)/DEDISbench-ini.Tpo inih/$(DEPDIR)/DEDISbench-ini.Po
-#	$(AM_V_CC)source='inih/ini.c' object='inih/DEDISbench-ini.obj' libtool=no \
+parseconf/inih/DEDISbench-ini.obj: parseconf/inih/ini.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT parseconf/inih/DEDISbench-ini.obj -MD -MP -MF parseconf/inih/$(DEPDIR)/DEDISbench-ini.Tpo -c -o parseconf/inih/DEDISbench-ini.obj `if test -f 'parseconf/inih/ini.c'; then $(CYGPATH_W) 'parseconf/inih/ini.c'; else $(CYGPATH_W) '$(srcdir)/parseconf/inih/ini.c'; fi`
+	$(AM_V_at)$(am__mv) parseconf/inih/$(DEPDIR)/DEDISbench-ini.Tpo parseconf/inih/$(DEPDIR)/DEDISbench-ini.Po
+#	$(AM_V_CC)source='parseconf/inih/ini.c' object='parseconf/inih/DEDISbench-ini.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o inih/DEDISbench-ini.obj `if test -f 'inih/ini.c'; then $(CYGPATH_W) 'inih/ini.c'; else $(CYGPATH_W) '$(srcdir)/inih/ini.c'; fi`
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o parseconf/inih/DEDISbench-ini.obj `if test -f 'parseconf/inih/ini.c'; then $(CYGPATH_W) 'parseconf/inih/ini.c'; else $(CYGPATH_W) '$(srcdir)/parseconf/inih/ini.c'; fi`
 
 DEDISgen-DEDISgen.o: DEDISgen.c
 	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISgen_CFLAGS) $(CFLAGS) -MT DEDISgen-DEDISgen.o -MD -MP -MF $(DEPDIR)/DEDISgen-DEDISgen.Tpo -c -o DEDISgen-DEDISgen.o `test -f 'DEDISgen.c' || echo '$(srcdir)/'`DEDISgen.c
@@ -886,8 +962,22 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-rm -f inih/$(DEPDIR)/$(am__dirstamp)
-	-rm -f inih/$(am__dirstamp)
+	-rm -f core/$(DEPDIR)/$(am__dirstamp)
+	-rm -f core/$(am__dirstamp)
+	-rm -f core/accesses/$(DEPDIR)/$(am__dirstamp)
+	-rm -f core/accesses/$(am__dirstamp)
+	-rm -f core/duplicates/$(DEPDIR)/$(am__dirstamp)
+	-rm -f core/duplicates/$(am__dirstamp)
+	-rm -f core/sharedmem/$(DEPDIR)/$(am__dirstamp)
+	-rm -f core/sharedmem/$(am__dirstamp)
+	-rm -f parseconf/inih/$(DEPDIR)/$(am__dirstamp)
+	-rm -f parseconf/inih/$(am__dirstamp)
+	-rm -f populate/$(DEPDIR)/$(am__dirstamp)
+	-rm -f populate/$(am__dirstamp)
+	-rm -f utils/db/$(DEPDIR)/$(am__dirstamp)
+	-rm -f utils/db/$(am__dirstamp)
+	-rm -f utils/random/$(DEPDIR)/$(am__dirstamp)
+	-rm -f utils/random/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -898,7 +988,7 @@ clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ./$(DEPDIR) inih/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) core/$(DEPDIR) core/accesses/$(DEPDIR) core/duplicates/$(DEPDIR) core/sharedmem/$(DEPDIR) parseconf/inih/$(DEPDIR) populate/$(DEPDIR) utils/db/$(DEPDIR) utils/random/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-tags
@@ -946,7 +1036,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ./$(DEPDIR) inih/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) core/$(DEPDIR) core/accesses/$(DEPDIR) core/duplicates/$(DEPDIR) core/sharedmem/$(DEPDIR) parseconf/inih/$(DEPDIR) populate/$(DEPDIR) utils/db/$(DEPDIR) utils/random/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

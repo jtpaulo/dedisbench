@@ -7,7 +7,7 @@
 #define IODIST_H
 
 #include <stdint.h>
-#include "defines.h"
+#include "../../structs/defines.h"
 
 
 

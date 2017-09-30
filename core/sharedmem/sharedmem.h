@@ -6,8 +6,8 @@
 #define SHAREDMEM_H
 
 #include <stdint.h>
-#include <duplicatedist.h>
-#include "defines.h"
+#include "../duplicates/duplicatedist.h"
+#include "../../structs/defines.h"
 
 int loadmem(struct duplicates_info *info);
 
