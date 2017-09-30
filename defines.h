@@ -34,13 +34,6 @@
 #define DISTDB "benchdbs/distdb/"
 
 
-struct fault_conf{
-	int measure;
-	int when;
-	int fault_dist;
-	int fault_type;
-	int proc_id;
-};
 
 struct stats{
 
@@ -168,11 +161,6 @@ struct user_confs{
 	//print dist file DB
 	DB **dbpdist; // DB structure handle
 	DB_ENV **envpdist;
-
-	struct fault_conf *fconf;
-	int nr_faults;
-	int fault_measure;
-
 
 	uint64_t nr_proc_w;
 
