@@ -1,5 +1,5 @@
 /* DEDISbench and DEDISgen
- * (c) 2010 2010 U. Minho. Written by J. Paulo
+ * (c) 2010 2017 INESC-TEC, HASLab @ U. Minho. Written by J. Paulo, M. Freitas
  */
  
 
