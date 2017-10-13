@@ -349,9 +349,13 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
   // [1:5[[5:10[[10:50[[50:100[[100:500[[500:1000[
   //P ---10¹---  ------10²----  ------10³--------
   /* how to compute the appropriate size of the array */
+  int dups_len = 50;
+  unsigned long long int *dups = calloc(dups_len, sizeof(unsigned long long int));
+  memset(dups, 0, sizeof(unsigned long long int)*dups_len);
+  /*
   unsigned long long int dups[50];
   memset(dups, 0, sizeof(unsigned long long int)*50);
-
+  */
   DBT key, data;
 
   DBC *cursorp;
@@ -386,6 +390,11 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
 		   arr_pos = (bucket*2)-1;
 		   max = (bucket*2)-1 > max ? (bucket*2)-1 : max;
 	   }
+	   if(arr_pos > dups_len){
+		   dups = realloc(dups, sizeof(unsigned long long int)*dups_len*2);
+		   memset(dups + sizeof(unsigned long long int)*(dups_len+1), 0, sizeof(unsigned long long int)*dups_len);
+		   dups_len *= 2;
+	   }
 	   
 	   dups[arr_pos]+=data_data;
 //	   dups[bucket] += data_data;
@@ -399,13 +408,13 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
   }
  
   i = 1; 
-  while(i<50){
+  while(i<dups_len){
 	  if(dups[i])
 		fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, dups[i++]);
 	  else
 		  i++;
 
-	  if(i < 50 && dups[i])
+	  if(i < dups_len && dups[i])
 		fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, init*10, dups[i++]);
 	  else
 		  i++;

@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <db.h>
 
+#include "../../io/plotio.h"
+
 //TODO: In the future the printdb and db functions should be unified.
 //The only change is that the key is an uint64_t instead of char*
 

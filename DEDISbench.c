@@ -26,7 +26,8 @@
 #include "populate/populate.h"
 #include "structs/defines.h"
 #include "core/io.h"
-
+#include "io/plotio.h"
+#include "utils/utils.h"
 
 //time elapsed since last I/O
 long lap_time(struct timeval *base) {
@@ -64,26 +65,6 @@ FILE* create_plog(int procid){
 	FILE *fres = fopen(name,"w");
     return fres;
 
-}
-
-static int powr(int base, int exp){
-	int result = 1;
-	while(exp){
-		if(exp & 1)
-			result *= base;
-		exp /= 2;
-		base *= base;
-	}
-	return result;
-}
-
-static int find_bucket(unsigned long long int key){
-	int bucket = 0;
-	while(key){
-		key /= 10;
-		bucket++;
-	}
-	return bucket;
 }
 
 //run a a peak test
@@ -175,15 +156,8 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 	  gettimeofday(&tim, NULL);
 	  begin=tim.tv_sec;
-//	  printf("begin := %lu\n", begin);
 	  ru_begin = begin + conf->start*30;
-//	  printf("ramp up := %d\n", conf->start*30);
-//	  printf("ru_begin := %lu\n", ru_begin);
-	  //the test will run for duration seconds
 	  end = begin+duration - conf->finish*30;
-//	  printf("cool_down := %d\n", conf->finish*30);
-//	  printf("end := %lu\n", end);
-	  //conf->finish = end - conf->finish*60*1000000;
 
 	  termination_type=TIME;
 
@@ -267,9 +241,9 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
    			}
    			else{
    				stat.uni++;
-			    //uni referes to unique blocks meaning that
+			    // uni referes to unique blocks meaning that
 			    // also counts 1 copy of each duplicated block
-			    //zerodups only refers to blocks with only one copy (no duplicates)
+			    // zerodups only refers to blocks with only one copy (no duplicates)
 			    stat.zerod++;
 			    if(conf->distout==1){
 			      *info->zerodups=*info->zerodups+1;
@@ -400,10 +374,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 				   stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
 				   stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
 				   stat.snap_time[stat.iter_snap]=stat.t1snap;
-				 /*printf("begin := %lu\n", begin);
-				   printf("ru_begin := %lu\n", ru_begin);
-				   printf("end := %lu\n", end);
-				   printf("iter = %d\n",(int)stat.iter_snap*30);*/
 			   }
 	    	   stat.iter_snap++;
 			   stat.snap_lat=0;
@@ -458,16 +428,12 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		  stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
 		  stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
 		  stat.snap_time[stat.iter_snap]=stat.t1snap;
-		/*printf("begin := %lu\n", begin);
-		  printf("ru_begin := %lu\n", ru_begin);
-		  printf("iter = %d\n",(int)stat.iter_snap*30);
-		  printf("end := %lu\n", end);*/
 	  }
+	  
 	  stat.iter_snap++;
 	  stat.last_snap_time=stat.t1snap;
 	  stat.snap_lat=0;
 	  stat.snap_totops=0;
-//	  printf("iter_snap = %i\n", stat.iter_snap);
   }
 
   //calculate average latency milisseconds
@@ -475,23 +441,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  stat.latency=(stat.latency/stat.tot_ops)/1000.0;
 	  stat.throughput=(stat.tot_ops/((stat.endio-stat.beginio)/1.0e6));
   }
-
-  /*
-  //inserts statistics list into berkeleyDB in order to sum with all processes and then calculate
-  //the total
-  printf("before generating dist file\n");
-  init_db(STATDB,dbpstat,envpstat);
-  gen_totalstatistics(dbpstat,envpstat);
-  close_db(dbpstat,envpstat);
-
-
-  //print a distribution file like the one given in input for zero duplicate blocks written
-  printf("before generating dist file\n");
-  init_db(DISTDB,dbpdist,envpdist);
-  gen_zerodupsdist(dbpdist,envpdist);
-  close_db(dbpdist,envpdist);
-  printf("Process %d:\nUnique Blocks Written %llu\nZero Copies Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",idproc,(long long unsigned int)uni,(long long unsigned int)zerod,(long long unsigned int)dupl,(long long unsigned int)tot_ops,throughput,latency);
-*/
 
   if(conf->distout==1){
 	  printf("Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)stat.uni,(long long unsigned int)stat.dupl,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency);
@@ -515,207 +464,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   }
 
   if(conf->printtofile==1){
-	  //SNAP printing
-	  char snapthrname[PATH_SIZE];
-	  char snapthrfmt[PATH_SIZE];
-	  strcpy(snapthrname,conf->printfile);
-	  strcat(snapthrname,"snapthr");
-	  if(conf->iotype==WRITE){
-		  strcat(snapthrname,"write");
-	  }
-	  else{
-		  strcat(snapthrname,"read");
-	  }
-	  
-	  strcat(snapthrname,id);
-	  strcpy(snapthrfmt, snapthrname);
-	  strcat(snapthrfmt, "compat");
-
-	  char snaplatname[PATH_SIZE];
-	  char snaplatfmt[PATH_SIZE];
-	  strcpy(snaplatname,conf->printfile);
-	  strcat(snaplatname,"snaplat");
-	  if(conf->iotype==WRITE){
-	  	  strcat(snaplatname,"write");
-	  }
-	  else{
-	  	  strcat(snaplatname,"read");
-	  }
-	 
-	  strcat(snaplatname,id);
-	  strcpy(snaplatfmt, snaplatname);
-	  strcat(snaplatfmt, "compat");
-	  
-	  FILE* pfcompat = fopen(snaplatfmt,"w");
-	  //unsigned long long int beginio = (unsigned long long int)stat.beginio;
-	  
-	  FILE* pf=fopen(snaplatname,"a");
-	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
-
-	  int aux;
-	  for (aux=conf->start+1; aux<stat.iter_snap;aux++){
-
-		  //SNAP printing
-		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_latency[aux],stat.snap_ops[aux]);
-		  fprintf(pfcompat,"%d %.3f %f\n", (aux)*30, stat.snap_latency[aux], stat.snap_ops[aux]);
-		  
-
-	  }
-	  fclose(pf);
-	  fclose(pfcompat);
-	  
-	  char plotfile[PATH_SIZE];
-	  strcpy(plotfile,conf->printfile);
-	  strcat(plotfile,id);
-	  strcat(plotfile,"plot");
-	  pfcompat = fopen(snapthrfmt,"w");
-
-	  //SNAP printing
-	  pf=fopen(snapthrname,"a"); 
-	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat.beginio);
-
-	  for (aux=conf->start+1; aux<stat.iter_snap;aux++){
-
-		  fprintf(pf,"%llu %.3f %f\n",(unsigned long long int)stat.snap_time[aux],stat.snap_throughput[aux],stat.snap_ops[aux]);
-		  fprintf(pfcompat,"%d %.3f %f\n", (aux)*30 , stat.snap_throughput[aux], stat.snap_ops[aux]);
-
-	  }
-	  fclose(pf);
-	  fclose(pfcompat);
-	 
-	  pf = fopen(plotfile, "w");
-	  fprintf(pf, "set multiplot layout 2,1 rowsfirst title \"Latency and Throughput Plots ('%s' data set)\" noenhanced\n", conf->distfile);
-	  fprintf(pf, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n");
-	  fprintf(pf, "set offsets 0,30,0.07,0\n");
-//	  fprintf(pf, "set label 1 'latency' at graph 0.25,0.25 font '8'\n");
-//	  fprintf(pf, "set xlabel \"Time(s)\"\n");
-	  fprintf(pf, "set ylabel \"Latency (ms)\"\n");
-	  fprintf(pf, "set yrange [0.0:*]\n");
-	  fprintf(pf, "set xtics rotate by 45 right\n");
-	  fprintf(pf, "set xtics nomirror\n");
-	  fprintf(pf, "set ytics nomirror\n");
-	  fprintf(pf, "set xrange [0.0:*]\n");
-	  fprintf(pf, "set pointsize 1.0\n");
-	  fprintf(pf, "set key off\n");
-	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'blue' ti 'Latency (miliseconds)'#,\"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snaplatfmt, "\%d");
-//	  fprintf(pf, "set label 1 'throughput' at graph 0.92,0.9 font '8'\n");
-	  fprintf(pf, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n");
-	  fprintf(pf, "set offsets 0,30,1000,0\n");
-	  fprintf(pf, "set xlabel \"Time(s)\"\n");
-	  fprintf(pf, "set ylabel \"Throughput (blocks/s)\"\n");
-	  fprintf(pf, "set autoscale y\n");
-	  fprintf(pf, "set xrange [0.0:*]\n");
-	  fprintf(pf, "set pointsize 1.0\n");
-	  fprintf(pf, "plot '%s' using 1:2 with linespoints lc rgb 'red' ti 'Throughput (blocks/second)'#, \"\" using 1:2:(sprintf(\"%s\",$3)) with labels offset char 0,1 notitle\n", snapthrfmt, "\%d");
-	  fprintf(pf, "unset multiplot\n");
-	  fclose(pf);
-  }
-
-  uint64_t pos_touched=0;
-  uint64_t bytes_processed=0;
-  FILE *fpp=NULL;
-  FILE *fpcumul = NULL;
-  FILE *fpplot = NULL;
-
-  if(conf->accesslog==1){
-  	strcat(conf->accessfilelog,id);
-	char cumulaccfile[128];
-	char plotfile[128];
-	strcpy(cumulaccfile, conf->accessfilelog);
-	strcat(cumulaccfile, "cumul");
-	strcpy(plotfile, cumulaccfile);
-	strcat(plotfile, "plot");
- 	//print distribution file
-  	fpp=fopen(conf->accessfilelog,"w");
-	fpcumul=fopen(cumulaccfile,"w");
-	
-	/*cria ficheiro a passar ao gnuplot*/	
-	fpplot=fopen(plotfile, "w");
-	fprintf(fpplot, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n");
-	fprintf(fpplot, "set style data histogram\n");
-	fprintf(fpplot, "set style histogram cluster gap 1\n");
-	fprintf(fpplot, "set style fill solid\n");
-	fprintf(fpplot, "set xtics rotate by 45 right\n");
-	fprintf(fpplot, "set ytics nomirror\n");
-	fprintf(fpplot, "set xlabel \"Number of accesses\"\n");
-	fprintf(fpplot, "set ylabel \"Number of Blocks\"\n");
-	fprintf(fpplot, "set logscale y\n");
-	fprintf(fpplot, "#set key at screen 0.90,screen 1 top right horizontal font \"Times-Roman, 9\"\n");
-	fprintf(fpplot, "set key outside\n");
-	fprintf(fpplot, "set key top horizontal\n");
-	fprintf(fpplot, "set boxwidth 0.8\n");
-	fprintf(fpplot, "set xtic scale 0 font \"1\"\n");
-	fprintf(fpplot, "plot '%s' using 2:xtic(1) ti col fillstyle pattern 4 lc rgb \"#e70000\"\n", cumulaccfile);
-	fclose(fpplot);
+	  write_latency_throughput_snaps(&stat, conf, id);
   }
   
-  // add name of mode
-  char *mode;
-  if(conf->accesstype == SEQUENTIAL)
-	  mode = "sequential";
-  else if(conf->accesstype == UNIFORM)
-	  mode = "uniform";
-  else
-	  mode = "hotspot";
-
-  uint64_t iter;
-  // [1:5[[5:10[[10:50[[50:100[[100:500[[500:1000[
-  //P ---10¹---  ------10²----  ------10³--------
-  //     B1            B2             B3
-  //   1    2      3      4        5        6
-  unsigned long long int acs[8];
-  memset(acs, 0, sizeof(unsigned long long int)*8);
-  int init = 1, final = 10;
-
-  for(iter=0;iter<conf->totblocks;iter++){
-   	if(acessesarray[iter]>0){
-   		pos_touched+=1;
-		bytes_processed+=conf->block_size*acessesarray[iter];
-	}
-	if(conf->accesslog==1){
-		fprintf(fpp,"%llu %llu\n",(unsigned long long int) iter, (unsigned long long int) acessesarray[iter]);
-		int bucket = find_bucket((unsigned long long int) acessesarray[iter]);
-		int power = powr(10, bucket);
-		int arr_pos;
-		if((unsigned long long int) acessesarray[iter] >= (power/2))
-			arr_pos = bucket*2;
-		else{
-			arr_pos = (bucket*2)-1;
-		}
-		acs[arr_pos]++;
-	}
+  if(conf->accesslog==1){
+	  write_access_data(acessesarray, conf, id);
   }
-  fprintf(fpcumul, "\t%s\n",mode);
-  int i = 1;
-  while(i < 8){
-	  if(acs[i]){
-	  	fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, acs[i++]);
-	  }
-	  else 
-		  i++;
-	  
-	  if(i < 8 && acs[i]){
-	  	fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, final, acs[i++]);
-	  }
-	  else
-		  i++;
-	  init = final;
-	  final *= 10;
-  }
-  /*
-  for(i = 1; i < 8 && acs[i];){
-	  fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, acs[i++]);
-	  if(acs[i])
-	  	fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, final, acs[i++]);
-	  init = final;
-	  final *= 10;
-  }*/
-
-  if(iotype==READ){
-	printf("Process touched %llu blocks totalling %llu MB. Process read %llu MB (including block reread)\n", (unsigned long long int) pos_touched, (unsigned long long int) (pos_touched*conf->block_size)/1024/1024, (unsigned long long int) bytes_processed/1024/1024);
-  }else{
-   	printf("Process touched %llu blocks totalling %llu MB. Process wrote %llu MB (including block rewrite)\n", (unsigned long long int) pos_touched, (unsigned long long int) (pos_touched*conf->block_size)/1024/1024, (unsigned long long int) bytes_processed/1024/1024);
-  }
+ 
 
   if(conf->integrity==1 && iotype==READ){
   	if(integrity_errors>0){
@@ -726,10 +481,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   	fclose(fpi);
   }
 
-  if(conf->accesslog==1){
-	fclose(fpcumul);
-	fclose(fpp);
-  }
   //init acesses array
   free(acessesarray);
 
@@ -1187,6 +938,11 @@ int main(int argc, char *argv[]){
 		exit(0);
 	}
 	
+	if(mkdir("results", 0775) == 0){
+		mkdir("results/accesses", 0775);
+		mkdir("results/latthr", 0775);
+		mkdir("results/distribution", 0775);
+	}
 	//convert to to ops/microsecond
 	conf.ratio=conf.ratio/1e6;
 	if(conf.mixedIO==1){
@@ -1263,34 +1019,32 @@ int main(int argc, char *argv[]){
     	init_db(DISTDB,conf.dbpdist,conf.envpdist);
     	gen_outputdist(&info, conf.dbpdist,conf.envpdist);
 
-		char plotfilename[100];
-		char distcumulfile[100];
+		/* this could be done a lot better */
+		char dirOut[256] = "results/distribution/";
+		char dirPlot[256] = "results/distribution/";
+		char dirDistCumul[256] = "results/distribution/";
+		char plotfilename[128];
+		char distcumulfile[128];
+
+		strcat(dirOut, conf.outputfile);
+
 		strcpy(distcumulfile, conf.outputfile);
 		strcat(distcumulfile, "cumul");
 		strcpy(plotfilename, distcumulfile);
 		strcat(plotfilename, "plot");
 
+		strcat(dirPlot, plotfilename);
+		strcat(dirDistCumul, distcumulfile);
+
     	//print distribution file
-    	FILE* fpp=fopen(conf.outputfile,"w");
-		FILE* fpcumul = fopen(distcumulfile, "w");
+    	FILE* fpp=fopen(dirOut,"w");
+		FILE* fpcumul = fopen(dirDistCumul, "w");
     	print_elements_print(conf.dbpdist, conf.envpdist,fpp, fpcumul);
     	fclose(fpp);
 		fclose(fpcumul);
 
-		FILE* fpplot = fopen(plotfilename, "w");
-		fprintf(fpplot, "set grid ytics lt 0 lw 1 lc rgb \"#bbbbbb\"\n");
-		fprintf(fpplot, "set style data histogram\n");
-		fprintf(fpplot, "set style histogram cluster gap 2\n");
-		fprintf(fpplot, "set style fill solid\n");
-		fprintf(fpplot, "set xlabel \"Number of duplicates\"\n");
-		fprintf(fpplot, "set ylabel \"Number of blocks\"\n");
-		fprintf(fpplot, "set logscale y\n");
-		fprintf(fpplot, "set boxwidth 0.8\n");
-		fprintf(fpplot, "set xtic scale 0 font \"1\"\n");
-		fprintf(fpplot, "set xtics rotate by 45 right\n");
-		fprintf(fpplot, "set key outside\n");
-		fprintf(fpplot, "set key top horizontal\n");
-		fprintf(fpplot, "plot '%s' using 2:xtic(1) ti '%s' noenhanced fillstyle pattern 4 lc rgb \"#e70000\"\n", distcumulfile, conf.distfile);
+		FILE* fpplot = fopen(dirPlot, "w");
+		write_plot_file_distribution(fpplot, distcumulfile, conf.distfile);
 		fclose(fpplot);
 
 
@@ -1302,7 +1056,3 @@ int main(int argc, char *argv[]){
   return 0;
   
 }
-
-
-
-

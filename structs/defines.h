@@ -28,10 +28,9 @@
 #define REPOP 1
 #define DDPOP 2 
 
-#define DFILE "conf/dist_personalfiles"
+#define DFILE	"conf/dist_personalfiles"
 
-#define DISTDB "benchdbs/distdb/"
-
+#define DISTDB	"benchdbs/distdb/"
 
 
 struct stats{
