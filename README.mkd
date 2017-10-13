@@ -1,7 +1,6 @@
-/* DEDISbench and DEDISgen
- * (c) 2010 2017 INESC-TEC, HASLab @ U. Minho. Written by J. Paulo, M. Freitas
- */
- 
+###### DEDISbench and DEDISgen
+
+(c) 2017 2017 INESC TEC, HASLab and U. Minho. Written by J. Paulo, M. Freitas
 
 # DEDISbench and DEDISgen
 
@@ -11,8 +10,8 @@ I/O operations can be executed concurrently by several processes with independen
 
 
 For more information regarding DEDISbench algorithm you may read these two published papers:
-- "DEDISbench: A Benchmark for Deduplicated Storage Systems"
-- "Towards an Accurate Evaluation of Deduplicated Storage Systems"
+- "[DEDISbench: A Benchmark for Deduplicated Storage Systems](http://gsd.di.uminho.pt/members/jop/pdfs/PRPS12.pdf)"
+- "[Towards an Accurate Evaluation of Deduplicated Storage Systems](http://haslab.uminho.pt/jtpaulo/files/prp13.pdf)"
 
 
 # I/O benchmark:
