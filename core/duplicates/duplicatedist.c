@@ -2,88 +2,18 @@
  * (c) 2010 2010 U. Minho. Written by J. Paulo
  */
 
-#include <unistd.h>
-#include <stdio.h>
-#include <signal.h>
+
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <math.h>
 #include <sys/time.h>
 #include <time.h>
-#include <sys/wait.h>
 
-#include "berk.c"
-
-#include "iodist.c"
-
-//FIle can be in source directory or in /etc/dedisbench if installed with deb package
-#define DFILE "dist_personalfiles"
-//TODO change this in a future implementation
-#define DFILEA "/etc/dedisbench/"
+#include "duplicatedist.h"
+#include "../../utils/random/random.h"
 
 
-//print dist file DB
-DB **dbpdist; // DB structure handle
-DB_ENV **envpdist;
-#define DISTDB "benchdbs/distdb/"
-
-/*
-//Merge statistic lists DB
-DB **dbpstat; // DB structure handle
-DB_ENV **envpstat;
-#define STATDB "statdb/"
-*/
-
-//Number of distinct content blocks with duplicates
-uint64_t duplicated_blocks;
-//= 1839041;
-
-//Number blocks withouth duplicates
-//it refers to blocks
-//without any duplicate and not to unique blocks found at the storage
-uint64_t zero_copy_blocks;
-//= 22610369;
-
-//TOtal Number of blocks at the data set
-uint64_t total_blocks;
-
-//array with data collected from Homer (for each duplicated block, the amount of duplicates)
-//for homer 1839041
-uint64_t *stats;
-
-//array cumulative value of stats sum[n] = stats[n]+sum[n-1] used for having
-//distribution for duplicate generation
-uint64_t *sum;
-//[1839041];
-
-uint64_t *statistics;
-
-uint64_t above=0;
-uint64_t below=0;
-
-
-//blocks without any duplicate
-uint64_t uni=0;
-//uni referes to unique blocks meaning that
-// also counts 1 copy of each duplicated block
-//blocks with duplicates written
-uint64_t dupl=0;
-
-//zerodups only refers to blocks with only one copy (no duplicates)
-//local mem
-uint64_t zerod=0;
-//shared mem
-uint64_t *zerodups;
-
-//
-int distout=0;
-
-
-
-void get_distibution_stats(char* fname){
+void get_distribution_stats(struct duplicates_info *info, char* fname){
 
 	//open file with distribution
 	//number_of_duplicates number_blocks_with_those_duplicates
@@ -91,12 +21,8 @@ void get_distibution_stats(char* fname){
 	//if the file did not opened try in alternative directory
 	//TODO THis is a temporary FIX
 	if(!fp){
-		char newname[200];
-		bzero(newname,sizeof(newname));
-		strcpy(newname,DFILEA);
-		strcat(newname,fname);
-		printf("could not open distribution file %s trying %s\n",fname,newname);
-		fp = fopen(newname,"r");
+		printf("could not open distribution file %s\n",fname);
+		exit(0);
 	}
 
 
@@ -141,14 +67,14 @@ void get_distibution_stats(char* fname){
           nb = atoll(nblocks); //number of blocks with N ocurrences where N is dn
 
           if(dn==1){
-        	  zero_copy_blocks=nb;
+        	  info->zero_copy_blocks=nb;
           }else{
         	  //total of blocks with duplicates (only 1 of the blocks is considered)
         	  //in other words, number of blocks with different content that are dup
-        	  duplicated_blocks=duplicated_blocks + nb;
+        	  info->duplicated_blocks=info->duplicated_blocks + nb;
 
           }
-          total_blocks = total_blocks + (nb*dn);
+          info->total_blocks = info->total_blocks + (nb*dn);
 
 	      //zero the structs
 	      bzero(nblocks,sizeof(nblocks));
@@ -166,15 +92,21 @@ void get_distibution_stats(char* fname){
 
 	  }
 
+    //unique counter for each process
+    //starts with value==max index at array sum
+    //since duplicated content is identified by number correspondent to the indexes at sum
+    //none will have a identifier bigger than this
+    info->u_count = info->duplicated_blocks+1;
+
 }
 
 
 //fname = block4
 //Load duplicate distribution
-void load_duplicates(char* fname){
+void load_duplicates(struct duplicates_info *info, char* fname){
 
 
-	//stats=malloc(sizeof(uint64_t)*duplicated_blocks);
+	//info->stats=malloc(sizeof(uint64_t)*info->duplicated_blocks);
     int statscont =0;
 
     //open file with distribution
@@ -183,12 +115,8 @@ void load_duplicates(char* fname){
     //if the file did not opened try in alternative directory
     //THis is a temporary FIX
     if(!fp){
-    	char newname[200];
-    	bzero(newname,sizeof(newname));
-    	strcpy(newname,DFILEA);
-    	strcat(newname,fname);
-    	printf("could not open distribution file %s trying %s\n",fname,newname);
-    	fp = fopen(newname,"r");
+    	printf("could not open distribution file %s\n",fname);
+      exit(0);
     }
 
     //TODO: find reasonable size
@@ -236,7 +164,7 @@ void load_duplicates(char* fname){
           //exclude the cblocks withouth duplicates(1 occurence)
           if(dn>1){
         	while(nb>0){
-              stats[statscont] = dn;
+              info->stats[statscont] = dn;
 
               statscont++;
               nb--;
@@ -254,7 +182,7 @@ void load_duplicates(char* fname){
   fclose(fp);
 
 
-  printf("loaded duplicate distribution with the following statistics:\nTotal Blocks: %llu\nBlocks Without Duplicates %llu\nDistinct Blocks with Duplicates %llu\nDuplicated Blocks %llu\n\n\n",(unsigned long long int) total_blocks,(unsigned long long int) zero_copy_blocks,(unsigned long long int) duplicated_blocks, (unsigned long long int) total_blocks-zero_copy_blocks-duplicated_blocks);
+  printf("loaded duplicate distribution with the following statistics:\nTotal Blocks: %llu\nBlocks Without Duplicates %llu\nDistinct Blocks with Duplicates %llu\nDuplicated Blocks %llu\n\n\n",(unsigned long long int) info->total_blocks,(unsigned long long int) info->zero_copy_blocks,(unsigned long long int) info->duplicated_blocks, (unsigned long long int) info->total_blocks-info->zero_copy_blocks-info->duplicated_blocks);
 
   }
   else{
@@ -267,14 +195,14 @@ void load_duplicates(char* fname){
 }
 
 //function to load the cumulative array for simulating the duplicate distribution
-void load_cumulativedist(){
+void load_cumulativedist(struct duplicates_info *info, int distout){
 
   int i;
   //size is equal to the number of duplicated blocks (1 for each unique content)
-  //sum=malloc(sizeof(uint64_t)*duplicated_blocks);
-  //statistics=malloc(sizeof(uint64_t)*duplicated_blocks);
+  //info->sum=malloc(sizeof(uint64_t)*info->duplicated_blocks);
+  //info->statistics=malloc(sizeof(uint64_t)*info->duplicated_blocks);
 
-  sum[0]=stats[0];
+  info->sum[0]=info->stats[0];
 
   //cumulative sum of stats array
   //this way if we generat ea number from 0 to sum[max] for each entry at the
@@ -285,10 +213,10 @@ void load_cumulativedist(){
   // if r=(0,5) will belong to sum[0] if r=(20-30) belong to sum[3]
   //this way we folow the distribution by finding where the value belongs and
   //generating an unique block for each value at sum
-  for(i=1;i<duplicated_blocks;i++){
-    sum[i]=sum[i-1]+stats[i];
+  for(i=1;i<info->duplicated_blocks;i++){
+    info->sum[i]=info->sum[i-1]+info->stats[i];
     if(distout==1){
-    	statistics[i]=0;
+    	info->statistics[i]=0;
     }
   }
 
@@ -298,7 +226,7 @@ void load_cumulativedist(){
 
 //binary search done to find the block content that we want to generate
 //or the number more close to this value
-uint64_t search(uint64_t value,int low, int high, uint64_t *res){
+uint64_t search(struct duplicates_info *info, uint64_t value,int low, int high, uint64_t *res){
 
    //when hign is lower that low then the value was not foundat the index and
    //is between *res and *res-1
@@ -312,16 +240,16 @@ uint64_t search(uint64_t value,int low, int high, uint64_t *res){
    //if the value at sum is higher than the value we are searching
    //decrease the higher limit and record this value
    //if a smaller indes is not found then this mid index is the right one
-   if (sum[mid] > value){
+   if (info->sum[mid] > value){
         *res = mid;
-        return search(value, low, mid-1, res);
+        return search(info, value, low, mid-1, res);
    }
    else {
 
 	 //if the value at sum is lower than the expected value then
 	 //increas the lower limit and search
-     if (sum[mid] < value)
-        return search(value, mid+1, high, res);
+     if (info->sum[mid] < value)
+        return search(info, value, mid+1, high, res);
 
      else
     	//if it is equal the value then return mid+1 because
@@ -333,24 +261,21 @@ uint64_t search(uint64_t value,int low, int high, uint64_t *res){
 }
 
 
-// Used to know the content of the next block that will be generated
-// Follows the duplicate distribution
-// receives an unic counter and ....
-uint64_t get_writecontent(uint64_t *contnu){
+uint64_t get_contentid(struct duplicates_info *info){
 
   //generates a random number between 0 and the total of blocks of the dataset
-  uint64_t r = genrand(total_blocks);
+  uint64_t r = genrand(info->total_blocks);
   //printf("search for %d\n",r);
 
   //if r is higher than the last value of sum then
   //an unique block withouth duplicates is written
   //the last value at sum is unique because the array starts at 0
-  if (duplicated_blocks<=0 || r>=sum[duplicated_blocks-1]) {
+  if (info->duplicated_blocks<=0 || r>=info->sum[info->duplicated_blocks-1]) {
       //r is equal to the unique counter for generating
       // a block with unique content from the others generated previously
-      r = *contnu;
+      r = info->u_count;
       //increment the counter...
-      *contnu = *contnu+1;
+      info->u_count = info->u_count+1;
       return r;
   }
   //the block to be generated has duplicated content
@@ -360,27 +285,185 @@ uint64_t get_writecontent(uint64_t *contnu){
 	 uint64_t ac =0;
      //binary search for the index at sum where that
      //r is the random value, 0 and duplicated_bloc are the range of positions at the sum array
-	 uint64_t res = search(r,0,duplicated_blocks-1,&ac);
+	 uint64_t res = search(info, r,0,info->duplicated_blocks-1,&ac);
      //increase the number of duplicates
 
      return res;
   }
 }
 
-int gen_outputdist(DB **dbpor,DB_ENV **envpor){
+void get_block_content(char* bufaux, struct block_info infowrite, uint64_t block_size){
+
+  //initialize the buffer with duplicate content
+  int bufp = 0;
+  for(bufp=0;bufp<block_size;bufp++){
+    bufaux[bufp] = 'a';
+  }
+
+  if(infowrite.procid!=-1){
+    sprintf(bufaux,"%llu pid %d time %llu ", (long long unsigned int)infowrite.cont_id,infowrite.procid,(long long unsigned int)infowrite.ts);
+  }
+  else{
+    sprintf(bufaux,"%llu ", (long long unsigned int)infowrite.cont_id);
+  }
+
+}
+
+int check_block_content(char* buf, uint64_t block_size){
+
+  const char s[2] = " ";
+  char *token=NULL;
+  int contwrites_b=-1;
+  int times_b=-1;
+  uint64_t contwrites=0;
+  uint64_t times=0;
+  int pids=-1;
+
+  char original_buf[block_size];
+  memcpy(original_buf,buf, block_size);
+
+  //initialize the buffer with duplicate content
+  int bufp = 0;
+  char bufaux[block_size];
+  for(bufp=0;bufp<block_size;bufp++){
+    bufaux[bufp] = 'a';
+  }
+   
+  token = strtok(original_buf, s);
+  /* walk through other tokens */
+  while( token != NULL ) 
+  {
+
+      if(contwrites_b<0){
+        contwrites = atoll(token);
+        contwrites_b=1;
+      }
+
+      if(pids<0 && strcmp(token,"pid")==0){
+        token = strtok(NULL, s);
+        pids=atoi(token);
+        
+      }else{
+        if(times_b<0 && strcmp(token,"time")==0){
+          token = strtok(NULL, s);
+          times = atoll(token);
+          times_b=1;
+        }
+        else{
+          token = strtok(NULL, s);
+        }
+      }
+      
+  }
+
+  if(contwrites_b >= 0 && pids>=0 && times_b >=0){
+    sprintf(bufaux,"%llu pid %d time %llu ", (long long unsigned int)contwrites,pids,(long long unsigned int)times);
+  }
+  else{
+    if(contwrites_b>=0){
+      sprintf(bufaux,"%llu ", (long long unsigned int)contwrites);
+    }
+    else{
+      return -1;
+    }
+  }
+    
+  return memcmp(buf,bufaux, block_size);
+   
+}
+
+
+int compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size, FILE* fpi, int final_check){
+
+  char bufaux[block_size];
+  int i=0;
+
+  get_block_content(bufaux, infowrite, block_size);
+
+  if(memcmp(buf,bufaux,block_size)!=0){
+    i=check_block_content(buf, block_size);
+    if(i==0 && final_check==0){
+      fprintf(fpi,"There was a mismatch regarding the last content written for the block isth id %llu and the content read.\n", (long long unsigned int) infowrite.cont_id);
+      fprintf(fpi,"Such is possible if the workload being ran is a mixed IO workload\n");
+      fprintf(fpi,"Nevertheless the content of the block seems well built\n");
+      return 1;
+    }else{
+      fprintf(fpi, "Error checking integrity for block with contentid %llu\n", (long long unsigned int) infowrite.cont_id);
+      return 1;
+    }
+
+  }
+  return 0;
+}
+
+// Used to know the content of the next block that will be generated
+// Follows the duplicate distribution
+void get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info *info, struct stats *stat, int idproc, struct block_info *info_write){
+  
+  uint64_t contwrite;
+  struct timeval tim;
+
+  //initialize the buffer with duplicate content
+  int bufp = 0;
+  for(bufp=0;bufp<conf->block_size;bufp++){
+    buf[bufp] = 'a';
+  }
+
+  //TODO: Stats should be removed from here...
+
+  //get the content
+  contwrite = get_contentid(info);
+
+  //if the content to write is unique write to the buffer
+  //the unique counter of the process + "string"  + process id
+  //to be unique among processes the string invalidates to have
+  //an identical number from other oprocess
+  //timestamp is used for multiple DEDIS benchs to be different
+  if(contwrite>=info->duplicated_blocks){
+    //get current time for making this value unique for concurrent benchmarks
+    gettimeofday(&tim, NULL);
+    uint64_t tunique=tim.tv_sec*1000000+(tim.tv_usec);
+    sprintf(buf,"%llu pid %d time %llu ", (long long unsigned int)contwrite,idproc,(long long unsigned int)tunique);
+    stat->uni++;
+    //uni referes to unique blocks meaning that
+    // also counts 1 copy of each duplicated block
+    //zerodups only refers to blocks with only one copy (no duplicates)
+    stat->zerod++;
+    if(conf->distout==1){
+      *info->zerodups=*info->zerodups+1;
+    }
+
+    info_write->cont_id=contwrite;
+    info_write->procid=idproc;
+    info_write->ts=tunique;
+  }
+  //if it is duplicated write the result (index of sum) returned
+  //into the buffer
+  else{
+    sprintf(buf,"%llu ", (long long unsigned int)contwrite);
+    info_write->cont_id=contwrite;
+    info_write->procid=-1;
+    info_write->ts=-1;
+  }
+
+
+}
+
+
+int gen_outputdist(struct duplicates_info *info, DB **dbpor,DB_ENV **envpor){
 
 
 	uint64_t i=0;
-	for(i=0;i<duplicated_blocks;i++){
+	for(i=0;i<info->duplicated_blocks;i++){
 		//The array has the number of occurrences of a specific block
 		//the blocks
-		if(statistics[i]==1){
-			*zerodups=*zerodups+1;
+		if(info->statistics[i]==1){
+			*info->zerodups=*info->zerodups+1;
 		}
-		if(statistics[i]>1){
+		if(info->statistics[i]>1){
 
 			struct hash_value hvalue;
-			uint64_t ndups = statistics[i]-1;
+			uint64_t ndups = info->statistics[i]-1;
 
 			 //see if entry already exists and
 			 //Insert new value in hash for print number_of_duplicates->numberof blocks
@@ -415,13 +498,13 @@ int gen_outputdist(DB **dbpor,DB_ENV **envpor){
 	//if hash entry does not exist
 	if(retprint == DB_NOTFOUND){
 
-		hvalue.cont=*zerodups;
+		hvalue.cont=*info->zerodups;
 		//insert into into the hashtable
 		put_db_print(&ndups,&hvalue,dbpor,envpor);
 	}
 	else{
 	  //increase counter
-	  hvalue.cont+=*zerodups;
+	  hvalue.cont+=*info->zerodups;
 	  //insert counter in the right entry
 	  put_db_print(&ndups,&hvalue,dbpor,envpor);
     }
@@ -429,134 +512,3 @@ int gen_outputdist(DB **dbpor,DB_ENV **envpor){
 
 	return 0;
 }
-
-/*
-int gen_totalstatistics(DB **dbpor,DB_ENV **envpor){
-
-	//Iterate through statistics array to check duplicates
-
-	uint64_t i=0;
-	for(i=0;i<duplicated_blocks;i++){
-		//The array has the number of occurrences of a specific block
-		//the blocks
-
-		if(statistics[i]>=1){
-
-			struct hash_value hvalue;
-			uint64_t ndups = i;
-
-			 //see if entry already exists and
-			 //Insert new value in hash for print number_of_duplicates->numberof blocks
-			 int retprint = get_db_print(&ndups,&hvalue,dbpor,envpor);
-
-			 //if hash entry does not exist
-			 if(retprint == DB_NOTFOUND){
-
-				  hvalue.cont=statistics[i];
-				  //insert into into the hashtable
-				  put_db_print(&ndups,&hvalue,dbpor,envpor);
-			 }
-			 else{
-
-				  //increase counter
-				  hvalue.cont+=statistics[i];
-				  //insert counter in the right entry
-				  put_db_print(&ndups,&hvalue,dbpor,envpor);
-			 }
-
-		}
-
-	}
-
-
-	return 0;
-}
-
-
-int gen_zerodupsdist(DB **dbpor,DB_ENV **envpor){
-
-	    //now insert zerodup
-		struct hash_value hvalue;
-		uint64_t ndups = 0;
-
-		//see if entry already exists and
-		//Insert new value in hash for print number_of_duplicates->numberof blocks
-		int retprint = get_db_print(&ndups,&hvalue,dbpor,envpor);
-
-		printf("current value %llu\n inserting more %llu\n",hvalue.cont,zerodups);
-		//if hash entry does not exist
-		if(retprint == DB_NOTFOUND){
-
-			hvalue.cont=zerodups;
-			//insert into into the hashtable
-			put_db_print(&ndups,&hvalue,dbpor,envpor);
-		 }
-		 else{
-
-		    //increase counter
-			hvalue.cont+=zerodups;
-			//insert counter in the right entry
-			put_db_print(&ndups,&hvalue,dbpor,envpor);
-		}
-
-	return 0;
-}
-
-
-int gen_statisticsdist(DB **dbpor,DB_ENV **envpor,DB **dbprint,DB_ENV **envprint){
-
-	//Iterate through original DB and insert in print DB
-	int ret;
-
-	DBT key, data;
-
-	DBC *cursorp;
-
-	(*dbpor)->cursor(*dbpor, NULL, &cursorp, 0);
-
-	// Initialize our DBTs.
-	memset(&key, 0, sizeof(DBT));
-	memset(&data, 0, sizeof(DBT));
-	// Iterate over the database, retrieving each record in turn.
-	while ((ret = cursorp->get(cursorp, &key, &data, DB_NEXT)) == 0) {
-
-	   //get hash from berkley db
-	   struct hash_value hvalue;
-	   uint64_t ndups = (unsigned long long int)((struct hash_value *)data.data)->cont;
-	   ndups=ndups-1;
-	   //char ndups[25];
-
-	   //key
-	   //sprintf(ndups,"%llu",(unsigned long long int)((struct hash_value *)data.data)->cont);
-
-	   //see if entry already exists and
-	   //Insert new value in hash for print number_of_duplicates->numberof blocks
-	   int retprint = get_db_print(&ndups,&hvalue,dbprint,envprint);
-
-	   //if hash entry does not exist
-	   if(retprint == DB_NOTFOUND){
-
-		  hvalue.cont=1;
-		  //insert into into the hashtable
-		  put_db_print(&ndups,&hvalue,dbprint,envprint);
-       }
-	   else{
-
-		  //increase counter
-		  hvalue.cont++;
-		  //insert counter in the right entry
-		  put_db_print(&ndups,&hvalue,dbprint,envprint);
-       }
-
-	}
-	if (ret != DB_NOTFOUND) {
-	    perror("failed while iterating");
-	}
-
-
-	if (cursorp != NULL)
-	    cursorp->close(cursorp);
-
-	return 0;
-}*/
-

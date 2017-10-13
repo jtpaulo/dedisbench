@@ -6,23 +6,11 @@
 #define _FILE_OFFSET_BITS 64 
 #define _GNU_SOURCE
 
-#include <stdio.h>
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
+#include <math.h>
 #include <stdlib.h>
-#include <strings.h>
 #include <string.h>
-#include <pthread.h>
-#include <signal.h>
-#include <db.h>
-
-//correspondent value for each hash entry at the DHT
-struct hash_value {
-    uint64_t cont;
-};
-
+#include <assert.h>
+#include "berk.h"
 
 //************************************************* DB functions ********************************
 
@@ -146,7 +134,8 @@ int close_db(DB **dbp, DB_ENV ** envp){
 
 int remove_db(char *nome, DB **dbp, DB_ENV **envp){
 
-	char fullpath[100];
+  int size=strlen(nome)+10;
+	char fullpath[size];
 	strcpy(fullpath,nome);
 	strcat(fullpath,"dht.db");
 
@@ -334,14 +323,44 @@ int get_db_print(uint64_t *hash, struct hash_value *hvalue,DB **dbp, DB_ENV **en
 
 }
 
+static int powr(int base, int power){
+	int result = 1;
+	while(power){
+		if(power & 1)
+			result *= base;
+		power /= 2;
+		base *= base;
+	}
+	return result;
+}
 
-int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp){
+static int find_bucket( unsigned long long int key ){
+	int bucket = 0;
+	while(key){
+		key /= 10;
+		bucket++;
+	}
+	return bucket;
+}
 
-  int ret;
+int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
+  int ret, init = 1, final = 10, max = 0;
 
+  // [1:5[[5:10[[10:50[[50:100[[100:500[[500:1000[
+  //P ---10¹---  ------10²----  ------10³--------
+  /* how to compute the appropriate size of the array */
+  int dups_len = 50;
+  unsigned long long int *dups = calloc(dups_len, sizeof(unsigned long long int));
+  memset(dups, 0, sizeof(unsigned long long int)*dups_len);
+  /*
+  unsigned long long int dups[50];
+  memset(dups, 0, sizeof(unsigned long long int)*50);
+  */
   DBT key, data;
 
   DBC *cursorp;
+
+  //FILE* nfp = fopen("dist4096inter", "w");
 
   (*dbp)->cursor(*dbp, NULL, &cursorp, 0);
 
@@ -350,11 +369,60 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp){
   memset(&data, 0, sizeof(DBT));
   /* Iterate over the database, retrieving each record in turn. */
   while ((ret = cursorp->get(cursorp, &key, &data, DB_NEXT)) == 0) {
-    /* Do interesting things with the DBTs here. */
+   /* Do interesting things with the DBTs here. */
    fprintf(fp,"%llu %llu\n",(unsigned long long int)*((uint64_t *)key.data),(unsigned long long int)((struct hash_value *)data.data)->cont);
-   //printf("%llu %llu\n",(unsigned long long int)*((uint64_t *)key.data),(unsigned long long int)((struct hash_value *)data.data)->cont);
-
+   
+   if(!(unsigned long long int)*((uint64_t *)key.data)){
+	   fprintf(fpcumul, "[0] %llu\n", (unsigned long long int)((struct hash_value *)data.data)->cont);
+   
+   }
+   else{ 
+	   unsigned long long int key_data = (unsigned long long int)*((uint64_t *)key.data);
+	   unsigned long long int data_data = (unsigned long long int)((struct hash_value *)data.data)->cont;
+	   
+	   int bucket = find_bucket(key_data);
+	   int power = powr(10, bucket);
+	   int arr_pos;
+	   if(key_data >= power/2){
+		   arr_pos = bucket*2;
+		   max = bucket*2 > max ? bucket*2 : max;
+	   }else{
+		   arr_pos = (bucket*2)-1;
+		   max = (bucket*2)-1 > max ? (bucket*2)-1 : max;
+	   }
+	   if(arr_pos > dups_len){
+		   dups = realloc(dups, sizeof(unsigned long long int)*dups_len*2);
+		   memset(dups + sizeof(unsigned long long int)*(dups_len+1), 0, sizeof(unsigned long long int)*dups_len);
+		   dups_len *= 2;
+	   }
+	   
+	   dups[arr_pos]+=data_data;
+//	   dups[bucket] += data_data;
+   }
   }
+
+  int i;
+  for(i=max; i >= 0 && dups[i] <= 300; i--){
+		  dups[i-1] += dups[i];
+		  dups[i] = 0;
+  }
+ 
+  i = 1; 
+  while(i<dups_len){
+	  if(dups[i])
+		fprintf(fpcumul, "[%d,%d[ %llu\n", init, final>>1, dups[i++]);
+	  else
+		  i++;
+
+	  if(i < dups_len && dups[i])
+		fprintf(fpcumul, "[%d,%d[ %llu\n", final>>1, init*10, dups[i++]);
+	  else
+		  i++;
+
+	  init = final;
+	  final *= 10;
+  }
+  
   if (ret != DB_NOTFOUND) {
     /* Error handling goes here */
   }
@@ -363,6 +431,7 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp){
   if (cursorp != NULL)
     cursorp->close(cursorp);
 
+/*  fclose(nfp); */
   return 0;
 }
 

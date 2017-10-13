@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <fcntl.h>
-#include "berk.c"
+#include "utils/db/berk.h"
 
 //max path size of a folder/file
 #define MAXSIZEP 10000
@@ -282,7 +282,7 @@ int main (int argc, char *argv[]){
 		printf("Printing output distribution\n");
 		FILE* fpp=fopen(outputpath,"w");
 
-		print_elements_print(dbprinter, envprinter,fpp);
+		print_elements_print(dbprinter, envprinter,fpp, NULL);
 		fclose(fpp);
 
 		close_db(dbprinter,envprinter);
