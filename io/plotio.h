@@ -26,6 +26,6 @@ void write_latency_throughput_snaps(struct stats*, struct user_confs*, char*);
 //
 // processes and writes accesses data
 //
-void write_access_data(const uint64_t* accessesarray, struct user_confs* conf, char* id);
+int write_access_data(const uint64_t* accessesarray, struct user_confs* conf, char* id);
 
 #endif

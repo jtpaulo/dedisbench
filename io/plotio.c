@@ -9,7 +9,8 @@ static int find_bucket(unsigned long long int i){
 }
 
 
-void write_access_data(const uint64_t* accessesarray, struct user_confs* conf, char* id){
+int write_access_data(const uint64_t* accessesarray, struct user_confs* conf, char* id){
+	int ret = 0;
 	char plotfile_dir[256] = "results/accesses/";
 	char cumul_acc_file_dir[256] = "results/accesses/";
 	char acc_file_dir[256] = "results/accesses/";
@@ -35,12 +36,24 @@ void write_access_data(const uint64_t* accessesarray, struct user_confs* conf, c
  	strcat(acc_file_dir, conf->accessfilelog);	
 	//print distribution file
   	fpp=fopen(acc_file_dir,"w");
-	fpcumul=fopen(cumul_acc_file_dir,"w");
-
-	fpplot=fopen(plotfile_dir, "w");
-	if(!fpplot){
-		printf("FUUUUCK\n");
+	if(!fpp)
+	{
+		ret = 1;
+		return ret;
 	}
+	fpcumul=fopen(cumul_acc_file_dir,"w");
+	if(!fpcumul)
+	{
+		ret = 1;
+		return ret;
+	}
+	fpplot=fopen(plotfile_dir, "w");
+	if(!fpplot)
+	{
+		ret = 1;
+		return ret;
+	}
+	
 	write_plot_file_accesses(fpplot, cumulaccfile);
 	fclose(fpplot);
 

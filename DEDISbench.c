@@ -468,7 +468,10 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   }
   
   if(conf->accesslog==1){
-	  write_access_data(acessesarray, conf, id);
+	  int r = write_access_data(acessesarray, conf, id);
+	  if(r == 1){
+		  printf("Couldnt create access files.");
+	  }
   }
  
 
