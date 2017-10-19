@@ -130,6 +130,8 @@ int write_access_data(const uint64_t* accessesarray, struct user_confs* conf, ch
 	}else{
 		printf("Process touched %llu blocks totalling %llu MB. Process wrote %llu MB (including block rewrite)\n", (unsigned long long int) pos_touched, (unsigned long long int) (pos_touched*conf->block_size)/1024/1024, (unsigned long long int) bytes_processed/1024/1024);
 	}
+
+	return ret;
 }
 
 
