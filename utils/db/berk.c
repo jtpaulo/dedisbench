@@ -383,6 +383,12 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
 	   int bucket = find_bucket(key_data);
 	   int power = powr(10, bucket);
 	   int arr_pos;
+
+	   if(key_data >= power){
+		   bucket++;
+		   power *= 10;
+	   }
+
 	   if(key_data >= power/2){
 		   arr_pos = bucket*2;
 		   max = bucket*2 > max ? bucket*2 : max;
@@ -390,9 +396,9 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
 		   arr_pos = (bucket*2)-1;
 		   max = (bucket*2)-1 > max ? (bucket*2)-1 : max;
 	   }
-	   if(arr_pos > dups_len){
+	   if(arr_pos >= dups_len){
 		   dups = realloc(dups, sizeof(unsigned long long int)*dups_len*2);
-		   memset(dups + sizeof(unsigned long long int)*(dups_len+1), 0, sizeof(unsigned long long int)*dups_len);
+		   memset(dups + dups_len, 0, sizeof(unsigned long long int)*dups_len);
 		   dups_len *= 2;
 	   }
 	   

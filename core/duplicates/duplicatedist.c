@@ -377,7 +377,6 @@ int compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size, 
 
   char bufaux[block_size];
   int i=0;
-
   get_block_content(bufaux, infowrite, block_size);
 
   if(memcmp(buf,bufaux,block_size)!=0){

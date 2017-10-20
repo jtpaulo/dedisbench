@@ -332,7 +332,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 			int pos = (conf->rawdevice==1) ? 0 : idproc;
 			integrity_errors+=compare_blocks(buf, info->content_tracker[pos][iooffset/conf->block_size], conf->block_size, fpi, 0);
-
+			
        	}
 
 		if(res != conf->block_size){
@@ -357,6 +357,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		  //write in the log the operation latency
 		  fprintf(fres,"%llu %llu\n", (long long unsigned int) t2-t1, (long long unsigned int) t2s);
 		}
+		
      }
 
 	 free(buf);
@@ -464,7 +465,9 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   }
 
   if(conf->printtofile==1){
-	  write_latency_throughput_snaps(&stat, conf, id);
+	  int r = write_latency_throughput_snaps(&stat, conf, id);
+	  if(r == 1)
+		  printf("Couldnt create latency and throughput files.");
   }
   
   if(conf->accesslog==1){
@@ -1015,8 +1018,8 @@ int main(int argc, char *argv[]){
     conf.envpdist=malloc(sizeof(DB_ENV *));
 
     remove_db(DISTDB,conf.dbpdist,conf.envpdist);
-
-    launch_benchmark(&conf, &info);
+    
+	launch_benchmark(&conf, &info);
 
     if(conf.distout==1){
     	init_db(DISTDB,conf.dbpdist,conf.envpdist);

@@ -74,7 +74,7 @@ int write_access_data(const uint64_t* accessesarray, struct user_confs* conf, ch
 
 	//unsigned long long int acs[8];
 	//memset(acs, 0, sizeof(unsigned long long int)*8);
-	int acs_len =  8;
+	int acs_len = 8;
 	unsigned long long int* acs = calloc(acs_len, sizeof(unsigned long long int));
 	int init = 1, final = 10;
 
@@ -90,15 +90,22 @@ int write_access_data(const uint64_t* accessesarray, struct user_confs* conf, ch
 		int bucket = find_bucket((unsigned long long int) accessesarray[iter]);
 		int power = powr(10, bucket);
 		int arr_pos;
-		if((unsigned long long int) accessesarray[iter] >= (power/2))
+		
+		if((unsigned long long int) accessesarray[iter] >= power){
+			bucket++;
+			power *= 10;
+		}
+
+		if((unsigned long long int) accessesarray[iter] >= (power/2)){
 			arr_pos = bucket*2;
-		else{
+		}else{
 			arr_pos = (bucket*2)-1;
 		}
-		if(arr_pos > acs_len)
+
+		if(arr_pos >= acs_len)
 		{
 			acs = realloc(acs, sizeof(unsigned long long int)*acs_len*2);
-			memset(acs + sizeof(unsigned long long int)*(acs_len+1), 0, sizeof(unsigned long long int)*acs_len);
+			memset(acs + (acs_len), 0, sizeof(unsigned long long int)*acs_len);
 			acs_len *= 2;
 		}
 		acs[arr_pos]++;
@@ -155,7 +162,7 @@ static void write_snapthr_data(struct stats* stat, int index, FILE* f, FILE* fco
 	fprintf(f,"%llu 0 0\n",(unsigned long long int)stat->beginio);
 	for(;index < stat->iter_snap; index++){
 		if(f)
-			fprintf(f, "%llu %.3f %f\n", (unsigned long long int) stat->snap_time[index], stat->snap_latency[index], stat->snap_ops[index]);
+			fprintf(f, "%llu %.3f %f\n", (unsigned long long int) stat->snap_time[index], stat->snap_throughput[index], stat->snap_ops[index]);
 		if(fcompat)
 			fprintf(fcompat, "%d %.3f %f\n", (index)*30,stat->snap_throughput[index],stat->snap_ops[index]);
 	}
@@ -164,10 +171,9 @@ static void write_snapthr_data(struct stats* stat, int index, FILE* f, FILE* fco
 
 
 
-void write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf, char* id)
+int write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf, char* id)
 {
-	  //SNAP printing
-	  // throughput
+	  int ret = 0;
 	  
 	  //dir for raw file (unprocessed data) 
 	  char snap_thr_dir_out[256] = "results/latthr/";
@@ -217,16 +223,32 @@ void write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf,
 	 
 	  // write latency data 
 	  FILE* pf=fopen(snap_lat_dir_out,"a");
+	  if(!pf){
+		  ret = 1;
+		  return ret;
+	  }
 	  fprintf(pf,"%llu 0 0\n", (unsigned long long int)stat->beginio);
 	  
 	  FILE* pfcompat = fopen(snap_lat_dir_compat,"w");
+	  if(!pfcompat){
+		  ret = 1;
+		  return ret;
+	  }
 	  write_snaplat_data(stat, conf->start+1, pf, pfcompat); 
 	  fclose(pf);
 	  fclose(pfcompat);
 	
 	  // write throughput data 
 	  pf=fopen(snap_thr_dir_out,"a"); 
+	  if(!pf){
+		  ret = 1;
+		  return ret;
+	  }
 	  pfcompat = fopen(snap_thr_dir_compat,"w");
+	  if(!pfcompat){
+		  ret = 1;
+		  return ret;
+	  }
 
 	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat->beginio);
 	  
@@ -246,8 +268,14 @@ void write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf,
 	  
 	  // write plot file 
 	  pf = fopen(snap_plot_dir, "w");
+	  if(!pf){
+		  ret = 1;
+		  return ret;
+	  }
 	  write_plot_file_latency_throughput(pf,conf->distfile, snaplatfmt, snapthrfmt);
 	  fclose(pf);
+	  
+	  return ret;
 }
 
 

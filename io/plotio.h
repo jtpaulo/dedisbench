@@ -21,7 +21,7 @@ void write_plot_file_accesses(FILE*, char*);
 //
 // processes latency and throughput data a writes it to file
 //
-void write_latency_throughput_snaps(struct stats*, struct user_confs*, char*);
+int write_latency_throughput_snaps(struct stats*, struct user_confs*, char*);
 
 //
 // processes and writes accesses data
