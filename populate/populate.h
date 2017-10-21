@@ -1,5 +1,6 @@
 /* DEDISbench
- * (c) 2010 2010 U. Minho. Written by J. Paulo
+ * (c) 2010 2017 INESC TEC and U. Minho
+ * Written by J. Paulo
  */
 
 #ifndef POPULATE_H

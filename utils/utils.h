@@ -1,3 +1,8 @@
+/* DEDISbench
+ * (c) 2010 2017 INESC TEC and U. Minho
+ * Written by M. Freitas
+ */
+
 #ifndef UTILS_H
 #define UTILS_H
 

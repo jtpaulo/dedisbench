@@ -1,6 +1,6 @@
 ###### DEDISbench and DEDISgen
 
-(c) 2017 2017 INESC TEC, HASLab and U. Minho. Written by J. Paulo, M. Freitas
+(c) 2010 2017 INESC TEC and U. Minho. Written by J. Paulo, M. Freitas
 
 # DEDISbench and DEDISgen
 
