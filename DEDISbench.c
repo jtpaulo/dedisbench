@@ -20,13 +20,13 @@
 #include "parserconf/inih/ini.h"
 
 #include "utils/random/random.h"
-#include "core/duplicates/duplicatedist.h"
-#include "core/accesses/iodist.h"
+#include "benchcore/duplicates/duplicatedist.h"
+#include "benchcore/accesses/iodist.h"
 #include "utils/db/berk.h"
-#include "core/sharedmem/sharedmem.h"
+#include "benchcore/sharedmem/sharedmem.h"
 #include "populate/populate.h"
 #include "structs/defines.h"
-#include "core/io.h"
+#include "benchcore/io.h"
 #include "io/plotio.h"
 #include "utils/utils.h"
 

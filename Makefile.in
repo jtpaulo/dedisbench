@@ -106,11 +106,11 @@ PROGRAMS = $(bin_PROGRAMS)
 am__dirstamp = $(am__leading_dot)dirstamp
 am_DEDISbench_OBJECTS = utils/random/DEDISbench-random.$(OBJEXT) \
 	utils/db/DEDISbench-berk.$(OBJEXT) \
-	core/duplicates/DEDISbench-duplicatedist.$(OBJEXT) \
-	core/accesses/DEDISbench-iodist.$(OBJEXT) \
-	core/DEDISbench-io.$(OBJEXT) \
+	benchcore/duplicates/DEDISbench-duplicatedist.$(OBJEXT) \
+	benchcore/accesses/DEDISbench-iodist.$(OBJEXT) \
+	benchcore/DEDISbench-io.$(OBJEXT) \
 	populate/DEDISbench-populate.$(OBJEXT) \
-	core/sharedmem/DEDISbench-sharedmem.$(OBJEXT) \
+	benchcore/sharedmem/DEDISbench-sharedmem.$(OBJEXT) \
 	DEDISbench-DEDISbench.$(OBJEXT) \
 	parserconf/inih/DEDISbench-ini.$(OBJEXT) \
 	io/DEDISbench-plotio.$(OBJEXT) \
@@ -309,7 +309,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = subdir-objects
-DEDISbench_SOURCES = utils/random/random.c utils/db/berk.c structs/structs.h core/duplicates/duplicatedist.c core/accesses/iodist.c core/io.c populate/populate.c core/sharedmem/sharedmem.c DEDISbench.c parserconf/inih/ini.c io/plotio.c utils/utils.c
+DEDISbench_SOURCES = utils/random/random.c utils/db/berk.c structs/structs.h benchcore/duplicates/duplicatedist.c benchcore/accesses/iodist.c benchcore/io.c populate/populate.c benchcore/sharedmem/sharedmem.c DEDISbench.c parserconf/inih/ini.c io/plotio.c utils/utils.c
 DEDISbench_CFLAGS = -Wall -Iutils/random/randomgen -DINI_INLINE_COMMENT_PREFIXES=\"\#\"
 DEDISgen_SOURCES = DEDISgen.c utils/db/berk.c
 DEDISgen_CFLAGS = -Wall
@@ -429,32 +429,32 @@ utils/db/$(DEPDIR)/$(am__dirstamp):
 	@: > utils/db/$(DEPDIR)/$(am__dirstamp)
 utils/db/DEDISbench-berk.$(OBJEXT): utils/db/$(am__dirstamp) \
 	utils/db/$(DEPDIR)/$(am__dirstamp)
-core/duplicates/$(am__dirstamp):
-	@$(MKDIR_P) core/duplicates
-	@: > core/duplicates/$(am__dirstamp)
-core/duplicates/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) core/duplicates/$(DEPDIR)
-	@: > core/duplicates/$(DEPDIR)/$(am__dirstamp)
-core/duplicates/DEDISbench-duplicatedist.$(OBJEXT):  \
-	core/duplicates/$(am__dirstamp) \
-	core/duplicates/$(DEPDIR)/$(am__dirstamp)
-core/accesses/$(am__dirstamp):
-	@$(MKDIR_P) core/accesses
-	@: > core/accesses/$(am__dirstamp)
-core/accesses/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) core/accesses/$(DEPDIR)
-	@: > core/accesses/$(DEPDIR)/$(am__dirstamp)
-core/accesses/DEDISbench-iodist.$(OBJEXT):  \
-	core/accesses/$(am__dirstamp) \
-	core/accesses/$(DEPDIR)/$(am__dirstamp)
-core/$(am__dirstamp):
-	@$(MKDIR_P) core
-	@: > core/$(am__dirstamp)
-core/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) core/$(DEPDIR)
-	@: > core/$(DEPDIR)/$(am__dirstamp)
-core/DEDISbench-io.$(OBJEXT): core/$(am__dirstamp) \
-	core/$(DEPDIR)/$(am__dirstamp)
+benchcore/duplicates/$(am__dirstamp):
+	@$(MKDIR_P) benchcore/duplicates
+	@: > benchcore/duplicates/$(am__dirstamp)
+benchcore/duplicates/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) benchcore/duplicates/$(DEPDIR)
+	@: > benchcore/duplicates/$(DEPDIR)/$(am__dirstamp)
+benchcore/duplicates/DEDISbench-duplicatedist.$(OBJEXT):  \
+	benchcore/duplicates/$(am__dirstamp) \
+	benchcore/duplicates/$(DEPDIR)/$(am__dirstamp)
+benchcore/accesses/$(am__dirstamp):
+	@$(MKDIR_P) benchcore/accesses
+	@: > benchcore/accesses/$(am__dirstamp)
+benchcore/accesses/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) benchcore/accesses/$(DEPDIR)
+	@: > benchcore/accesses/$(DEPDIR)/$(am__dirstamp)
+benchcore/accesses/DEDISbench-iodist.$(OBJEXT):  \
+	benchcore/accesses/$(am__dirstamp) \
+	benchcore/accesses/$(DEPDIR)/$(am__dirstamp)
+benchcore/$(am__dirstamp):
+	@$(MKDIR_P) benchcore
+	@: > benchcore/$(am__dirstamp)
+benchcore/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) benchcore/$(DEPDIR)
+	@: > benchcore/$(DEPDIR)/$(am__dirstamp)
+benchcore/DEDISbench-io.$(OBJEXT): benchcore/$(am__dirstamp) \
+	benchcore/$(DEPDIR)/$(am__dirstamp)
 populate/$(am__dirstamp):
 	@$(MKDIR_P) populate
 	@: > populate/$(am__dirstamp)
@@ -463,15 +463,15 @@ populate/$(DEPDIR)/$(am__dirstamp):
 	@: > populate/$(DEPDIR)/$(am__dirstamp)
 populate/DEDISbench-populate.$(OBJEXT): populate/$(am__dirstamp) \
 	populate/$(DEPDIR)/$(am__dirstamp)
-core/sharedmem/$(am__dirstamp):
-	@$(MKDIR_P) core/sharedmem
-	@: > core/sharedmem/$(am__dirstamp)
-core/sharedmem/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) core/sharedmem/$(DEPDIR)
-	@: > core/sharedmem/$(DEPDIR)/$(am__dirstamp)
-core/sharedmem/DEDISbench-sharedmem.$(OBJEXT):  \
-	core/sharedmem/$(am__dirstamp) \
-	core/sharedmem/$(DEPDIR)/$(am__dirstamp)
+benchcore/sharedmem/$(am__dirstamp):
+	@$(MKDIR_P) benchcore/sharedmem
+	@: > benchcore/sharedmem/$(am__dirstamp)
+benchcore/sharedmem/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) benchcore/sharedmem/$(DEPDIR)
+	@: > benchcore/sharedmem/$(DEPDIR)/$(am__dirstamp)
+benchcore/sharedmem/DEDISbench-sharedmem.$(OBJEXT):  \
+	benchcore/sharedmem/$(am__dirstamp) \
+	benchcore/sharedmem/$(DEPDIR)/$(am__dirstamp)
 parserconf/inih/$(am__dirstamp):
 	@$(MKDIR_P) parserconf/inih
 	@: > parserconf/inih/$(am__dirstamp)
@@ -516,10 +516,10 @@ DEDISgenutils$(EXEEXT): $(DEDISgenutils_OBJECTS) $(DEDISgenutils_DEPENDENCIES) $
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
-	-rm -f core/*.$(OBJEXT)
-	-rm -f core/accesses/*.$(OBJEXT)
-	-rm -f core/duplicates/*.$(OBJEXT)
-	-rm -f core/sharedmem/*.$(OBJEXT)
+	-rm -f benchcore/*.$(OBJEXT)
+	-rm -f benchcore/accesses/*.$(OBJEXT)
+	-rm -f benchcore/duplicates/*.$(OBJEXT)
+	-rm -f benchcore/sharedmem/*.$(OBJEXT)
 	-rm -f io/*.$(OBJEXT)
 	-rm -f parserconf/inih/*.$(OBJEXT)
 	-rm -f populate/*.$(OBJEXT)
@@ -533,10 +533,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DEDISbench-DEDISbench.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DEDISgen-DEDISgen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DEDISgenutils-DEDISgen-utils.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@core/$(DEPDIR)/DEDISbench-io.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@core/accesses/$(DEPDIR)/DEDISbench-iodist.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@benchcore/$(DEPDIR)/DEDISbench-io.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@benchcore/accesses/$(DEPDIR)/DEDISbench-iodist.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@benchcore/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@benchcore/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@io/$(DEPDIR)/DEDISbench-plotio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@parserconf/inih/$(DEPDIR)/DEDISbench-ini.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@populate/$(DEPDIR)/DEDISbench-populate.Po@am__quote@
@@ -590,47 +590,47 @@ utils/db/DEDISbench-berk.obj: utils/db/berk.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o utils/db/DEDISbench-berk.obj `if test -f 'utils/db/berk.c'; then $(CYGPATH_W) 'utils/db/berk.c'; else $(CYGPATH_W) '$(srcdir)/utils/db/berk.c'; fi`
 
-core/duplicates/DEDISbench-duplicatedist.o: core/duplicates/duplicatedist.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/duplicates/DEDISbench-duplicatedist.o -MD -MP -MF core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo -c -o core/duplicates/DEDISbench-duplicatedist.o `test -f 'core/duplicates/duplicatedist.c' || echo '$(srcdir)/'`core/duplicates/duplicatedist.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/duplicates/duplicatedist.c' object='core/duplicates/DEDISbench-duplicatedist.o' libtool=no @AMDEPBACKSLASH@
+benchcore/duplicates/DEDISbench-duplicatedist.o: benchcore/duplicates/duplicatedist.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT benchcore/duplicates/DEDISbench-duplicatedist.o -MD -MP -MF benchcore/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo -c -o benchcore/duplicates/DEDISbench-duplicatedist.o `test -f 'benchcore/duplicates/duplicatedist.c' || echo '$(srcdir)/'`benchcore/duplicates/duplicatedist.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) benchcore/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo benchcore/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='benchcore/duplicates/duplicatedist.c' object='benchcore/duplicates/DEDISbench-duplicatedist.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/duplicates/DEDISbench-duplicatedist.o `test -f 'core/duplicates/duplicatedist.c' || echo '$(srcdir)/'`core/duplicates/duplicatedist.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o benchcore/duplicates/DEDISbench-duplicatedist.o `test -f 'benchcore/duplicates/duplicatedist.c' || echo '$(srcdir)/'`benchcore/duplicates/duplicatedist.c
 
-core/duplicates/DEDISbench-duplicatedist.obj: core/duplicates/duplicatedist.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/duplicates/DEDISbench-duplicatedist.obj -MD -MP -MF core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo -c -o core/duplicates/DEDISbench-duplicatedist.obj `if test -f 'core/duplicates/duplicatedist.c'; then $(CYGPATH_W) 'core/duplicates/duplicatedist.c'; else $(CYGPATH_W) '$(srcdir)/core/duplicates/duplicatedist.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo core/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/duplicates/duplicatedist.c' object='core/duplicates/DEDISbench-duplicatedist.obj' libtool=no @AMDEPBACKSLASH@
+benchcore/duplicates/DEDISbench-duplicatedist.obj: benchcore/duplicates/duplicatedist.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT benchcore/duplicates/DEDISbench-duplicatedist.obj -MD -MP -MF benchcore/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo -c -o benchcore/duplicates/DEDISbench-duplicatedist.obj `if test -f 'benchcore/duplicates/duplicatedist.c'; then $(CYGPATH_W) 'benchcore/duplicates/duplicatedist.c'; else $(CYGPATH_W) '$(srcdir)/benchcore/duplicates/duplicatedist.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) benchcore/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Tpo benchcore/duplicates/$(DEPDIR)/DEDISbench-duplicatedist.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='benchcore/duplicates/duplicatedist.c' object='benchcore/duplicates/DEDISbench-duplicatedist.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/duplicates/DEDISbench-duplicatedist.obj `if test -f 'core/duplicates/duplicatedist.c'; then $(CYGPATH_W) 'core/duplicates/duplicatedist.c'; else $(CYGPATH_W) '$(srcdir)/core/duplicates/duplicatedist.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o benchcore/duplicates/DEDISbench-duplicatedist.obj `if test -f 'benchcore/duplicates/duplicatedist.c'; then $(CYGPATH_W) 'benchcore/duplicates/duplicatedist.c'; else $(CYGPATH_W) '$(srcdir)/benchcore/duplicates/duplicatedist.c'; fi`
 
-core/accesses/DEDISbench-iodist.o: core/accesses/iodist.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/accesses/DEDISbench-iodist.o -MD -MP -MF core/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo -c -o core/accesses/DEDISbench-iodist.o `test -f 'core/accesses/iodist.c' || echo '$(srcdir)/'`core/accesses/iodist.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo core/accesses/$(DEPDIR)/DEDISbench-iodist.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/accesses/iodist.c' object='core/accesses/DEDISbench-iodist.o' libtool=no @AMDEPBACKSLASH@
+benchcore/accesses/DEDISbench-iodist.o: benchcore/accesses/iodist.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT benchcore/accesses/DEDISbench-iodist.o -MD -MP -MF benchcore/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo -c -o benchcore/accesses/DEDISbench-iodist.o `test -f 'benchcore/accesses/iodist.c' || echo '$(srcdir)/'`benchcore/accesses/iodist.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) benchcore/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo benchcore/accesses/$(DEPDIR)/DEDISbench-iodist.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='benchcore/accesses/iodist.c' object='benchcore/accesses/DEDISbench-iodist.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/accesses/DEDISbench-iodist.o `test -f 'core/accesses/iodist.c' || echo '$(srcdir)/'`core/accesses/iodist.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o benchcore/accesses/DEDISbench-iodist.o `test -f 'benchcore/accesses/iodist.c' || echo '$(srcdir)/'`benchcore/accesses/iodist.c
 
-core/accesses/DEDISbench-iodist.obj: core/accesses/iodist.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/accesses/DEDISbench-iodist.obj -MD -MP -MF core/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo -c -o core/accesses/DEDISbench-iodist.obj `if test -f 'core/accesses/iodist.c'; then $(CYGPATH_W) 'core/accesses/iodist.c'; else $(CYGPATH_W) '$(srcdir)/core/accesses/iodist.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo core/accesses/$(DEPDIR)/DEDISbench-iodist.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/accesses/iodist.c' object='core/accesses/DEDISbench-iodist.obj' libtool=no @AMDEPBACKSLASH@
+benchcore/accesses/DEDISbench-iodist.obj: benchcore/accesses/iodist.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT benchcore/accesses/DEDISbench-iodist.obj -MD -MP -MF benchcore/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo -c -o benchcore/accesses/DEDISbench-iodist.obj `if test -f 'benchcore/accesses/iodist.c'; then $(CYGPATH_W) 'benchcore/accesses/iodist.c'; else $(CYGPATH_W) '$(srcdir)/benchcore/accesses/iodist.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) benchcore/accesses/$(DEPDIR)/DEDISbench-iodist.Tpo benchcore/accesses/$(DEPDIR)/DEDISbench-iodist.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='benchcore/accesses/iodist.c' object='benchcore/accesses/DEDISbench-iodist.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/accesses/DEDISbench-iodist.obj `if test -f 'core/accesses/iodist.c'; then $(CYGPATH_W) 'core/accesses/iodist.c'; else $(CYGPATH_W) '$(srcdir)/core/accesses/iodist.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o benchcore/accesses/DEDISbench-iodist.obj `if test -f 'benchcore/accesses/iodist.c'; then $(CYGPATH_W) 'benchcore/accesses/iodist.c'; else $(CYGPATH_W) '$(srcdir)/benchcore/accesses/iodist.c'; fi`
 
-core/DEDISbench-io.o: core/io.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/DEDISbench-io.o -MD -MP -MF core/$(DEPDIR)/DEDISbench-io.Tpo -c -o core/DEDISbench-io.o `test -f 'core/io.c' || echo '$(srcdir)/'`core/io.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/$(DEPDIR)/DEDISbench-io.Tpo core/$(DEPDIR)/DEDISbench-io.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/io.c' object='core/DEDISbench-io.o' libtool=no @AMDEPBACKSLASH@
+benchcore/DEDISbench-io.o: benchcore/io.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT benchcore/DEDISbench-io.o -MD -MP -MF benchcore/$(DEPDIR)/DEDISbench-io.Tpo -c -o benchcore/DEDISbench-io.o `test -f 'benchcore/io.c' || echo '$(srcdir)/'`benchcore/io.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) benchcore/$(DEPDIR)/DEDISbench-io.Tpo benchcore/$(DEPDIR)/DEDISbench-io.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='benchcore/io.c' object='benchcore/DEDISbench-io.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/DEDISbench-io.o `test -f 'core/io.c' || echo '$(srcdir)/'`core/io.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o benchcore/DEDISbench-io.o `test -f 'benchcore/io.c' || echo '$(srcdir)/'`benchcore/io.c
 
-core/DEDISbench-io.obj: core/io.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/DEDISbench-io.obj -MD -MP -MF core/$(DEPDIR)/DEDISbench-io.Tpo -c -o core/DEDISbench-io.obj `if test -f 'core/io.c'; then $(CYGPATH_W) 'core/io.c'; else $(CYGPATH_W) '$(srcdir)/core/io.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/$(DEPDIR)/DEDISbench-io.Tpo core/$(DEPDIR)/DEDISbench-io.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/io.c' object='core/DEDISbench-io.obj' libtool=no @AMDEPBACKSLASH@
+benchcore/DEDISbench-io.obj: benchcore/io.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT benchcore/DEDISbench-io.obj -MD -MP -MF benchcore/$(DEPDIR)/DEDISbench-io.Tpo -c -o benchcore/DEDISbench-io.obj `if test -f 'benchcore/io.c'; then $(CYGPATH_W) 'benchcore/io.c'; else $(CYGPATH_W) '$(srcdir)/benchcore/io.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) benchcore/$(DEPDIR)/DEDISbench-io.Tpo benchcore/$(DEPDIR)/DEDISbench-io.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='benchcore/io.c' object='benchcore/DEDISbench-io.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/DEDISbench-io.obj `if test -f 'core/io.c'; then $(CYGPATH_W) 'core/io.c'; else $(CYGPATH_W) '$(srcdir)/core/io.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o benchcore/DEDISbench-io.obj `if test -f 'benchcore/io.c'; then $(CYGPATH_W) 'benchcore/io.c'; else $(CYGPATH_W) '$(srcdir)/benchcore/io.c'; fi`
 
 populate/DEDISbench-populate.o: populate/populate.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT populate/DEDISbench-populate.o -MD -MP -MF populate/$(DEPDIR)/DEDISbench-populate.Tpo -c -o populate/DEDISbench-populate.o `test -f 'populate/populate.c' || echo '$(srcdir)/'`populate/populate.c
@@ -646,19 +646,19 @@ populate/DEDISbench-populate.obj: populate/populate.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o populate/DEDISbench-populate.obj `if test -f 'populate/populate.c'; then $(CYGPATH_W) 'populate/populate.c'; else $(CYGPATH_W) '$(srcdir)/populate/populate.c'; fi`
 
-core/sharedmem/DEDISbench-sharedmem.o: core/sharedmem/sharedmem.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/sharedmem/DEDISbench-sharedmem.o -MD -MP -MF core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo -c -o core/sharedmem/DEDISbench-sharedmem.o `test -f 'core/sharedmem/sharedmem.c' || echo '$(srcdir)/'`core/sharedmem/sharedmem.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/sharedmem/sharedmem.c' object='core/sharedmem/DEDISbench-sharedmem.o' libtool=no @AMDEPBACKSLASH@
+benchcore/sharedmem/DEDISbench-sharedmem.o: benchcore/sharedmem/sharedmem.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT benchcore/sharedmem/DEDISbench-sharedmem.o -MD -MP -MF benchcore/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo -c -o benchcore/sharedmem/DEDISbench-sharedmem.o `test -f 'benchcore/sharedmem/sharedmem.c' || echo '$(srcdir)/'`benchcore/sharedmem/sharedmem.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) benchcore/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo benchcore/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='benchcore/sharedmem/sharedmem.c' object='benchcore/sharedmem/DEDISbench-sharedmem.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/sharedmem/DEDISbench-sharedmem.o `test -f 'core/sharedmem/sharedmem.c' || echo '$(srcdir)/'`core/sharedmem/sharedmem.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o benchcore/sharedmem/DEDISbench-sharedmem.o `test -f 'benchcore/sharedmem/sharedmem.c' || echo '$(srcdir)/'`benchcore/sharedmem/sharedmem.c
 
-core/sharedmem/DEDISbench-sharedmem.obj: core/sharedmem/sharedmem.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT core/sharedmem/DEDISbench-sharedmem.obj -MD -MP -MF core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo -c -o core/sharedmem/DEDISbench-sharedmem.obj `if test -f 'core/sharedmem/sharedmem.c'; then $(CYGPATH_W) 'core/sharedmem/sharedmem.c'; else $(CYGPATH_W) '$(srcdir)/core/sharedmem/sharedmem.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo core/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='core/sharedmem/sharedmem.c' object='core/sharedmem/DEDISbench-sharedmem.obj' libtool=no @AMDEPBACKSLASH@
+benchcore/sharedmem/DEDISbench-sharedmem.obj: benchcore/sharedmem/sharedmem.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT benchcore/sharedmem/DEDISbench-sharedmem.obj -MD -MP -MF benchcore/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo -c -o benchcore/sharedmem/DEDISbench-sharedmem.obj `if test -f 'benchcore/sharedmem/sharedmem.c'; then $(CYGPATH_W) 'benchcore/sharedmem/sharedmem.c'; else $(CYGPATH_W) '$(srcdir)/benchcore/sharedmem/sharedmem.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) benchcore/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Tpo benchcore/sharedmem/$(DEPDIR)/DEDISbench-sharedmem.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='benchcore/sharedmem/sharedmem.c' object='benchcore/sharedmem/DEDISbench-sharedmem.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o core/sharedmem/DEDISbench-sharedmem.obj `if test -f 'core/sharedmem/sharedmem.c'; then $(CYGPATH_W) 'core/sharedmem/sharedmem.c'; else $(CYGPATH_W) '$(srcdir)/core/sharedmem/sharedmem.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -c -o benchcore/sharedmem/DEDISbench-sharedmem.obj `if test -f 'benchcore/sharedmem/sharedmem.c'; then $(CYGPATH_W) 'benchcore/sharedmem/sharedmem.c'; else $(CYGPATH_W) '$(srcdir)/benchcore/sharedmem/sharedmem.c'; fi`
 
 DEDISbench-DEDISbench.o: DEDISbench.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(DEDISbench_CFLAGS) $(CFLAGS) -MT DEDISbench-DEDISbench.o -MD -MP -MF $(DEPDIR)/DEDISbench-DEDISbench.Tpo -c -o DEDISbench-DEDISbench.o `test -f 'DEDISbench.c' || echo '$(srcdir)/'`DEDISbench.c
@@ -1027,14 +1027,14 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-rm -f core/$(DEPDIR)/$(am__dirstamp)
-	-rm -f core/$(am__dirstamp)
-	-rm -f core/accesses/$(DEPDIR)/$(am__dirstamp)
-	-rm -f core/accesses/$(am__dirstamp)
-	-rm -f core/duplicates/$(DEPDIR)/$(am__dirstamp)
-	-rm -f core/duplicates/$(am__dirstamp)
-	-rm -f core/sharedmem/$(DEPDIR)/$(am__dirstamp)
-	-rm -f core/sharedmem/$(am__dirstamp)
+	-rm -f benchcore/$(DEPDIR)/$(am__dirstamp)
+	-rm -f benchcore/$(am__dirstamp)
+	-rm -f benchcore/accesses/$(DEPDIR)/$(am__dirstamp)
+	-rm -f benchcore/accesses/$(am__dirstamp)
+	-rm -f benchcore/duplicates/$(DEPDIR)/$(am__dirstamp)
+	-rm -f benchcore/duplicates/$(am__dirstamp)
+	-rm -f benchcore/sharedmem/$(DEPDIR)/$(am__dirstamp)
+	-rm -f benchcore/sharedmem/$(am__dirstamp)
 	-rm -f io/$(DEPDIR)/$(am__dirstamp)
 	-rm -f io/$(am__dirstamp)
 	-rm -f parserconf/inih/$(DEPDIR)/$(am__dirstamp)
@@ -1057,7 +1057,7 @@ clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ./$(DEPDIR) core/$(DEPDIR) core/accesses/$(DEPDIR) core/duplicates/$(DEPDIR) core/sharedmem/$(DEPDIR) io/$(DEPDIR) parserconf/inih/$(DEPDIR) populate/$(DEPDIR) utils/$(DEPDIR) utils/db/$(DEPDIR) utils/random/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) benchcore/$(DEPDIR) benchcore/accesses/$(DEPDIR) benchcore/duplicates/$(DEPDIR) benchcore/sharedmem/$(DEPDIR) io/$(DEPDIR) parserconf/inih/$(DEPDIR) populate/$(DEPDIR) utils/$(DEPDIR) utils/db/$(DEPDIR) utils/random/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-tags
@@ -1105,7 +1105,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ./$(DEPDIR) core/$(DEPDIR) core/accesses/$(DEPDIR) core/duplicates/$(DEPDIR) core/sharedmem/$(DEPDIR) io/$(DEPDIR) parserconf/inih/$(DEPDIR) populate/$(DEPDIR) utils/$(DEPDIR) utils/db/$(DEPDIR) utils/random/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) benchcore/$(DEPDIR) benchcore/accesses/$(DEPDIR) benchcore/duplicates/$(DEPDIR) benchcore/sharedmem/$(DEPDIR) io/$(DEPDIR) parserconf/inih/$(DEPDIR) populate/$(DEPDIR) utils/$(DEPDIR) utils/db/$(DEPDIR) utils/random/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

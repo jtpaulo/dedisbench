@@ -50,10 +50,11 @@ populate/DEDISbench-populate.o: populate/populate.c \
  /usr/include/x86_64-linux-gnu/bits/sched.h \
  /usr/include/x86_64-linux-gnu/bits/timex.h \
  /usr/include/x86_64-linux-gnu/bits/setjmp.h \
- populate/../core/duplicates/duplicatedist.h \
- populate/../core/duplicates/../../utils/db/berk.h \
- populate/../core/duplicates/../../utils/db/../../io/plotio.h \
- structs/defines.h populate/../core/duplicates/../../structs/defines.h
+ populate/../benchcore/duplicates/duplicatedist.h \
+ populate/../benchcore/duplicates/../../utils/db/berk.h \
+ populate/../benchcore/duplicates/../../utils/db/../../io/plotio.h \
+ structs/defines.h \
+ populate/../benchcore/duplicates/../../structs/defines.h
 
 /usr/include/stdc-predef.h:
 
@@ -195,12 +196,12 @@ populate/../structs/defines.h:
 
 /usr/include/x86_64-linux-gnu/bits/setjmp.h:
 
-populate/../core/duplicates/duplicatedist.h:
+populate/../benchcore/duplicates/duplicatedist.h:
 
-populate/../core/duplicates/../../utils/db/berk.h:
+populate/../benchcore/duplicates/../../utils/db/berk.h:
 
-populate/../core/duplicates/../../utils/db/../../io/plotio.h:
+populate/../benchcore/duplicates/../../utils/db/../../io/plotio.h:
 
 structs/defines.h:
 
-populate/../core/duplicates/../../structs/defines.h:
+populate/../benchcore/duplicates/../../structs/defines.h:

@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 #include "../structs/defines.h"
-#include "../core/duplicates/duplicatedist.h"
+#include "../benchcore/duplicates/duplicatedist.h"
 
 #define TMP_FILE "dedisbench_0010test"
 
