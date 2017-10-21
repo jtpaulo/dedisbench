@@ -499,15 +499,17 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 
 	int i;
 	//launch processes for each file bench
-	int nprocinit=conf->nprocs;
+	int nprocinit=0;
 
 	pid_t *pids=malloc(sizeof(pid_t)*conf->nprocs);
 
   init_rand(conf->seed);
   if(conf->mixedIO==1){
     conf->nr_proc_w=conf->nprocs/2;
+    nprocinit=conf->nprocs/2;
   }else{
     conf->nr_proc_w=conf->nprocs;
+    nprocinit=conf->nprocs;
   }
 	for (i = 0; i < conf->nprocs; ++i) {
 	  if ((pids[i] = fork()) < 0) {
@@ -562,21 +564,11 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 		}
 	}
 
-
-
 	printf("Exiting benchmark\n");
 
 }
 
-void usage(void)
-{
-	printf("Usage:\n");
-	printf(" -p or -n<value>\t(Peak or Nominal Bench with throughput rate of N operations per second)\n");
-	printf(" -w or -r\t\t(Write or Read Bench)\n");
-	printf(" -t<value> or -s<value>\t(Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB)\n");
-	printf(" -h\t\t\t(Help)\n");
-	exit (8);
-}
+
 
 void help(void){
 	printf(" Help:\n\n");
@@ -586,6 +578,11 @@ void help(void){
 	printf(" -t<value> or -s<value>\t(Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB)\n");
 	printf("\n Optional Parameters are passed through a configuration file. See README for details.\n\n");
 	exit (8);
+}
+
+void usage(void)
+{
+	help();
 }
 
 // the recursive nature of this function could be its demise when dealing
@@ -950,7 +947,7 @@ int main(int argc, char *argv[]){
 		mkdir("results/latthr", 0775);
 		mkdir("results/distribution", 0775);
 	}
-	//convert to to ops/microsecond
+	//convert to ops/microsecond
 	conf.ratio=conf.ratio/1e6;
 	if(conf.mixedIO==1){
 		conf.ratior=conf.ratior/1e6;

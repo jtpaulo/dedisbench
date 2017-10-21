@@ -44,7 +44,7 @@ The only libs required to run the benchmark should be libc6-dev, libdb-dev and l
 Also the Makefile and configure files are generated with the aclocal, autoconf and automake --add-missing commands.
 If the currently generated files are not correct for the target OS/platform, these commands need to be re-executed.
 
-Run ./configure, make and make install in DEDISbench folder
+Run ./configure and make in DEDISbench folder
 
 # Running the Benchmark
 
