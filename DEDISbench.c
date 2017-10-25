@@ -57,10 +57,10 @@ void idle(long quantum) {
 FILE* create_plog(int procid){
 
 	//create the file with results for process with id procid
-    char name[10];
+    char name[32];
 	char id[4];
 	sprintf(id,"%d",procid);
-	strcpy(name,"result");
+	strcpy(name,"results/logp");
 	strcat(name,id);
 
 	FILE *fres = fopen(name,"w");
@@ -104,21 +104,25 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
   //create the file with results for process with id procid
   FILE* fres=NULL;
-
-  char name[10];
+/*
+  char name[10]; */
   char id[4];
   sprintf(id,"%d",procid_r);
   if(conf->logfeature==1){
-
+	  /*
 	  strcpy(name,"result");
 	  strcat(name,id);
 	  fres = fopen(name,"w");
+	  */
+	  fres = create_plog(procid_r);
+
   }
 
   char ifilename[PATH_SIZE];
   int integrity_errors=0;
   if(conf->integrity==1 && iotype==READ){
-  	strcpy(ifilename,conf->integrityfile);
+	strcpy(ifilename,"./results/");
+  	strcat(ifilename,conf->integrityfile);
   	strcat(ifilename,id);
   	fpi=fopen(ifilename,"w");
   	fprintf(fpi, "Integrity Check results for process %d\n",procid_r);
@@ -647,7 +651,8 @@ static int config_handler(void* config, const char* section, const char* name, c
 		char* val = strdup(value);
 		token = strtok(val,":");
 		if(token){
-			strcpy(conf->printfile, token);
+			strcpy(conf->printfile, "./results/");
+			strcat(conf->printfile, token);
 		}
 
 		if(conf->termination_type == TIME){
@@ -664,8 +669,8 @@ static int config_handler(void* config, const char* section, const char* name, c
 
 		free(val);	
 		if(conf->termination_type == TIME){
-			printf("Only starts counting on the %i snap\n", conf->start);
-			printf("Stops counting when there are %i snaps left\n", conf->finish);
+			printf("Ramp up time: %d sec\n", conf->start*30);
+			printf("Cool down time: %d sec\n", conf->finish*30);
 		}
 
 		printf("Output of DEDISbench will be printed to '%s'\n", conf->printfile);

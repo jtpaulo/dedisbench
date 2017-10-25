@@ -52,7 +52,8 @@ int create_pfile(int procid, struct user_confs *conf){
   strcpy(name,conf->tempfilespath);
   strcat(name,TMP_FILE);
   strcat(name,id);
-   
+  
+  printf("%s\n", conf->tempfilespath); 
   if(conf->odirectf==1){
     printf("opening %s with O_DIRECT\n",name);
     //device where the process will write
