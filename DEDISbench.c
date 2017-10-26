@@ -636,15 +636,7 @@ static int config_handler(void* config, const char* section, const char* name, c
 	struct user_confs* conf = (struct user_confs*) config;
 
 	#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
-	if(MATCH("structural", "keep_dbs")){
-		if(!atoi(value)){
-			// delete benchdbs/distdb and gendbs
-			remove_dir("./benchdbs");
-			remove_dir("./gendbs");
-			printf("Deleting old dbs\n");
-		}
-	}
-	else if(MATCH("results","general_results")){
+	if(MATCH("results","general_results")){
 		conf->printtofile = 1;
 		
 		char* token;
