@@ -1,23 +1,22 @@
-/* DEDISbench and DEDISgen
- * (c) 2010 2010 U. Minho. Written by J. Paulo
- */
- 
+###### DEDISbench and DEDISgen
+
+(c) 2010 2017 INESC TEC and U. Minho. Written by J. Paulo, M. Freitas
 
 # DEDISbench and DEDISgen
 
-DEDISbench is implemented in C and allows performing read and write block disk I/O tests in a file-system or in a raw device. DEDISbench main contribution is the ability to process, as input, a file that specifies a distribution of duplicated content and using this information for generating a synthetic workload that follows such distribution. This file can be populated by the users or can be generated automatically with DEDISgen, an analysis tool that can be used for processing a specific real dataset and extracting from it the duplicates information.
+DEDISbench is implemented in C and allows performing read and write block disk I/O tests on top of a file-system or block storage solution. DEDISbench main contribution is the ability to process, as input, a file that specifies a distribution of duplicate content, while using this information for generating a synthetic workload that follows such distribution. This input file can be populated by the users or can be generated automatically with DEDISgen, an analysis tool used for processing a specific real dataset and extracting from it the duplicates distribution.
 
-I/O operations can be executed concurrently by several processes with independent files. Moreover, the benchmark can be configured to stop the evaluation when a certain amount of data has been written or when a pre-defined period of time has elapsed. Another novel feature is the possibility of performing I/O operations with different load intensities. In addition to a stress load where the benchmark issues I/O operations as fast as possible to stress the system, DEDISbench supports performing operations at a nominal load specified by the user.
+I/O operations can be executed concurrently by several processes working on top of different files or disk regions. Moreover, the benchmark can be configured to stop the evaluation when a certain amount of data has been written or when a pre-defined period of time has elapsed. Another novel feature is the possibility of performing I/O operations with different load intensities. In addition to a stress load, where the benchmark issues I/O operations as fast as possible to stress the system, DEDISbench supports performing operations at a nominal load specified by the user.
 
 
 For more information regarding DEDISbench algorithm you may read these two published papers:
-- "DEDISbench: A Benchmark for Deduplicated Storage Systems"
-- "Towards an Accurate Evaluation of Deduplicated Storage Systems"
+- "[DEDISbench: A Benchmark for Deduplicated Storage Systems](http://gsd.di.uminho.pt/members/jop/pdfs/PRPS12.pdf)"
+- "[Towards an Accurate Evaluation of Deduplicated Storage Systems](http://haslab.uminho.pt/jtpaulo/files/prp13.pdf)"
 
 
 # I/O benchmark:
 
-The benchmark is written in C and can simulate several processes writing/reading fixed size blocks concurrently into multiple files or in a raw block device. The location for the write operations is given by NURand function from TPC-C benchmark that generates hotspots for I/O operations. A realistic distribution extracted from real storage systems is used to generate the blocks' content. Moreover, it is possible to use other distributions and load them from a custom file using DEDISgen. DEDISbench provides two workload modes, one reproduces a fully or peak loaded system, as Bonnie++, that performs as maximum write I/O operations per second as possible. The second reproduces a system under a reasonable nominal load, and can be useful for understanding the behavior of aliasing operations in a stable system with a limited I/O throughput.
+The benchmark is written in C and can simulate several processes writing/reading fixed size blocks, with realistic content, concurrently into multiple files or into a block device. The location for the read/write operations can follow a sequential, random uniform and random hotspot distribution. The latter is provided by resorting to the NURand function from TPC-C benchmark that generates hotspots for I/O operations. A realistic distribution extracted from real storage systems is used to generate the blocks' content. Moreover, it is possible to use other realistic distributions and load them from a custom file using DEDISgen. DEDISbench provides two workload modes, one reproduces a fully or peak loaded system, as Bonnie++, that performs as maximum write I/O operations per second as possible. The second reproduces a system under a reasonable nominal load, and can be useful for understanding the behavior of storage operations in a stable system with a limited I/O throughput.
 
 
 # DEDISbench real content distributions:
@@ -28,101 +27,109 @@ DEDISbench comes with three distinct distributions extracted from real storage s
 - A Personal Files storage where some files are updated and deleted frequently and the I/O requests latency is expected to be lower than the one found in archival storages. This distributions is called dist_personalfiles.
 - A High Performance storage where most files are updated and deleted frequently and I/O latency is expected to be as minimal as possible. This distribution is called dist_highperf.
   
-All these distributions are available and can be simulated by DEDISbench with the option -g <distribution name> or it is possible to input a distribution file.
-
+All these distributions are available and can be simulated by DEDISbench.
 NOTE: By default DEDISbench uses the Personal Files Storage distribution.
 
 # Duplicate distribution generator: DEDISgen
 
 The binary DEDISgen generates an output file that describes the distribution of duplicates found at a specific folder and subfolders or disk device. This program can generate (if specified in the arguments) an output distribution file (with option -o) that can be consumed by DEDISbench and used for simulating that duplicate distribution.
 
-With DEDISgen we also pack DEDISgenutils that may be needed for performing more complex analysis of duplicated data. For instance, if several datasets must be analysed separately and the merged toguether for generating the output distribution file for DEDISbench it is possible to use these tools as explained below.
+With DEDISgen we also pack DEDISgenutils that may be needed for performing more complex analysis of duplicate data. For instance, if several datasets must be analysed separately and then merged toguether, for generating the output distribution file for DEDISbench, it is possible to use both tools as explained below.
+
+Finally, if one wishes to view the benchmark's results in a little more nicely manner, both DEDISbench and DEDISgen output the files needed to plot some of their results with gnuplot.
+
 
 # Instalation.
 
-The only libs required should be libc6-dev and libdb-dev libssl-dev
+The only libs required to run the benchmark should be libc6-dev, libdb-dev and libssl-dev.
 
-Run ./configure, make and make install in DEDISbench folder
+Also the Makefile and Configure files are generated with the aclocal, autoconf and automake --add-missing commands.
+If the currently generated files are not correct for the target OS/platform, these commands need to be re-executed.
+
+Run ./configure and make in DEDISbench folder
+
 
 # Running the Benchmark
 
 Required flags
 
- -p or -n`value`		Peak or Nominal Load with throughput rate of N operations per 
- 						second. If mixed benchmark of read and writes is defined then use -nr`value` and -nw`value`
- 						for nominal rate of reads and writes respectively.
+ -p or -n`value`                Peak or Nominal Load with throughput rate of N operations per 
+                                second. If mixed nominal benchmark of read and writes is defined then use -nr`value` and -nw`value`
+                                for nominal rate of reads and writes respectively.
  
- -w or -r or -m			Write or Read Benchmark or a mix of write and read operations.
+ -w or -r or -m                 Write or Read Benchmark or a Mix of write and read operations.
  
- -t`value` or -s`value` Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB
+ -t`value` or -s`value`         Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB
 
 # Configuration file options
 
-#### Default configuration file is `defconf.ini`. To use a custom configuration file use -f`filename`
+#### Default configuration file is `conf/defconf.ini`. To use a custom configuration file use -f`filename`
  
-## [structure] section
- 
- keep_dbs=`value`           Option to keep databases from the previous execution:   0 - deletes databases,
-                                                                                    1 - keeps databases.
-
- cleantemp=`value`			Disable the destruction of process temporary files generated by the benchmark (1)
-                            Default behaviour (no need to specify this option) is to destroy temporary files
-
 ## [execution] section
  
- distfile=`value`	        Input File with duplicate distribution default:internal file called dist_personalfiles
- 					        DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage;
-					        For choosing these distributions the `value` must be dist_archival, dist_personalfiles or dist_highperf respectively.
-					        The input file details the amount of blocks with a certain number of duplicates
- 						    and the format is: <number_duplicates> <number_blocks>
- 					        See below for more info for customizing distribution files and above for info on the default distributions.
-	
- nprocs=`value`			    Number of concurrent processes default:4. Each process has an 
- 					        independent file associated or a common device if -i flag is used
+ distfile=`value`               Input File with duplicate distribution default:internal file conf/dist_personalfiles
+                                DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage;
+                                For choosing these distributions the `value` must be dist_archival, dist_personalfiles or dist_highperf respectively.
+                                The input file details the amount of blocks with a certain number of duplicates
+                                and the format is: <number_duplicates> <number_blocks>
+                                See below for more info for customizing distribution files and above for info on the default distributions.
+    
+ nprocs=`value`                 Number of concurrent processes (default:`value`=4). Each process has an 
+                                independent file associated (or a common device if the rawdevice option is used)
  
- filesize=`value`		    Size of the file of each process in MB. If rawdevice option is used, this parameter defines
- 					        the size of the raw device. default:2048 MB
+ filesize=`value`               Size of the file of each process in MB. If rawdevice option is used, this parameter defines
+                                the size of the raw device. (default:`value`=2048 MB)
 
- rawdevice=`value`			Processes write/read from a raw device instead of having an independent file.
- 					        If more than one process is defined, each process is assingned with an independet of the raw device,
- 					        dependent on the raw device size. By default, if this flag is not set each process writes to an individual file.
+ rawdevice=`value`              Processes write/read from a raw device instead of having an independent file. (`value`=path/to/dev)
+                                If more than one process is defined, each process is assingned with an independent chunk of the raw device,
+                                dependent on the raw device size. By default, if this flag is not set each process writes to an individual file.
  
- integritycheck=`value`     Enable integrity checks for read requests. The output is written to file specified in `value`. 
-                            This flag also enables a final integrity check done by the benchmark after finishing DEDISbench's workload. 
-                            Files must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct.
+ integritycheck=`value`         Enable integrity checks for read requests. The output is written to file a specified in `value`. 
+                                This flag also enables a final integrity check done by the benchmark after finishing DEDISbench's workload. 
+                                Files must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct.
  
- blocksize=`value`          Size of blocks for I/O operations in Bytes default: 4096
+ blocksize=`value`              Size of blocks for I/O operations in Bytes (default:`value`=4096)
  
- sync=`value`    			I/O Operations synchronization (default: 0):    0 - without fsync and O_DIRECT, 
-                                                                            1 - O_DIRECT, 
-                                                                            2 - fsync,
-                                                                            3 - both.
+ sync=`value`                   I/O Operations synchronization (default:`value`=0):     0 - without fsync and O_DIRECT, 
+                                                                                        1 - O_DIRECT, 
+                                                                                        2 - fsync,
+                                                                                        3 - both.
  
- populate=`value`		    Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). 
-                            Only enabled by default (with value 1) for read and mixed tests).
-                            
+ populate=`value`               Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). (Only enabled by default (with value 1) for read and mixed tests).
+                                
 
- seed=`value`	    		Seed for random generator default:current time. Usefull for repeating
+ seed=`value`                   Seed for random generator (default:current time). Usefull for repeating
 
 
 ## [results] section
 
- tempfilespath=`value`      choose the directory where DEDISbench writes data
+ tempfilespath=`value`          Choose the directory where DEDISbench writes temporary date. (default:`value`=.)
  
- logging=`value`			I/O latency results are written to a log file to extract additional 
-                            statistics. Each process writes these values in a file called result(processid) and
-                            each line, corresponds to a single I/O operations and presents: 
-                            (latency of I/O operation in microseconds) (current time in seconds).
+ logging=`value`                I/O latency results are written to a log file to extract additional 
+                                statistics. Each process writes these values in a file called result<processid> and
+                                each line, corresponds to a single I/O operation and presents: 
+                                (latency of I/O operation in microseconds) (current time in seconds).
 
- dist_results=`value`		generate an output log with the distribution actually generated by the benchmark.
- 							This also generates the files needed to plot the distribution with gnuplot.
+ dist_results=`value`           Generate an output log with the distribution actually generated by the benchmark.
+                                This also generates the files needed to plot the distribution with gnuplot.
+                                (`value`=filename)
 
- access_results=`value`		generate an output log with the access pattern generated by the benchmark
- 							This also generates the files needed to plot the accesses to each block, throught time, with gnuplot.
+ access_results=`value`         Generate an output log with the access pattern generated by the benchmark
+                                This also generates the files needed to plot the accesses to each block, throught time, with gnuplot.
+                                (`value`=filename)
  
- general_results=`value`	Write to file path the output of DEDISbench. This feature also writes two additional files with the same name
- 					        as given in `value` and a snaplat and snapthr suffix that shows the throughput and latency average values 
- 					        for 30 seconds intervals. It also writes the necessary files to plot a graph of both throughput and latency, with gnuplot.
+ general_results=`file`:RU:CD   Write to file path the output of DEDISbench. This feature also writes two additional files with the same name
+                                as given in `file` and a snaplat and snapthr suffix that shows the throughput and latency average values 
+                                for 30 seconds intervals.
+                                RU is the ramp up time in half minutes.
+                                CD is the cool down time also half minutes. 
+                                It also writes the necessary files to plot a graph of both throughput and latency, with gnuplot.
+
+## [structure] section
+ 
+ cleantemp=`value`              Disable the destruction of process temporary files generated by the benchmark (`value`=1).
+                                Default behaviour is to destroy temporary files (`value`=0 - or dont specify this option )
+
 
 # Examples:
 
@@ -174,15 +181,18 @@ rawdevice=path/to/rawdevice
 
  -p`value`      Path for the folder or disk device
 
- -o`value`	Path for the output distribution file (Please specifiy the full path including the distribution file name to be generated). This is only necessary if distribution file of duplicates is going to be generated
+ -o`value`  Path for the output distribution file (Please specifiy the full path including the distribution file name to be generated). This is only necessary if distribution file of duplicates is going to be generated
 
  Optional Parameters
 
- -z`value`	Path for the folder where duplicates databases are created default: ./gendbs/ . duplicate_db is the database with duplicates information hash->number_dups
+ -z`value`  Path for the folder where duplicates databases are created default: ./gendbs/ . duplicate_db is the database with duplicates information hash->number_dups
 
  -b`value`  Size of blocks to analyse in bytes eg: -b1024,4096,8192 default: -b4096
-	
- -o`value`	Path for the output distribution file. This is only necessary if distribution file of duplicates is going to be generated
+    
+ -o`value`  Path for the output distribution file. This is only necessary if distribution file of duplicates is going to be generated
+ 
+ -r         Option to delete databases from the previous execution:   0 - deletes databases,
+                                                                      1 - keeps databases.
 
  DEDISgen also outputs the files needed to plot the generated distribution with gnuplot.
 
@@ -218,9 +228,9 @@ UTILS for DEDISgen:
 
  -m and -o can be used together or individually if only one operation is intended
 
- -m<db1 folder path> <db2 folder path>		Merges hashes and duplicates of db1 into db2. 
+ -m<db1 folder path> <db2 folder path>      Merges hashes and duplicates of db1 into db2. 
 
- -o<db folder path> <outputfile>		Path for generating the output distribution file of duplicates db.
+ -o<db folder path> <outputfile>        Path for generating the output distribution file of duplicates db.
 
 WARNING: these are supposed to be used in duplicates databases generated by dedisgen that map (hash->number-duplicates). Not intended for distribution dbs that generate the distribution outputs. These databases are on the database folder, which can be specified by the user as parameter with the option -z and by default are on ./gendbs/duplicatedb
 
@@ -248,4 +258,4 @@ Joao Paulo jtpaulo at di.uminho.pt
 
 
 
-	
+    

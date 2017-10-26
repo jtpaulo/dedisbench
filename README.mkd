@@ -4,7 +4,7 @@
 
 # DEDISbench and DEDISgen
 
-DEDISbench is implemented in C and allows performing read and write block disk I/O tests in a file-system or in a raw device. DEDISbench main contribution is the ability to process, as input, a file that specifies a distribution of duplicated content and using this information for generating a synthetic workload that follows such distribution. This file can be populated by the users or can be generated automatically with DEDISgen, an analysis tool that can be used for processing a specific real dataset and extracting from it the duplicates information.
+DEDISbench is implemented in C and allows performing read and write block disk I/O tests on top of a file-system or block storage solution. DEDISbench main contribution is the ability to process, as input, a file that specifies a distribution of duplicate content, while using this information for generating a synthetic workload that follows such distribution. This input file can be populated by the users or can be generated automatically with DEDISgen, an analysis tool used for processing a specific real dataset and extracting from it the duplicates distribution.
 
 I/O operations can be executed concurrently by several processes working on top of different files or disk regions. Moreover, the benchmark can be configured to stop the evaluation when a certain amount of data has been written or when a pre-defined period of time has elapsed. Another novel feature is the possibility of performing I/O operations with different load intensities. In addition to a stress load, where the benchmark issues I/O operations as fast as possible to stress the system, DEDISbench supports performing operations at a nominal load specified by the user.
 
@@ -16,7 +16,7 @@ For more information regarding DEDISbench algorithm you may read these two publi
 
 # I/O benchmark:
 
-The benchmark is written in C and can simulate several processes writing/reading fixed size blocks concurrently into multiple files or in a raw block device. The location for the write operations is given by NURand function from TPC-C benchmark that generates hotspots for I/O operations. A realistic distribution extracted from real storage systems is used to generate the blocks' content. Moreover, it is possible to use other distributions and load them from a custom file using DEDISgen. DEDISbench provides two workload modes, one reproduces a fully or peak loaded system, as Bonnie++, that performs as maximum write I/O operations per second as possible. The second reproduces a system under a reasonable nominal load, and can be useful for understanding the behavior of aliasing operations in a stable system with a limited I/O throughput.
+The benchmark is written in C and can simulate several processes writing/reading fixed size blocks, with realistic content, concurrently into multiple files or into a block device. The location for the read/write operations can follow a sequential, random uniform and random hotspot distribution. The latter is provided by resorting to the NURand function from TPC-C benchmark that generates hotspots for I/O operations. A realistic distribution extracted from real storage systems is used to generate the blocks' content. Moreover, it is possible to use other realistic distributions and load them from a custom file using DEDISgen. DEDISbench provides two workload modes, one reproduces a fully or peak loaded system, as Bonnie++, that performs as maximum write I/O operations per second as possible. The second reproduces a system under a reasonable nominal load, and can be useful for understanding the behavior of storage operations in a stable system with a limited I/O throughput.
 
 
 # DEDISbench real content distributions:
@@ -27,33 +27,34 @@ DEDISbench comes with three distinct distributions extracted from real storage s
 - A Personal Files storage where some files are updated and deleted frequently and the I/O requests latency is expected to be lower than the one found in archival storages. This distributions is called dist_personalfiles.
 - A High Performance storage where most files are updated and deleted frequently and I/O latency is expected to be as minimal as possible. This distribution is called dist_highperf.
   
-All these distributions are available and can be simulated by DEDISbench with the option -g <distribution name> or it is possible to input a distribution file.
-
+All these distributions are available and can be simulated by DEDISbench.
 NOTE: By default DEDISbench uses the Personal Files Storage distribution.
 
 # Duplicate distribution generator: DEDISgen
 
 The binary DEDISgen generates an output file that describes the distribution of duplicates found at a specific folder and subfolders or disk device. This program can generate (if specified in the arguments) an output distribution file (with option -o) that can be consumed by DEDISbench and used for simulating that duplicate distribution.
 
-With DEDISgen we also pack DEDISgenutils that may be needed for performing more complex analysis of duplicated data. For instance, if several datasets must be analysed separately and then merged toguether, for generating the output distribution file for DEDISbench, it is possible to use both tools as explained below.
+With DEDISgen we also pack DEDISgenutils that may be needed for performing more complex analysis of duplicate data. For instance, if several datasets must be analysed separately and then merged toguether, for generating the output distribution file for DEDISbench, it is possible to use both tools as explained below.
+
+Finally, if one wishes to view the benchmark's results in a little more nicely manner, both DEDISbench and DEDISgen output the files needed to plot some of their results with gnuplot.
+
 
 # Instalation.
 
 The only libs required to run the benchmark should be libc6-dev, libdb-dev and libssl-dev.
 
-Also the Makefile and configure files are generated with the aclocal, autoconf and automake --add-missing commands.
+Also the Makefile and Configure files are generated with the aclocal, autoconf and automake --add-missing commands.
 If the currently generated files are not correct for the target OS/platform, these commands need to be re-executed.
 
 Run ./configure and make in DEDISbench folder
 
-If one wishes to view the data in a little more nicely manner, both DEDISbench and DEDISgen output the files needed to plot some of their results with gnuplot.
 
 # Running the Benchmark
 
 Required flags
 
  -p or -n`value`				Peak or Nominal Load with throughput rate of N operations per 
-								second. If mixed benchmark of read and writes is defined then use -nr`value` and -nw`value`
+								second. If mixed nominal benchmark of read and writes is defined then use -nr`value` and -nw`value`
 								for nominal rate of reads and writes respectively.
  
  -w or -r or -m					Write or Read Benchmark or a Mix of write and read operations.
@@ -64,14 +65,9 @@ Required flags
 
 #### Default configuration file is `conf/defconf.ini`. To use a custom configuration file use -f`filename`
  
-## [structure] section
- 
- cleantemp=`value`				Disable the destruction of process temporary files generated by the benchmark (`value`=1).
-								Default behaviour is to destroy temporary files (`value`=0 - or dont specify this option )
-
 ## [execution] section
  
- distfile=`value`				Input File with duplicate distribution default:internal file called dist_personalfiles
+ distfile=`value`				Input File with duplicate distribution default:internal file conf/dist_personalfiles
 								DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage;
 								For choosing these distributions the `value` must be dist_archival, dist_personalfiles or dist_highperf respectively.
 								The input file details the amount of blocks with a certain number of duplicates
@@ -107,18 +103,18 @@ Required flags
 
 ## [results] section
 
- tempfilespath=`value`			choose the directory where DEDISbench writes temporary date. (default:`value`=.)
+ tempfilespath=`value`			Choose the directory where DEDISbench writes temporary date. (default:`value`=.)
  
  logging=`value`				I/O latency results are written to a log file to extract additional 
 								statistics. Each process writes these values in a file called result<processid> and
 								each line, corresponds to a single I/O operation and presents: 
 								(latency of I/O operation in microseconds) (current time in seconds).
 
- dist_results=`value`			generate an output log with the distribution actually generated by the benchmark.
+ dist_results=`value`			Generate an output log with the distribution actually generated by the benchmark.
 								This also generates the files needed to plot the distribution with gnuplot.
 								(`value`=filename)
 
- access_results=`value`			generate an output log with the access pattern generated by the benchmark
+ access_results=`value`			Generate an output log with the access pattern generated by the benchmark
  								This also generates the files needed to plot the accesses to each block, throught time, with gnuplot.
 								(`value`=filename)
  
@@ -128,6 +124,12 @@ Required flags
 								RU is the ramp up time in half minutes.
 								CD is the cool down time also half minutes. 
 								It also writes the necessary files to plot a graph of both throughput and latency, with gnuplot.
+
+## [structure] section
+ 
+ cleantemp=`value`				Disable the destruction of process temporary files generated by the benchmark (`value`=1).
+								Default behaviour is to destroy temporary files (`value`=0 - or dont specify this option )
+
 
 # Examples:
 
