@@ -452,8 +452,9 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  printf("Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)stat.uni,(long long unsigned int)stat.dupl,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency);
 
 	  if(conf->printtofile==1){
-
-		  FILE* pf=fopen(conf->printfile,"a");
+		  char fullname[256] = "./results/";
+		  strcat(fullname, conf->printfile);
+		  FILE* pf=fopen(fullname,"a");
 		  fprintf(pf,"Process %d:\nUnique Blocks Written %llu\nDuplicated Blocks Written %llu\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)stat.uni,(long long unsigned int)stat.dupl,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency);
 		  fclose(pf);
 
@@ -462,8 +463,9 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  printf("Process %d: Total I/O operations %llu Throughput: %.3f blocks/second Latency: %.3f miliseconds misses read %llu\n",procid_r,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency,(long long unsigned int) stat.misses_read);
 
 	  	  if(conf->printtofile==1){
-
-	  		  FILE* pf=fopen(conf->printfile,"a");
+			  char fullname[256] = "./results/";
+			  strcat(fullname, conf->printfile);
+			  FILE* pf=fopen(fullname,"a");
 	  		  fprintf(pf,"Process %d:\nTotal I/O operations %llu\nThroughput: %.3f blocks/second\nLatency: %.3f miliseconds\n",procid_r,(long long unsigned int)stat.tot_ops,stat.throughput,stat.latency);
 	  		  fclose(pf);
 	  	  }
@@ -651,8 +653,8 @@ static int config_handler(void* config, const char* section, const char* name, c
 		char* val = strdup(value);
 		token = strtok(val,":");
 		if(token){
-			strcpy(conf->printfile, "./results/");
-			strcat(conf->printfile, token);
+			//strcpy(conf->printfile, "./results/");
+			strcpy(conf->printfile, token);
 		}
 
 		if(conf->termination_type == TIME){
@@ -673,7 +675,7 @@ static int config_handler(void* config, const char* section, const char* name, c
 			printf("Cool down time: %d sec\n", conf->finish*30);
 		}
 
-		printf("Output of DEDISbench will be printed to '%s'\n", conf->printfile);
+		printf("Output of DEDISbench will be printed to './results/%s'\n", conf->printfile);
 	}
 	else if(MATCH("results","access_results")){
 		conf->accesslog = 1;

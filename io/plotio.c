@@ -181,11 +181,11 @@ int write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf, 
 	  int ret = 0;
 	  
 	  //dir for raw file (unprocessed data) 
-	  char snap_thr_dir_out[256] = "results/latthr/";
+	  char snap_thr_dir_out[256] = "./results/latthr/";
 
 	  //dir for processed data file, to be used by
 	  //the gnuplot
-	  char snap_thr_dir_compat[256] = "results/latthr/";
+	  char snap_thr_dir_compat[256] = "./results/latthr/";
 	  
 	  char snapthrname[PATH_SIZE];
 	  char snapthrfmt[PATH_SIZE];
@@ -206,8 +206,8 @@ int write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf, 
 	  strcat(snap_thr_dir_compat, snapthrfmt);
 
 	  // latency 
-	  char snap_lat_dir_out[256] = "results/latthr/";
-	  char snap_lat_dir_compat[256] = "results/latthr/";
+	  char snap_lat_dir_out[256] = "./results/latthr/";
+	  char snap_lat_dir_compat[256] = "./results/latthr/";
 	  char snaplatname[PATH_SIZE];
 	  char snaplatfmt[PATH_SIZE];
 	  strcpy(snaplatname,conf->printfile);
@@ -227,18 +227,24 @@ int write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf, 
 	  strcat(snap_lat_dir_compat, snaplatfmt);
 	 
 	  // write latency data 
+	  //printf("Opening %s...", snap_lat_dir_out);
 	  FILE* pf=fopen(snap_lat_dir_out,"a");
 	  if(!pf){
 		  ret = 1;
+		  //printf("ERROR\n");
 		  return ret;
 	  }
+	  //printf("DONE\n");
 	  fprintf(pf,"%llu 0 0\n", (unsigned long long int)stat->beginio);
 	  
+	  //printf("Opening %s...", snap_lat_dir_compat);
 	  FILE* pfcompat = fopen(snap_lat_dir_compat,"w");
 	  if(!pfcompat){
 		  ret = 1;
+		  //printf("ERROR\n");
 		  return ret;
 	  }
+	  //printf("DONE\n");
 	  write_snaplat_data(stat, conf->start+1, pf, pfcompat); 
 	  fclose(pf);
 	  fclose(pfcompat);
