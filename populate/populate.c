@@ -190,6 +190,8 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
   int nprocs=0;
 
   if(conf->mixedIO==1){
+  	// If running mixed test with only one proc this will zero
+	// and it wont start the populate
     nprocs=conf->nprocs/2;
   }
   else{
@@ -202,7 +204,9 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
 
     //for each process populate its file with size filesize
     //we use DD for filling a non sparse image
-    for(i=0;i<nprocs;i++){
+	//
+	//(!conf->mixedIO && i<nprocs) || (conf->mixedIO && i<nprocs)
+    for(i=0;i < nprocs ;i++){
         //create the file with unique name for process with id procid
         char name[PATH_SIZE];
         char id[4];
@@ -224,6 +228,7 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
           bytes_populated += real_populate(fd, conf, info, i);  
           fsync(fd);     
           close(fd);
+	  	  
         }
 
 

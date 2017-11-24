@@ -80,15 +80,15 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   struct stats stat = {.beginio=-1};
 
   //TODO check if this is really needed...
-  if(conf->mixedIO==1 && conf->iotype==READ){
-	
+  if(conf->mixedIO==1 && iotype==READ){
+	printf("READ\n");
 	procid_r=procid_r+(conf->nprocs/2);
 	  
 	//Init IO and content structures (random generator, etc)
   	init_io(conf, procid_r);
 
   }else{
-
+	printf("WRITE\n");
   	//Init IO and content structures (random generator, etc)
   	init_io(conf, idproc);
 
@@ -97,7 +97,8 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
   if(conf->rawdevice==0){
 	  //create file where process will perform I/O
-	   fd_test = create_pfile(idproc,conf);
+	  //fd_test = create_pfile(idproc,conf);
+	  fd_test = create_pfile(procid_r,conf);
   }else{
 	   fd_test = open_rawdev(conf->rawpath,conf);
   }
@@ -422,7 +423,6 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
   if(conf->logfeature==1){
 	  fclose(fres);
-
   }
   close(fd_test);
 
@@ -528,12 +528,13 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 
 			 //choose to launch read or write process
 			 if(i<conf->nprocs/2){
-
 				 //work performed by each process
+				 printf("WRITE-proc %d\n",i);
 				 process_run(i, conf->nprocs/2, conf->ratiow, WRITE, conf, info);
 			 }
 			 else{
 				 //work performed by each process
+				 printf("READ-proc %d\n",i);
 				 process_run(i-(conf->nprocs/2), conf->nprocs/2, conf->ratior, READ, conf, info);
 			 }
 		  }
@@ -562,11 +563,9 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 
 
 	if(conf->destroypfile==1 && conf->rawdevice==0){
-	printf("Destroying temporary files\n");
+		printf("Destroying temporary files\n");
 		for (i = 0; i < nprocinit; i++) {
-
 			destroy_pfile(i, conf);
-
 		}
 	}
 
@@ -729,7 +728,12 @@ static int config_handler(void* config, const char* section, const char* name, c
 		}
 	}
 	else if(MATCH("execution", "nprocs")){
-		conf->nprocs = atoi(value);
+		int n = atoi(value);
+		if(n==1 && conf->mixedIO == 1){
+			perror("Cant perform mixed test with only 1 process\n");
+			exit(0);
+		}
+		conf->nprocs = n;
 	}
 	else if(MATCH("execution", "filesize")){
 		conf->filesize = atoll(value);
