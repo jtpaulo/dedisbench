@@ -43,11 +43,13 @@ Finally, if one wishes to view the benchmark's results in a little more nicely m
 
 The only libs required to run the benchmark should be libc6-dev, libdb-dev and libssl-dev.
 
-Also the Makefile and Configure files are generated with the aclocal, autoconf and automake --add-missing commands.
-If the currently generated files are not correct for the target OS/platform, these commands need to be re-executed.
+To build DEDISBench run the following commands from the top-level directory:
 
-Run ./configure and make in DEDISbench folder
-
+```
+$ ./autogen.sh 
+$ ./configure
+$ make
+```
 
 # Running the Benchmark
 
