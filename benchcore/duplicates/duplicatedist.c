@@ -452,6 +452,10 @@ void get_writecontent(char *buf, struct user_confs *conf, struct duplicates_info
 
 int gen_outputdist(struct duplicates_info *info, DB **dbpor,DB_ENV **envpor){
 
+	FILE* f = fopen("headerdist", "wb");
+	if(!f) {
+		perror("fopen");
+	}
 
 	uint64_t i=0;
 	for(i=0;i<info->duplicated_blocks;i++){
@@ -459,6 +463,7 @@ int gen_outputdist(struct duplicates_info *info, DB **dbpor,DB_ENV **envpor){
 		//the blocks
 		if(info->statistics[i]==1){
 			*info->zerodups=*info->zerodups+1;
+			fprintf(f, "%lu %lu\n", i, info->statistics[i]);
 		}
 		if(info->statistics[i]>1){
 
@@ -484,6 +489,7 @@ int gen_outputdist(struct duplicates_info *info, DB **dbpor,DB_ENV **envpor){
 				  put_db_print(&ndups,&hvalue,dbpor,envpor);
 			 }
 
+			fprintf(f, "%lu %lu\n", i, info->statistics[i]);
 		}
 
 	}
@@ -509,6 +515,6 @@ int gen_outputdist(struct duplicates_info *info, DB **dbpor,DB_ENV **envpor){
 	  put_db_print(&ndups,&hvalue,dbpor,envpor);
     }
 
-
+	fclose(f);
 	return 0;
 }

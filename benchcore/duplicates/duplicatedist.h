@@ -10,6 +10,8 @@
 #include "../../utils/db/berk.h"
 #include "../../structs/defines.h"
 
+#define HEADF "results/headerdist"
+
 struct block_info{
 	uint64_t cont_id;
 	int procid;

@@ -71,7 +71,6 @@ FILE* create_plog(int procid){
 //run a a peak test
 void process_run(int idproc, int nproc, double ratio, int iotype, struct user_confs* conf, struct duplicates_info *info){
 
-  
   int fd_test;
   int procid_r=idproc;
   FILE *fpi=NULL;
@@ -97,10 +96,11 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
   if(conf->rawdevice==0){
 	  //create file where process will perform I/O
-	  //fd_test = create_pfile(idproc,conf);
-	  fd_test = create_pfile(procid_r,conf);
+	  printf("Procid = %d", procid_r);
+	  fd_test = create_pfile(idproc,conf);
+	  //fd_test = create_pfile(procid_r,conf);
   }else{
-	   fd_test = open_rawdev(conf->rawpath,conf);
+	  fd_test = open_rawdev(conf->rawpath,conf);
   }
 
   //create the file with results for process with id procid
@@ -509,6 +509,13 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 
 	pid_t *pids=malloc(sizeof(pid_t)*conf->nprocs);
 
+	FILE** pfiles = NULL;
+	int findex = -1;
+	if(conf->mixedIO == 1) {
+		pfiles = malloc(sizeof(FILE*)*conf->nprocs/2);
+		findex = 0;
+	}
+
   init_rand(conf->seed);
   if(conf->mixedIO==1){
     conf->nr_proc_w=conf->nprocs/2;
@@ -517,6 +524,7 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
     conf->nr_proc_w=conf->nprocs;
     nprocinit=conf->nprocs;
   }
+
 	for (i = 0; i < conf->nprocs; ++i) {
 	  if ((pids[i] = fork()) < 0) {
 	    perror("error forking");
@@ -524,22 +532,26 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 	  } else if (pids[i] == 0) {
 		  printf("loading process %d\n",i);
 
-		  if(conf->mixedIO==1){     
-
+		  if(conf->mixedIO==1){
+			 findex = (findex + 1) % conf->nprocs/2;
 			 //choose to launch read or write process
 			 if(i<conf->nprocs/2){
 				 //work performed by each process
-				 printf("WRITE-proc %d\n",i);
+				 // TODO: pass pfiles[findex]
+				 printf("WRITE-proc - %d\n", i);
 				 process_run(i, conf->nprocs/2, conf->ratiow, WRITE, conf, info);
+
 			 }
 			 else{
+				 // TODO: pass pfiles[findex]
 				 //work performed by each process
-				 printf("READ-proc %d\n",i);
+				 printf("READ-proc - %d\n", i-(conf->nprocs/2));
 				 process_run(i-(conf->nprocs/2), conf->nprocs/2, conf->ratior, READ, conf, info);
 			 }
 		  }
 		  else{
 			  //work performed by each process
+			  printf("proc - %d\n", i);
 			  process_run(i, conf->nprocs, conf->ratio, conf->iotype, conf, info);
 		  }
 		  //sleep(10);
@@ -1033,7 +1045,6 @@ int main(int argc, char *argv[]){
     if(conf.distout==1){
     	init_db(DISTDB,conf.dbpdist,conf.envpdist);
     	gen_outputdist(&info, conf.dbpdist,conf.envpdist);
-
 		/* this could be done a lot better */
 		char dirOut[256] = "results/distribution/";
 		char dirPlot[256] = "results/distribution/";
@@ -1055,8 +1066,8 @@ int main(int argc, char *argv[]){
     	FILE* fpp=fopen(dirOut,"w");
 		FILE* fpcumul = fopen(dirDistCumul, "w");
     	print_elements_print(conf.dbpdist, conf.envpdist,fpp, fpcumul);
-    	fclose(fpp);
 		fclose(fpcumul);
+    	fclose(fpp);
 
 		FILE* fpplot = fopen(dirPlot, "w");
 		write_plot_file_distribution(fpplot, distcumulfile, conf.distfile);

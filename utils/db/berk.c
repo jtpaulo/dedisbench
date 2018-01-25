@@ -344,7 +344,7 @@ static int find_bucket( unsigned long long int key ){
 	return bucket;
 }
 
-int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
+int print_elements_print(DB **dbp, DB_ENV **envp,FILE* fp, FILE* fpcumul){
   int ret, init = 1, final = 10, max = 0;
 
   // [1:5[[5:10[[10:50[[50:100[[100:500[[500:1000[
@@ -352,7 +352,7 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
   /* how to compute the appropriate size of the array */
   int dups_len = 50;
   unsigned long long int *dups = calloc(dups_len, sizeof(unsigned long long int));
-  memset(dups, 0, sizeof(unsigned long long int)*dups_len);
+  //memset(dups, 0, sizeof(unsigned long long int)*dups_len);
   /*
   unsigned long long int dups[50];
   memset(dups, 0, sizeof(unsigned long long int)*50);
@@ -375,6 +375,7 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
    
    if(!(unsigned long long int)*((uint64_t *)key.data)){
 	   fprintf(fpcumul, "[0] %llu\n", (unsigned long long int)((struct hash_value *)data.data)->cont);
+	   dups[0] = (unsigned long long int)((struct hash_value*)data.data)->cont;
    
    }
    else{ 
@@ -397,6 +398,7 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
 		   arr_pos = (bucket*2)-1;
 		   max = (bucket*2)-1 > max ? (bucket*2)-1 : max;
 	   }
+
 	   if(arr_pos >= dups_len){
 		   dups = realloc(dups, sizeof(unsigned long long int)*dups_len*2);
 		   memset(dups + dups_len, 0, sizeof(unsigned long long int)*dups_len);
@@ -404,6 +406,7 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
 	   }
 	   
 	   dups[arr_pos]+=data_data;
+
 //	   dups[bucket] += data_data;
    }
   }
@@ -435,10 +438,12 @@ int print_elements_print(DB **dbp, DB_ENV **envp,FILE *fp, FILE *fpcumul){
   }
 
 
-  if (cursorp != NULL)
+  free(dups);
+/*
+  if (cursorp != NULL){
     cursorp->close(cursorp);
-
-/*  fclose(nfp); */
+  }
+*/
   return 0;
 }
 
