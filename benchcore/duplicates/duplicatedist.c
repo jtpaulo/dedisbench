@@ -383,7 +383,7 @@ int compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size, 
   if(memcmp(buf,bufaux,block_size)!=0){
     i=check_block_content(buf, block_size);
     if(i==0 && final_check==0){
-      fprintf(fpi,"There was a mismatch regarding the last content written for the block isth id %llu and the content read.\n", (long long unsigned int) infowrite.cont_id);
+      fprintf(fpi,"There was a mismatch regarding the last content written for the block is id %llu and the content read.\n", (long long unsigned int) infowrite.cont_id);
       fprintf(fpi,"Such is possible if the workload being ran is a mixed IO workload\n");
       fprintf(fpi,"Nevertheless the content of the block seems well built\n");
       return 1;

@@ -95,7 +95,7 @@ int loadmmap(uint64_t **mem,uint64_t *sharedmem_size,int *fd_shared, struct dupl
 
     info->content_tracker=malloc(sizeof(struct block_info *)*nr_procs);
     for (i=0; i<nr_procs; i++){
-      info->content_tracker[i]=content_map+(i*nr_procs);
+      info->content_tracker[i]=content_map+(i*conf->totblocks);
     }
 
     return 0;

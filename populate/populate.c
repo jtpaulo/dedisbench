@@ -55,12 +55,12 @@ int create_pfile(int procid, struct user_confs *conf){
   
   printf("%s\n", conf->tempfilespath); 
   if(conf->odirectf==1){
-    printf("opening %s with O_DIRECT\n",name);
+    //printf("opening %s with O_DIRECT\n",name);
     //device where the process will write
     fd_test = open(name, O_RDWR | O_LARGEFILE | O_CREAT | O_DIRECT, 0644);
   }
    else{
-     printf("opening %s\n",name);
+     //printf("opening %s\n",name);
      //device where the process will write
      fd_test = open(name, O_RDWR | O_LARGEFILE | O_CREAT, 0644);
    }
@@ -163,7 +163,7 @@ uint64_t real_populate(int fd, struct user_confs *conf, struct duplicates_info *
       perror("Error populating file");
     }
 
-    if(conf->integrity==1){
+    if(conf->integrity>=1){
           int pos = (conf->rawdevice==1) ? 0 : idproc;
           info->content_tracker[pos][bytes_written/conf->block_size].cont_id=info_write.cont_id;     
           info->content_tracker[pos][bytes_written/conf->block_size].procid=info_write.procid;
@@ -304,8 +304,7 @@ void check_integrity(struct user_confs *conf, struct duplicates_info *info){
   FILE *fpi=NULL;
   int integrity_errors=0;
   char ifilename[PATH_SIZE];
-  strcpy(ifilename,conf->integrityfile);
-  strcat(ifilename,"_final_check");
+  strcpy(ifilename,"./results/intgr_final_static_check");
   fpi=fopen(ifilename,"w");
   fprintf(fpi,"Final Integrity Check results\n");
 
