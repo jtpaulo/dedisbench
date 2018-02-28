@@ -55,13 +55,13 @@ $ make
 
 Required flags
 
- -p or -n`value`                Peak or Nominal Load with throughput rate of N operations per 
-                                second. If mixed nominal benchmark of read and writes is defined then use -nr`value` and -nw`value`
-                                for nominal rate of reads and writes respectively.
+ -p or -n`value`        Peak or Nominal Load with throughput rate of N operations per 
+                second. If mixed nominal benchmark of read and writes is defined then use -nr`value` and -nw`value`
+                for nominal rate of reads and writes respectively.
  
- -w or -r or -m                 Write or Read Benchmark or a Mix of write and read operations.
+ -w or -r or -m         Write or Read Benchmark or a Mix of write and read operations.
  
- -t`value` or -s`value`         Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB
+ -t`value` or -s`value`     Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB
 
 # Configuration file options
 
@@ -69,73 +69,73 @@ Required flags
  
 ## [execution] section
  
- distfile=`value`               Input File with duplicate distribution default:internal file conf/dist_personalfiles
-                                DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage;
-                                For choosing these distributions the `value` must be dist_archival, dist_personalfiles or dist_highperf respectively.
-                                The input file details the amount of blocks with a certain number of duplicates
-                                and the format is: <number_duplicates> <number_blocks>
-                                See below for more info for customizing distribution files and above for info on the default distributions.
-    
- nprocs=`value`                 Number of concurrent processes (default:`value`=4). Each process has an 
-                                independent file associated (or a common device if the rawdevice option is used)
+ distfile=`value`       Input File with duplicate distribution default:internal file conf/dist_personalfiles
+                DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage;
+                For choosing these distributions the `value` must be dist_archival, dist_personalfiles or dist_highperf respectively.
+                The input file details the amount of blocks with a certain number of duplicates
+                and the format is: <number_duplicates> <number_blocks>
+                See below for more info for customizing distribution files and above for info on the default distributions.
+  
+ nprocs=`value`         Number of concurrent processes (default:`value`=4). Each process has an 
+                independent file associated (or a common device if the rawdevice option is used)
  
- filesize=`value`               Size of the file of each process in MB. If rawdevice option is used, this parameter defines
-                                the size of the raw device. (default:`value`=2048 MB)
+ filesize=`value`       Size of the file of each process in MB. If rawdevice option is used, this parameter defines
+                the size of the raw device. (default:`value`=2048 MB)
 
- rawdevice=`value`              Processes write/read from a raw device instead of having an independent file. (`value`=path/to/dev)
-                                If more than one process is defined, each process is assingned with an independent chunk of the raw device,
-                                dependent on the raw device size. By default, if this flag is not set each process writes to an individual file.
+ rawdevice=`value`        Processes write/read from a raw device instead of having an independent file. (`value`=path/to/dev)
+                If more than one process is defined, each process is assingned with an independent chunk of the raw device,
+                dependent on the raw device size. By default, if this flag is not set each process writes to an individual file.
  
- integritycheck=`value`         Enable data integrity checks (default:`value`=0):   0 - No integrity check is done
-                                                                                    1 - static integrity check is done when the benchmark ends
-                                                                                    2 - online integrity check is done for benchmark read requests
-                                                                                    3 - both online and static verifications are done
-                                Results are written to ./results/intgr_* 
-                                Files must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct.
+ integritycheck=`value`     Enable data integrity checks (default:`value`=0):   0 - No integrity check is done
+                                          1 - static integrity check is done when the benchmark ends
+                                          2 - online integrity check is done for benchmark read requests
+                                          3 - both online and static verifications are done
+                Results are written to ./results/intgr_* 
+                Files must be pre-populated with realistic content for read and mixed workloads to ensure that integrity checks are always correct.
  
- blocksize=`value`              Size of blocks for I/O operations in Bytes (default:`value`=4096)
+ blocksize=`value`        Size of blocks for I/O operations in Bytes (default:`value`=4096)
  
- sync=`value`                   I/O Operations synchronization (default:`value`=0):     0 - without fsync and O_DIRECT, 
-                                                                                        1 - O_DIRECT, 
-                                                                                        2 - fsync,
-                                                                                        3 - both.
+ sync=`value`         I/O Operations synchronization (default:`value`=0):   0 - without fsync and O_DIRECT, 
+                                            1 - O_DIRECT, 
+                                              2 - fsync,
+                                              3 - both.
  
- populate=`value`               Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). (Only enabled by default (with value 1) for read and mixed tests).
-                                
+ populate=`value`       Enable or disable the population of process files/device before running DEDISbench: 0-disabled, 1-enabled (with realistic content), 2- enabled (with DD). (Only enabled by default (with value 1) for read and mixed tests).
+                
 
- seed=`value`                   Seed for random generator (default:current time). Usefull for repeating
+ seed=`value`         Seed for random generator (default:current time). Usefull for repeating
 
 
 ## [results] section
 
- tempfilespath=`value`          Choose the directory where DEDISbench writes temporary date. (default:`value`=.)
+ tempfilespath=`value`      Choose the directory where DEDISbench writes/reads data. (default:`value`=.)
  
- logging=`value`                I/O latency results are written to a log file to extract additional 
-                                statistics. Each process writes these values in a file called result<processid> and
-                                each line, corresponds to a single I/O operation and presents: 
-                                (latency of I/O operation in microseconds) (current time in seconds).
+ logging=`value`        I/O latency results are written to a log file to extract additional 
+                statistics. Each process writes these values in a file called result<processid> and
+                each line, corresponds to a single I/O operation and presents: 
+                (latency of I/O operation in microseconds) (current time in seconds).
 
- dist_results=`value`           Generate an output log with the distribution actually generated by the benchmark.
-                                This also generates the files needed to plot the distribution with gnuplot.
-                                (`value`=filename)
+ dist_results=`value`     Generate an output log with the distribution actually generated by the benchmark.
+                This also generates the files needed to plot the distribution with gnuplot.
+                (`value`=filename)
 
- access_results=`value`         Generate an output log with the access pattern generated by the benchmark
-                                This also generates the files needed to plot the accesses to each block, throught time, with gnuplot.
-                                (`value`=filename)
+ access_results=`value`     Generate an output log with the access pattern generated by the benchmark
+                This also generates the files needed to plot the accesses to each block, throught time, with gnuplot.
+                (`value`=filename)
  
- general_results=`file`:RU:CD   Write to file path the output of DEDISbench. This feature also writes two additional files with the same name
-                                as given in `file` and a snaplat and snapthr suffix that shows the throughput and latency average values 
-                                for 30 seconds intervals.
-                                RU is the ramp up time in half minutes.
-                                CD is the cool down time also half minutes. 
-                                It also writes the necessary files to plot a graph of both throughput and latency, with gnuplot.
+ general_results=`file`:RU:CD Write to file path the output of DEDISbench. This feature also writes two additional files with the same name
+                    as given in `file` and a snaplat and snapthr suffix that shows the throughput and latency average values 
+                    for 30 seconds intervals.
+                RU is the ramp up time in half minutes.
+                CD is the cool down time also half minutes. 
+                It also writes the necessary files to plot a graph of both throughput and latency, with gnuplot.
 
 ## [structure] section
  
- cleantemp=`value`              Disable the destruction of process temporary files generated by the benchmark (`value`=1).
-                                Default behaviour is to destroy temporary files (`value`=0 - or dont specify this option )
+ cleantemp=`value`        Disable the destruction of process temporary files generated by the benchmark (`value`=1).
+                Default behaviour is to destroy temporary files (`value`=0 - or dont specify this option )
 
- keep_dbs=`value`               Option to keep/delete databases from the previous execution:   0 - deletes databases,
+ keep_dbs=`value`             Option to keep/delete databases from the previous execution:   0 - deletes databases,
                                                                                     1 - keeps databases.
 
 
@@ -196,11 +196,11 @@ rawdevice=path/to/rawdevice
  -z`value`  Path for the folder where duplicates databases are created default: ./gendbs/ . duplicate_db is the database with duplicates information hash->number_dups
 
  -b`value`  Size of blocks to analyse in bytes eg: -b1024,4096,8192 default: -b4096
-    
+  
  -o`value`  Path for the output distribution file. This is only necessary if distribution file of duplicates is going to be generated
  
- -r         Option to delete databases from the previous execution:   0 - deletes databases,
-                                                                      1 - keeps databases.
+ -r     Option to delete databases from the previous execution:   0 - deletes databases,
+                                    1 - keeps databases.
 
  DEDISgen also outputs the files needed to plot the generated distribution with gnuplot.
 
@@ -236,9 +236,9 @@ UTILS for DEDISgen:
 
  -m and -o can be used together or individually if only one operation is intended
 
- -m<db1 folder path> <db2 folder path>      Merges hashes and duplicates of db1 into db2. 
+ -m<db1 folder path> <db2 folder path>    Merges hashes and duplicates of db1 into db2. 
 
- -o<db folder path> <outputfile>        Path for generating the output distribution file of duplicates db.
+ -o<db folder path> <outputfile>    Path for generating the output distribution file of duplicates db.
 
 WARNING: these are supposed to be used in duplicates databases generated by dedisgen that map (hash->number-duplicates). Not intended for distribution dbs that generate the distribution outputs. These databases are on the database folder, which can be specified by the user as parameter with the option -z and by default are on ./gendbs/duplicatedb
 
@@ -266,4 +266,4 @@ Joao Paulo jtpaulo at di.uminho.pt
 
 
 
-    
+  

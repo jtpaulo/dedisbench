@@ -108,7 +108,7 @@ Required flags
 
 ## [results] section
 
- tempfilespath=`value`			Choose the directory where DEDISbench writes temporary date. (default:`value`=.)
+ tempfilespath=`value`			Choose the directory where DEDISbench writes/reads data. (default:`value`=.)
  
  logging=`value`				I/O latency results are written to a log file to extract additional 
 								statistics. Each process writes these values in a file called result<processid> and
