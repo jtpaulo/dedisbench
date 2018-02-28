@@ -6,7 +6,7 @@
 #ifndef PLOTIO_H
 #define PLOTIO_H
 
-#include "structs/defines.h"
+#include "../structs/defines.h"
 
 //
 // writes distribution plotfile to be passed to gnuplot

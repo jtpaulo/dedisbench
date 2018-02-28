@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "plotio.h"
-#include "utils/utils.h"
+#include "../utils/utils.h"
 
 static int find_bucket(unsigned long long int i){
 	return order_of_magnitude(i);
