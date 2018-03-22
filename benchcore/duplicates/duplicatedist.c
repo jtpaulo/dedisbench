@@ -391,7 +391,6 @@ int compare_blocks(char* buf, struct block_info infowrite, uint64_t block_size, 
       fprintf(fpi, "Error checking integrity for block with contentid %llu\n", (long long unsigned int) infowrite.cont_id);
       return 1;
     }
-
   }
   return 0;
 }

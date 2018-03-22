@@ -168,6 +168,8 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	  begin=0;
 	  ru_begin = 0;
 	  end=conf->number_ops/nproc;
+
+	  //printf("end is %lu\n", end);
 	  termination_type=SIZE;
   }
 
@@ -271,7 +273,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
     	   fsync(fd_test);
        }
 
-       if(conf->integrity>=2){
+       if(conf->integrity>=1){
        		int pos = (conf->rawdevice==1) ? 0 : idproc;
        		info->content_tracker[pos][iooffset/conf->block_size].cont_id=info_write.cont_id;			
        		info->content_tracker[pos][iooffset/conf->block_size].procid=info_write.procid;
@@ -289,13 +291,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
            perror("Error writing block ");
 
        if(stat.beginio==-1){
-		    if(begin > ru_begin){
+		    if(begin >= ru_begin){
 				stat.beginio=t1;
 				stat.last_snap_time=stat.t1snap;
 			}
        }
 
-	   if(begin > ru_begin){
+	   if(begin >= ru_begin){
 		   stat.latency+=(t2-t1);
 		   stat.snap_lat+=(t2-t1);
 	   }
@@ -342,13 +344,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		}
 
 		if(stat.beginio==-1){
-		   if(begin > ru_begin){
+		   if(begin >= ru_begin){
 			   stat.beginio=t1;
 			   stat.last_snap_time=stat.t1snap;
 		   }
 		}
 
-		if(begin > ru_begin){
+		if(begin >= ru_begin){
 			stat.latency+=(t2-t1);
 			stat.snap_lat+=(t2-t1);
 		}
@@ -364,14 +366,14 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 	 free(buf);
 
 	 //One more operation was performed
-	 if(begin>ru_begin){
+	 if(begin>=ru_begin){
 		 stat.tot_ops++;
 		 stat.snap_totops++;
 	 }
 	 
 	 if(stat.t1snap>=stat.last_snap_time+30*1e6){
 
-			   if(begin > ru_begin){
+			   if(begin >= ru_begin){
 				   stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
 				   stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
 				   stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
@@ -385,7 +387,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 	 if(conf->termination_type==SIZE){
 		   begin++;
-	 }
+	}
 
    }
    else{
@@ -424,7 +426,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
   if(stat.t1snap>stat.last_snap_time){
 	  //Write last snap because ther may be some operations missing
-	  if(begin>ru_begin){
+	  if(begin>=ru_begin){
 		  stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
 		  stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
 		  stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
@@ -554,10 +556,11 @@ void launch_benchmark(struct user_confs* conf, struct duplicates_info *info){
 	/* Wait for children to exit. */
 	int status;
 	pid_t pid;
-	while (conf->nprocs > 0) {
+	int nprocstowait=conf->nprocs;
+	while (nprocstowait > 0) {
 	  pid = wait(&status);
 	  printf("Terminating process with PID %ld exited with status 0x%x.\n", (long)pid, status);
-	  --conf->nprocs;
+	  --nprocstowait;
 	}
 	free(pids);
 

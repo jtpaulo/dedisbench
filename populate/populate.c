@@ -53,7 +53,7 @@ int create_pfile(int procid, struct user_confs *conf){
   strcat(name,TMP_FILE);
   strcat(name,id);
   
-  printf("%s\n", conf->tempfilespath); 
+  //printf("%s\n", conf->tempfilespath); 
   if(conf->odirectf==1){
     //printf("opening %s with O_DIRECT\n",name);
     //device where the process will write
@@ -277,9 +277,14 @@ int file_integrity(int fd, struct user_confs *conf, struct duplicates_info *info
   uint64_t bytes_read=0;
   while(bytes_read<conf->filesize){
 
+
     int res = pread(fd,buf,conf->block_size,bytes_read);
-    if(res<0){
-      perror("Error reading in integrity tests\n");
+
+    //printf("pread size %lu  offset %lu res %d...\n", conf->block_size, bytes_read, res);
+    if(res<=0){
+      //perror("Error reading in integrity tests\n");
+      printf("Reading block in offset %llu, with size %d returned %d. Maybe the files was not populated correctly?\n", bytes_read, conf->block_size, res);
+      fprintf(fpi, "Reading block in offset %llu, with size %d returned %d. Maybe the files was not populated correctly? The next integrity error is related with this message: ", bytes_read, conf->block_size, res);   
     }
 
     res+=compare_blocks(buf, info->content_tracker[idproc][bytes_read/conf->block_size], conf->block_size, fpi, 1);
@@ -330,6 +335,8 @@ void check_integrity(struct user_confs *conf, struct duplicates_info *info){
         strcat(name,TMP_FILE);
         strcat(name,id);
         
+        printf("Running for proc %s...\n", name);
+
         fd = create_pfile(i,conf);
         integrity_errors += file_integrity(fd,conf, info, i, fpi);
         close(fd);        
@@ -343,8 +350,10 @@ void check_integrity(struct user_confs *conf, struct duplicates_info *info){
 
   if(integrity_errors>0){
     printf("Found %d integrity errors see %s file for more details\n", integrity_errors, ifilename);
+    fprintf(fpi,"Found %d integrity errors see %s file for more details\n", integrity_errors, ifilename);
   }else{
     fprintf(fpi,"No integrity issues found\n");
+    printf("No integrity issues found\n");
   }
   fclose(fpi);
 
