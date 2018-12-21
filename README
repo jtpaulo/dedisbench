@@ -199,8 +199,7 @@ rawdevice=path/to/rawdevice
   
  -o`value`  Path for the output distribution file. This is only necessary if distribution file of duplicates is going to be generated
  
- -r     Option to delete databases from the previous execution:   0 - deletes databases,
-                                    1 - keeps databases.
+ -k         Option to keep databases from the previous execution
 
  DEDISgen also outputs the files needed to plot the generated distribution with gnuplot.
 
