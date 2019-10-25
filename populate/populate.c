@@ -260,6 +260,16 @@ void populate(struct user_confs *conf, struct duplicates_info *info){
 
 }
 
+void insert_bug(int fd, int block_size, int offset){
+
+  char bug_buffer[block_size+1];
+  int i = 0;
+
+  /* buffer full of 'b's */
+  for(i=0; i < block_size;i++) bug_buffer[i]='b';
+  pwrite(fd, bug_buffer, block_size, offset);
+
+}
 
 int file_integrity(int fd, struct user_confs *conf, struct duplicates_info *info, int idproc, FILE* fpi){
 
@@ -278,13 +288,13 @@ int file_integrity(int fd, struct user_confs *conf, struct duplicates_info *info
   while(bytes_read<conf->filesize){
 
 
-    int res = pread(fd,buf,conf->block_size,bytes_read);
+    int res_pread = pread(fd,buf,conf->block_size,bytes_read);
 
     //printf("pread size %lu  offset %lu res %d...\n", conf->block_size, bytes_read, res);
-    if(res<=0){
+    if(res_pread<=0){
       //perror("Error reading in integrity tests\n");
-      printf("Reading block in offset %llu, with size %d returned %d. Maybe the files was not populated correctly?\n", bytes_read, conf->block_size, res);
-      fprintf(fpi, "Reading block in offset %llu, with size %d returned %d. Maybe the files was not populated correctly? The next integrity error is related with this message: ", bytes_read, conf->block_size, res);   
+      printf("Reading block in offset %llu, with size %d returned %d. Maybe the files was not populated correctly?\n", bytes_read, conf->block_size, res_pread);
+      fprintf(fpi, "Reading block in offset %llu, with size %d returned %d. Maybe the files was not populated correctly? The next integrity error is related with this message: ", bytes_read, conf->block_size, res_pread);   
     }
 
     res+=compare_blocks(buf, info->content_tracker[idproc][bytes_read/conf->block_size], conf->block_size, fpi, 1);
@@ -350,7 +360,7 @@ void check_integrity(struct user_confs *conf, struct duplicates_info *info){
 
   if(integrity_errors>0){
     printf("Found %d integrity errors see %s file for more details\n", integrity_errors, ifilename);
-    fprintf(fpi,"Found %d integrity errors see %s file for more details\n", integrity_errors, ifilename);
+    fprintf(fpi,"Found %d integrity errors\n", integrity_errors);
   }else{
     fprintf(fpi,"No integrity issues found\n");
     printf("No integrity issues found\n");
