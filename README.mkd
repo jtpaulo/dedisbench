@@ -26,7 +26,9 @@ DEDISbench comes with three distinct distributions extracted from real storage s
 - An Archival storage where most files have a write-once policy, with non-significant updates, but with sporadic data deletion. This distribution is called dist_archival.
 - A Personal Files storage where some files are updated and deleted frequently and the I/O requests latency is expected to be lower than the one found in archival storages. This distributions is called dist_personalfiles.
 - A High Performance storage where most files are updated and deleted frequently and I/O latency is expected to be as minimal as possible. This distribution is called dist_highperf.
-  
+- Dataset with containing 40 versions of the linux kernel (2.6.0 - 2.6.39) downloaded from https://mirrors.edge.kernel.org/pub/linux/kernel/v2.6/. This distribution is called dist_kernels.
+- Dataset containing 33 Ubuntu images downloaded from https://cloud-images.ubuntu.com/. This dataset This distribution is called dist_ubuntuamd.
+ 
 All these distributions are available and can be simulated by DEDISbench.
 NOTE: By default DEDISbench uses the Personal Files Storage distribution.
 
@@ -61,7 +63,7 @@ Required flags
  
  -w or -r or -m					Write or Read Benchmark or a Mix of write and read operations.
  
- -t`value` or -s`value`			Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB
+ -t`value` or -s`value`			Benchmark duration (-t) in Minutes or amount of data to write (-s) in MB. If both are chosen, the first condition to be reached will end the benchmark.
 
 # Configuration file options
 
@@ -70,8 +72,9 @@ Required flags
 ## [execution] section
  
  distfile=`value`				Input File with duplicate distribution default:internal file conf/dist_personalfiles
-								DEDISbench can simulate three real distributions extracted respectively from an Archival, Personal Files and High Performance Storage;
-								For choosing these distributions the `value` must be dist_archival, dist_personalfiles or dist_highperf respectively.
+								DEDISbench can simulate five real distributions.
+								For choosing these distributions the `value` must be dist_archival, dist_personalfiles, dist_highperf,
+								dist_kernels or dist_ubuntuamd respectively.
 								The input file details the amount of blocks with a certain number of duplicates
 								and the format is: <number_duplicates> <number_blocks>
 								See below for more info for customizing distribution files and above for info on the default distributions.
@@ -126,8 +129,8 @@ Required flags
  general_results=`file`:RU:CD	Write to file path the output of DEDISbench. This feature also writes two additional files with the same name
  					        	as given in `file` and a snaplat and snapthr suffix that shows the throughput and latency average values 
  					        	for 30 seconds intervals.
-								RU is the ramp up time in half minutes.
-								CD is the cool down time also half minutes. 
+								RU is the ramp up time in seconds.
+								CD is the cool down time in seconds. 
 								It also writes the necessary files to plot a graph of both throughput and latency, with gnuplot.
 
 ## [structure] section

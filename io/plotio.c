@@ -148,10 +148,10 @@ int write_access_data(const uint64_t* accessesarray, struct user_confs* conf, ch
 
 
 
-static void write_snaplat_data(struct stats* stat, int index, FILE* f, FILE* fcompat){
+static void write_snaplat_data(struct stats* stat, FILE* f, FILE* fcompat){
 	
 	fprintf(f,"%llu 0 0\n",(unsigned long long int)stat->beginio);
-	for(;index < stat->iter_snap; index++){
+	for(int index=0;index < stat->iter_snap; index++){
 		if(f)
 			fprintf(f, "%llu %.3f %f\n", (unsigned long long int) stat->snap_time[index], stat->snap_latency[index], stat->snap_ops[index]);
 		if(fcompat)
@@ -162,10 +162,10 @@ static void write_snaplat_data(struct stats* stat, int index, FILE* f, FILE* fco
 
 
 
-static void write_snapthr_data(struct stats* stat, int index, FILE* f, FILE* fcompat){
+static void write_snapthr_data(struct stats* stat, FILE* f, FILE* fcompat){
 	
 	fprintf(f,"%llu 0 0\n",(unsigned long long int)stat->beginio);
-	for(;index < stat->iter_snap; index++){
+	for(int index=0 ;index < stat->iter_snap; index++){
 		if(f)
 			fprintf(f, "%llu %.3f %f\n", (unsigned long long int) stat->snap_time[index], stat->snap_throughput[index], stat->snap_ops[index]);
 		if(fcompat)
@@ -235,7 +235,7 @@ int write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf, 
 		  return ret;
 	  }
 	  //printf("DONE\n");
-	  fprintf(pf,"%llu 0 0\n", (unsigned long long int)stat->beginio);
+	  //fprintf(pf,"%llu 0 0\n", (unsigned long long int)stat->beginio);
 	  
 	  //printf("Opening %s...", snap_lat_dir_compat);
 	  FILE* pfcompat = fopen(snap_lat_dir_compat,"w");
@@ -245,7 +245,7 @@ int write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf, 
 		  return ret;
 	  }
 	  //printf("DONE\n");
-	  write_snaplat_data(stat, conf->start+1, pf, pfcompat); 
+	  write_snaplat_data(stat, pf, pfcompat); 
 	  fclose(pf);
 	  fclose(pfcompat);
 	
@@ -261,9 +261,9 @@ int write_latency_throughput_snaps(struct stats* stat, struct user_confs* conf, 
 		  return ret;
 	  }
 
-	  fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat->beginio);
+	  //fprintf(pf,"%llu 0 0\n",(unsigned long long int)stat->beginio);
 	  
-	  write_snapthr_data(stat, conf->start+1,pf,pfcompat); 
+	  write_snapthr_data(stat, pf,pfcompat); 
 	  fclose(pf);
 	  fclose(pfcompat);
 	 

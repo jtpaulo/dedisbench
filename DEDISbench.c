@@ -144,33 +144,31 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   stat.snap_ops=malloc(sizeof(double)*1000);
   stat.snap_time=malloc(sizeof(unsigned long long int)*1000);
 
-  //check if terminationis time or not
-  int termination_type;
-  uint64_t begin;
-  uint64_t end;
+  uint64_t begin_time, begin_size;
+  uint64_t end_time, end_size;
   uint64_t ru_begin;
   struct timeval tim;
-  int duration = conf->time_to_run;
-  if(duration > 0 ){
+
+
+  gettimeofday(&tim, NULL);
+  begin_time=tim.tv_sec;
+  ru_begin = begin_time + conf->start;
+
+  if(conf->time_to_run > 0 ){
 	  //Get current time to mark the beggining of the benchmark and check
 	  //when it should end
-
-	  gettimeofday(&tim, NULL);
-	  begin=tim.tv_sec;
-	  ru_begin = begin + conf->start*30;
-	  end = begin+duration - conf->finish*30;
-
-	  termination_type=TIME;
-
+	  end_time = begin_time + conf->start + conf->time_to_run - conf->finish;
+  }else{
+  	end_time=UINT64_MAX;
   }
-  //SIZE termination
-  else{
-	  begin=0;
-	  ru_begin = 0;
-	  end=conf->number_ops/nproc;
 
-	  //printf("end is %lu\n", end);
-	  termination_type=SIZE;
+
+  if(conf->number_ops > 0 ){
+	  begin_size=0;
+	  end_size=conf->number_ops/nproc;
+  }
+  else{
+  	end_size=UINT64_MAX;
   }
 
   //global timeval structure for nominal tests
@@ -186,7 +184,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   double time_elapsed=1;
 
   //while bench time has not ended or amount of data is not written
-  while(begin<end){
+  while( begin_time < end_time && begin_size < end_size){
    //for nominal testes only
    //number of operations performed for all processes
    //since we are running N processes concurrently at the same I/O rate
@@ -291,13 +289,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
            perror("Error writing block ");
 
        if(stat.beginio==-1){
-		    if(begin >= ru_begin){
+		    if(begin_time >= ru_begin){
 				stat.beginio=t1;
 				stat.last_snap_time=stat.t1snap;
 			}
        }
 
-	   if(begin >= ru_begin){
+	   if(begin_time >= ru_begin){
 		   stat.latency+=(t2-t1);
 		   stat.snap_lat+=(t2-t1);
 	   }
@@ -344,13 +342,13 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 		}
 
 		if(stat.beginio==-1){
-		   if(begin >= ru_begin){
+		   if(begin_time >= ru_begin){
 			   stat.beginio=t1;
 			   stat.last_snap_time=stat.t1snap;
 		   }
 		}
 
-		if(begin >= ru_begin){
+		if(begin_time >= ru_begin){
 			stat.latency+=(t2-t1);
 			stat.snap_lat+=(t2-t1);
 		}
@@ -365,28 +363,28 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
 	 free(buf);
 
-	 //One more operation was performed
-	 if(begin>=ru_begin){
+	//One more operation was performed
+	if(begin_time>=ru_begin){
 		 stat.tot_ops++;
 		 stat.snap_totops++;
-	 }
 	 
-	 if(stat.t1snap>=stat.last_snap_time+30*1e6){
+		 if(stat.t1snap>=stat.last_snap_time+30*1e6){
 
-			   if(begin >= ru_begin){
-				   stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
-				   stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
-				   stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
-				   stat.snap_time[stat.iter_snap]=stat.t1snap;
-			   }
-	    	   stat.iter_snap++;
-			   stat.snap_lat=0;
-			   stat.snap_totops=0;
-			   stat.last_snap_time=stat.t1snap;
-	 }
+		 		   if(begin_time >= ru_begin){
+					   stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
+					   stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
+					   stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
+					   stat.snap_time[stat.iter_snap]=stat.t1snap;
+				   }
+		    	   stat.iter_snap++;
+				   stat.snap_lat=0;
+				   stat.snap_totops=0;
+				   stat.last_snap_time=stat.t1snap;
+		 }
 
-	 if(conf->termination_type==SIZE){
-		   begin++;
+		 if(conf->number_ops>0){
+			   begin_size++;
+		 }
 	}
 
    }
@@ -411,10 +409,8 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
    //update current time
    gettimeofday(&tim, NULL);
-   if(termination_type==TIME){
-	   begin=tim.tv_sec;
-   }
-
+   begin_time=tim.tv_sec;
+   
   }
 
 
@@ -426,7 +422,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
 
   if(stat.t1snap>stat.last_snap_time){
 	  //Write last snap because ther may be some operations missing
-	  if(begin>=ru_begin){
+  	  if(begin_time>=ru_begin){
 		  stat.snap_throughput[stat.iter_snap]=(stat.snap_totops/((stat.t1snap-stat.last_snap_time)/1.0e6));
 		  stat.snap_latency[stat.iter_snap]=(stat.snap_lat/stat.snap_totops)/1000;
 		  stat.snap_ops[stat.iter_snap]=(stat.snap_totops);
@@ -440,7 +436,7 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
   }
 
   //calculate average latency milisseconds
-  if(begin >= ru_begin){
+  if(begin_time >= ru_begin){
 	  stat.latency=(stat.latency/stat.tot_ops)/1000.0;
 	  stat.throughput=(stat.tot_ops/((stat.endio-stat.beginio)/1.0e6));
   }
@@ -663,24 +659,18 @@ static int config_handler(void* config, const char* section, const char* name, c
 			strcpy(conf->printfile, token);
 		}
 
-		if(conf->termination_type == TIME){
-			token = strtok(NULL, ":");
-			if(token)
-				conf->start = atoi(token);
+		token = strtok(NULL, ":");
+		if(token)
+			conf->start = atoi(token);
 
-			token = strtok(NULL, ":");
-			if(token)
-				conf->finish = atoi(token);
-
-		}
-
+		token = strtok(NULL, ":");
+		if(token)
+			conf->finish = atoi(token);
 
 		free(val);	
-		if(conf->termination_type == TIME){
-			printf("Ramp up time: %d sec\n", conf->start*30);
-			printf("Cool down time: %d sec\n", conf->finish*30);
-		}
-
+		printf("Ramp up time: %d sec\n", conf->start);
+		printf("Cool down time: %d sec\n", conf->finish);
+		
 		printf("Output of DEDISbench will be printed to './results/%s'\n", conf->printfile);
 	}
 	else if(MATCH("results","access_results")){
@@ -798,8 +788,8 @@ int main(int argc, char *argv[]){
 	.zero_copy_blocks=0, .u_count =0};
 
 	struct user_confs conf = {.destroypfile = 1, .start=0, .finish=0, .accesstype = TPCC, .iotype = -1, .testtype = -1,
-	.ratio = -1, .ratiow = -1, .ratior = -1, .termination_type = -1, .nprocs = 4, .filesize = 2048LLU,
-	.block_size = 4096LL, .populate=-1};
+	.ratio = -1, .ratiow = -1, .ratior = -1, .nprocs = 4, .filesize = 2048LLU,
+	.block_size = 4096LL, .populate=-1, .time_to_run=0, .number_ops=0};
 	conf.seed=tim.tv_sec*1000000+(tim.tv_usec);
 	bzero(conf.tempfilespath,PATH_SIZE);
 	bzero(conf.printfile,PATH_SIZE);
@@ -807,7 +797,6 @@ int main(int argc, char *argv[]){
 	bzero(conf.rawpath,PATH_SIZE);
 	bzero(conf.distfile,PATH_SIZE);
 	bzero(conf.outputfile,PATH_SIZE);
-	
 
    	while ((argc > 1) && (argv[1][0] == '-'))
 	{
@@ -861,29 +850,14 @@ int main(int argc, char *argv[]){
 				  printf("Cannot use both -p and -n\n\n");
 				  usage();}
 				break;
-
 			case 'm':
 				conf.mixedIO=1;
 				break;
 			case 't':
-				if(conf.termination_type!=SIZE){
-					conf.termination_type=TIME;
-					conf.time_to_run=atoi(&argv[1][2]);
-				}
-				else{
-					printf("Cannot use both -t and -s\n\n");
-					usage();
-				}
+				conf.time_to_run=atoi(&argv[1][2]);
 				break;
 			case 's': 
-				if(conf.termination_type!=TIME){
-					conf.termination_type=SIZE;
-					conf.number_ops=atoll(&argv[1][2]);
-				}
-				else{
-					printf("Cannot use both -t and -s\n\n");
-					usage();
-				}
+				conf.number_ops=atoll(&argv[1][2]);
 				break;
 			case 'f':
 				if(!confarg){
@@ -922,22 +896,10 @@ int main(int argc, char *argv[]){
 		exit(0);
 	}
 	//test if testype is defined
-	if(conf.termination_type!=TIME && conf.termination_type!=SIZE){
-			printf("missing -t or -s<value>\n\n");
+	if(conf.number_ops<=0 && conf.time_to_run<=0){
+			printf("missing -t or -s<value> with value higher than 0 \n\n");
 			usage();
 			exit(0);
-	}
-	//test if time_to_run is defined and > 0
-	if(conf.termination_type==TIME && conf.time_to_run<0){
-		printf("missing -t<value> with value higher than 0\n\n");
-		usage();
-		exit(0);
-	}
-	//test if numbe_ops is defined and > 0
-	if(conf.termination_type==SIZE && conf.number_ops<0){
-		printf("missing -s<value> with value higher than 0\n\n");
-		usage();
-		exit(0);
 	}
 
 	//test if filesize > 0
@@ -979,10 +941,10 @@ int main(int argc, char *argv[]){
     conf.totblocks = conf.filesize/conf.block_size;
 
     //convert time_to_run to seconds
-    if(conf.termination_type==TIME)
+    if(conf.time_to_run > 0)
     	conf.time_to_run=conf.time_to_run*60;
 
-    if(conf.termination_type==SIZE)
+    if(conf.number_ops > 0)
     	conf.number_ops=(conf.number_ops*1024*1024)/conf.block_size;
 
 
