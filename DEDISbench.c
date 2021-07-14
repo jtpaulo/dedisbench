@@ -964,6 +964,24 @@ int main(int argc, char *argv[]){
     	load_duplicates(&info,conf.distfile);
     }
     else{
+        /*todo:there must exist a distinction between three situations:
+         * - the user specifies a valid distribution file;
+         * - the user specifies an invalid distribution file;
+         * - the user doesn't provide a distribution file.
+         * This if statement (below) is preventing DEDISbench from running
+         * when an invalid distribution file is provided. Other
+         * situations where DEDISbench should work fine may be halted
+         * too, yet none was found. If this else statement (above) only
+         * treats this situation, then it is redundant once the program
+         * shoudln't run with a given invalid distribution file.*/
+        FILE* fpp=NULL;
+        if ((fpp = fopen(conf.distfile, "r"))){
+            fclose(fpp);
+        }
+        else{
+            perror("Cant open file");
+            exit(0);
+        }
     	//get global information about duplicate and unique blocks
     	printf("loading duplicates distribution %s...\n",DFILE);
     	get_distribution_stats(&info,DFILE);
