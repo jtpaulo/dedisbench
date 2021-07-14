@@ -285,9 +285,11 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
        //t1snap must take value of t2 because we want to get the time when requets are processed
        stat.t1snap=t2;
 
-       if(res ==0 || res ==-1)
+       if(res ==0 || res ==-1) {
            perror("Error writing block ");
-
+           if(strstr(strerror(errno), "No space left on device"))
+               exit(0);
+       }
        if(stat.beginio==-1){
 		    if(begin_time >= ru_begin){
 				stat.beginio=t1;
