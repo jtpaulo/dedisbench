@@ -285,9 +285,11 @@ void process_run(int idproc, int nproc, double ratio, int iotype, struct user_co
        //t1snap must take value of t2 because we want to get the time when requets are processed
        stat.t1snap=t2;
 
-       if(res ==0 || res ==-1)
+       if(res ==0 || res ==-1) {
            perror("Error writing block ");
-
+           if(strstr(strerror(errno), "No space left on device"))
+               exit(0);
+       }
        if(stat.beginio==-1){
 		    if(begin_time >= ru_begin){
 				stat.beginio=t1;
@@ -964,6 +966,24 @@ int main(int argc, char *argv[]){
     	load_duplicates(&info,conf.distfile);
     }
     else{
+        /*todo:there must exist a distinction between three situations:
+         * - the user specifies a valid distribution file;
+         * - the user specifies an invalid distribution file;
+         * - the user doesn't provide a distribution file.
+         * This if statement (below) is preventing DEDISbench from running
+         * when an invalid distribution file is provided. Other
+         * situations where DEDISbench should work fine may be halted
+         * too, yet none was found. If this else statement (above) only
+         * treats this situation, then it is redundant once the program
+         * shoudln't run with a given invalid distribution file.*/
+        FILE* fpp=NULL;
+        if ((fpp = fopen(conf.distfile, "r"))){
+            fclose(fpp);
+        }
+        else{
+            perror("Cant open file");
+            exit(0);
+        }
     	//get global information about duplicate and unique blocks
     	printf("loading duplicates distribution %s...\n",DFILE);
     	get_distribution_stats(&info,DFILE);
